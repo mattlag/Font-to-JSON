@@ -92,6 +92,7 @@ src/
   otf/
     table_cmap.js   — parseCmap(), writeCmap() — fully refactored to use DataReader/DataWriter
     table_head.js   — parseHead(), writeHead() — fixed-size 54-byte table
+    table_hhea.js   — parseHhea(), writeHhea() — fixed-size 36-byte table
 
 test/
   roundtrip.test.js       — import→export→reimport for OTF and TTF (oblegg.otf, oblegg.ttf)
@@ -102,6 +103,7 @@ test/
     otf.test.js            — header parsing, table directory, required tables
     table_cmap.test.js     — cmap parsing, round-trip, format 4 specifics
     table_head.test.js     — head parsing, field validation, round-trip, size check
+    table_hhea.test.js     — hhea parsing, metrics, reserved fields, round-trip, size check
 ```
 
 ## Completed Work
@@ -128,6 +130,14 @@ test/
 - **checksumAdjustment**: Global font checksum adjustment — we preserve the original value on round-trip (no recalculation)
 - Tests: 9 in table_head.test.js
 
+### hhea Table (`src/otf/table_hhea.js`)
+
+- **Fixed-size**: Always 36 bytes
+- **Key field**: `numberOfHMetrics` — used by hmtx table to determine how many full longHorMetric records exist
+- **Reserved fields**: 4 reserved int16 fields (reserved1–reserved4), must be 0. We preserve them for round-trip fidelity.
+- **FWORD/UFWORD types**: ascender, descender, lineGap use fword (signed int16); advanceWidthMax uses ufword (unsigned uint16)
+- Tests: 9 in table_hhea.test.js
+
 ### DataReader / DataWriter Refactor
 
 - `import.js` fully uses DataReader
@@ -136,7 +146,7 @@ test/
 
 ## Pending Work (from agent-context.md project plan)
 
-Next tables for OTF, in order: **hhea**, **hmtx**, **maxp**, **name**, **OS-2**, **post**
+Next tables for OTF, in order: **hmtx**, **maxp**, **name**, **OS-2**, **post**
 
 Each follows the same workflow:
 
@@ -160,7 +170,7 @@ Each follows the same workflow:
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
 - **Table-specific tests** validate parsing details (field values, structure)
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 24 tests total, all passing
+- Currently 33 tests total, all passing
 
 ## Gotchas & Lessons Learned
 

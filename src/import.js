@@ -5,6 +5,7 @@
 
 import { parseCmap } from './otf/table_cmap.js';
 import { parseHead } from './otf/table_head.js';
+import { parseHhea } from './otf/table_hhea.js';
 import { DataReader } from './reader.js';
 
 /**
@@ -15,6 +16,7 @@ import { DataReader } from './reader.js';
 const tableParsers = {
 	cmap: parseCmap,
 	head: parseHead,
+	hhea: parseHhea,
 };
 
 /**
