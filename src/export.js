@@ -6,6 +6,9 @@
 import { writeCFF } from './otf/table_CFF.js';
 import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeCmap } from './sfnt/table_cmap.js';
+import { writeGDEF } from './sfnt/table_GDEF.js';
+import { writeGPOS } from './sfnt/table_GPOS.js';
+import { writeGSUB } from './sfnt/table_GSUB.js';
 import { writeHead } from './sfnt/table_head.js';
 import { writeHhea } from './sfnt/table_hhea.js';
 import { writeHmtx } from './sfnt/table_hmtx.js';
@@ -34,6 +37,9 @@ const tableWriters = {
 	CFF2: writeCFF2,
 	loca: writeLoca,
 	glyf: writeGlyf,
+	GDEF: writeGDEF,
+	GPOS: writeGPOS,
+	GSUB: writeGSUB,
 };
 
 /** Size of the font file header (Offset Table) in bytes. */

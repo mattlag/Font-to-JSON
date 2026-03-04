@@ -86,9 +86,9 @@ Tables that are identical for both TrueType- and CFF-based fonts.
 
 ### Advanced Typographic Tables
 
-- [ ] GDEF — Glyph definition data
-- [ ] GPOS — Glyph positioning data
-- [ ] GSUB — Glyph substitution data
+- [x] GDEF — Glyph definition data
+- [x] GPOS — Glyph positioning data
+- [x] GSUB — Glyph substitution data
 - [ ] BASE — Baseline data
 - [ ] JSTF — Justification data
 - [ ] MATH — Math layout data

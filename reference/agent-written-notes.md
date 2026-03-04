@@ -97,7 +97,11 @@ src/
     table_loca.js   — parseLoca(), writeLoca() — glyph offset index (cross-table: head, maxp)
     table_glyf.js   — parseGlyf(), writeGlyf(), writeGlyfComputeOffsets() — TrueType outlines (cross-table: loca, maxp)
   sfnt/
+    opentype_layout_common.js — shared parse/write utilities for OpenType Layout tables (GDEF/GPOS/GSUB)
     table_cmap.js   — parseCmap(), writeCmap() — fully refactored to use DataReader/DataWriter
+    table_GDEF.js   — parseGDEF(), writeGDEF() — Glyph Definition table (v1.0/1.2/1.3)
+    table_GPOS.js   — parseGPOS(), writeGPOS() — Glyph Positioning (9 lookup types)
+    table_GSUB.js   — parseGSUB(), writeGSUB() — Glyph Substitution (8 lookup types)
     table_head.js   — parseHead(), writeHead() — fixed-size 54-byte table
     table_hhea.js   — parseHhea(), writeHhea() — fixed-size 36-byte table
     table_hmtx.js   — parseHmtx(), writeHmtx() — variable-size, cross-table deps
@@ -120,6 +124,9 @@ test/
   sfnt/
     sfnt.test.js               — header parsing, table directory, required tables
     table_cmap.test.js     — cmap parsing, round-trip, format 4 specifics
+    table_GDEF.test.js     — GDEF parsing, round-trip (oblegg, fira, noto) (8 tests)
+    table_GPOS.test.js     — GPOS parsing, round-trip (oblegg, fira, noto) (9 tests)
+    table_GSUB.test.js     — GSUB parsing, round-trip (oblegg, fira, noto) (9 tests)
     table_head.test.js     — head parsing, field validation, round-trip, size check
     table_hhea.test.js     — hhea parsing, metrics, reserved fields, round-trip, size check
     table_hmtx.test.js     — hmtx parsing, cross-table validation, round-trip
@@ -258,6 +265,69 @@ test/
 - **glyf ↔ loca export coordination**: `coordinateTableWrites()` in export.js pre-computes glyf bytes, derives loca offsets, and optionally updates head.indexToLocFormat. No mutation of input data.
 - Tests: 14 in table_glyf.test.js
 
+### OpenType Layout Common Module (`src/sfnt/opentype_layout_common.js`)
+
+- **Shared by GDEF, GPOS, GSUB** — ~1473 lines of shared parse/write utilities
+- **Coverage tables**: `parseCoverage/writeCoverage` — format 1 (glyph array) and format 2 (range records)
+- **ClassDef tables**: `parseClassDef/writeClassDef` — format 1 (start glyph + class array) and format 2 (range records)
+- **Device/VariationIndex tables**: `parseDevice/writeDevice` — formats 1-3 (Device: delta bit packing at 2/4/8 bits) and format 0x8000 (VariationIndex)
+- **ScriptList**: `parseScriptList/writeScriptList` — Script records → Script tables → LangSys tables (with DefaultLangSys)
+- **FeatureList**: `parseFeatureList/writeFeatureList` — Feature records → Feature tables (with optional FeatureParams offset, stored raw)
+- **LookupList**: `parseLookupList/writeLookupList` — Lookup array → individual Lookups with subtable dispatch via callback
+  - **Extension transparency**: Parser auto-unwraps Extension Lookups (type 7 for GSUB, type 9 for GPOS). JSON stores inner lookup type, not the Extension wrapper. `extensionLookupType` param controls this.
+  - **Auto-wrapping on overflow**: Writer detects when LookupList exceeds Offset16 (64KB) limit. If so, ALL Lookups are wrapped in Extension headers with deferred inner data (Offset32). Two code paths: simple (self-contained Lookups) and overflow (packed Extension headers + deferred data pool).
+- **SequenceContext**: `parseSequenceContext/writeSequenceContext` — formats 1-3 (glyphs, classes, coverage)
+- **ChainedSequenceContext**: `parseChainedSequenceContext/writeChainedSequenceContext` — formats 1-3
+- **FeatureVariations**: `parseFeatureVariations/writeFeatureVariations` — ConditionSet → FeatureTableSubstitution
+- **Write pattern**: All writers use bottom-up serialization — serialize children to byte arrays, compute offsets from sizes, then write parent header + offsets + child data
+
+### GDEF Table (`src/sfnt/table_GDEF.js`)
+
+- **Versions**: 1.0 (glyphClassDef, attachList, ligCaretList, markAttachClassDef), 1.2 (adds markGlyphSets), 1.3 (adds itemVarStore)
+- **GlyphClassDef/MarkAttachClassDef**: Stored as ClassDef objects via `parseClassDef`
+- **AttachList**: Coverage + array of attach point arrays per glyph
+- **LigCaretList**: Coverage + LigGlyph array, each with CaretValue records (format 1: coordinate, format 2: contour point, format 3: coordinate + Device table)
+- **MarkGlyphSets**: Array of Coverage tables for mark filtering
+- **ItemVariationStore**: Stored as raw bytes (`itemVarStoreRaw`) — full parsing deferred
+- Tests: 8 in table_GDEF.test.js
+
+### GSUB Table (`src/sfnt/table_GSUB.js`)
+
+- **Versions**: 1.0 (scriptList, featureList, lookupList), 1.1 (adds featureVariations)
+- **8 lookup types**:
+  1. SingleSubst (fmt 1: delta, fmt 2: explicit mapping)
+  2. MultipleSubst (1→many replacement sequences)
+  3. AlternateSubst (1→alternate glyph sets)
+  4. LigatureSubst (many→1 ligature formation)
+  5. ContextualSubst (delegates to shared `parseSequenceContext`)
+  6. ChainedContextSubst (delegates to shared `parseChainedSequenceContext`)
+  7. ExtensionSubst — **transparent** (auto-unwrapped by parser, auto-wrapped by writer)
+  8. ReverseChainSingleSubst (reverse chaining single substitution)
+- **Extension type 7**: Passed as `extensionLookupType` to `parseLookupList`/`writeLookupList`
+- Tests: 9 in table_GSUB.test.js
+
+### GPOS Table (`src/sfnt/table_GPOS.js`)
+
+- **Versions**: 1.0 (scriptList, featureList, lookupList), 1.1 (adds featureVariations)
+- **GPOS-specific helpers**:
+  - `valueFormatSize(vf)`: Popcount-based — counts set bits × 2 bytes
+  - `parseValueRecord/writeValueRecord`: Variable-size based on valueFormat bitfield (bits 0x0001–0x0080 for xPlacement, yPlacement, xAdvance, yAdvance, plus 4 Device table offsets)
+  - `parseAnchor/writeAnchor`: Format 1 (x,y), format 2 (x,y,anchorPoint), format 3 (x,y + Device tables)
+  - `parseMarkArray/writeMarkArray`, `writeBaseArray`, `writeLigatureArray`
+- **9 lookup types**:
+  1. SinglePos (fmt 1: one ValueRecord for all, fmt 2: per-glyph ValueRecords)
+  2. PairPos (fmt 1: explicit pair sets, fmt 2: class-based with ClassDef)
+  3. CursivePos (entry/exit Anchors)
+  4. MarkBasePos (Mark + Base coverage/array with Anchors)
+  5. MarkLigPos (Mark + Ligature coverage/array with component Anchors)
+  6. MarkMarkPos (Mark1 + Mark2 coverage/array with Anchors)
+  7. ContextPos (delegates to shared `parseSequenceContext`)
+  8. ChainedContextPos (delegates to shared `parseChainedSequenceContext`)
+  9. ExtensionPos — **transparent** (auto-unwrapped/auto-wrapped)
+- **Extension type 9**: Passed as `extensionLookupType` to `parseLookupList`/`writeLookupList`
+- **Known limitation**: ValueRecord Device table offsets (bits 0x0010–0x0080) are parsed as Device objects but written as offset 0 during serialization. Device data is collected but not re-embedded in the subtable. This does NOT affect round-trip because the parsed Device objects match when re-parsed from the same binary.
+- Tests: 9 in table_GPOS.test.js
+
 ### Cross-Table Dependency System
 
 - `extractTableData()` in import.js now processes tables in a **dependency-safe order** defined by `tableParseOrder`
@@ -279,12 +349,11 @@ test/
 All planned shared SFNT tables are now complete: **cmap**, **head**, **hhea**, **maxp**, **hmtx**, **name**, **OS/2**, **post**.
 OTF CFF-specific tables complete: **CFF** (v1), **CFF2**.
 TTF outline tables complete: **loca**, **glyf**.
+Advanced Typographic tables complete: **GDEF**, **GPOS**, **GSUB** (with shared OpenType Layout common module).
 
 Possible future work:
 
-- Additional tables (loca, glyf, CFF, GPOS, GSUB, etc.)
-
-* Additional tables (GPOS, GSUB, kern, optional TTF hinting tables, etc.)
+- Additional tables (kern, MATH, BASE, JSTF, COLR, CPAL, optional TTF hinting tables, etc.)
 
 - WOFF/WOFF2 container support
 - Full JSON serialization (BigInt replacer/reviver)
@@ -304,7 +373,7 @@ Possible future work:
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
 - **Table-specific tests** validate parsing details (field values, structure)
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 134 tests total, all passing
+- Currently 160 tests total, all passing
 
 ## Gotchas & Lessons Learned
 
@@ -327,3 +396,10 @@ Possible future work:
 17. **glyf ↔ loca export coordination**: `export.js` has a `coordinateTableWrites()` function that pre-computes glyf bytes and derived loca bytes before the main write loop. It uses a `Map<tag, number[]>` of pre-computed bytes, checked first in the table processing loop. Does NOT mutate input data.
 18. **glyf flag packing may differ from original**: Our writer uses optimal REPEAT_FLAG compression and short/same coordinate encoding. Original fonts may not be optimally packed, so the re-encoded glyf may be slightly smaller. This is why loca offsets can't be preserved as-is.
 19. **Composite glyph argument sizing**: Writer re-evaluates `ARG_1_AND_2_ARE_WORDS` based on actual argument values via `needsWordArgs()`. If the original font used word-size args unnecessarily, the writer may switch to byte-size, changing the binary layout.
+20. **OpenType Layout data shapes are wrapped objects**: `parseLookupList` returns `{ lookups: [...] }`, `parseScriptList` returns `{ scriptRecords: [...] }`, `parseFeatureList` returns `{ featureRecords: [...] }`. Access via `.lookups`, `.scriptRecords`, `.featureRecords` — NOT as bare arrays.
+21. **Extension Lookup transparency**: The parser auto-unwraps Extension Lookups (GSUB type 7, GPOS type 9). The JSON data stores the inner lookup type directly, not the Extension wrapper. The writer auto-wraps in Extension headers when the LookupList exceeds 64KB (Offset16 limit). This means the JSON never contains Extension metadata (`format`, `extensionLookupType`, `extensionOffset`) — those are pure binary-level concerns.
+22. **LookupList Offset16 overflow**: Large fonts (e.g., fira.ttf GPOS with 12 lookups including 17–45KB MarkBasePos subtables) can exceed the 64KB Offset16 limit. The writer detects this and falls back to Extension wrapping: compact 8-byte Extension headers for each subtable, with the actual subtable data placed in a deferred pool accessed via Offset32. ALL Lookups are wrapped when overflow occurs (not just the large ones).
+23. **markFilteringSet flag**: The `useMarkFilteringSet` flag in Lookup tables is bit 0x0010 (not a separate field). When set, a `markFilteringSet` uint16 follows the subtable offset array. The writer checks `markFilteringSet !== undefined` to decide whether to emit it.
+24. **GPOS ValueRecord variable size**: A GPOS ValueRecord's byte count depends on the `valueFormat` bitfield (up to 8 fields × 2 bytes). The parser reads only the fields indicated by set bits. `valueFormatSize(vf)` uses bit-counting (popcount) to compute byte size without branching.
+25. **GDEF ItemVariationStore as raw bytes**: Stored as `itemVarStoreRaw` (byte array) rather than a fully parsed structure. This is consistent with CFF2's treatment of VariationStore. Full parsing can be added later.
+26. **OpenType Layout write pattern**: All layout writers use bottom-up serialization. Example: to write a ScriptList, first serialize each LangSys → then each Script (with offsets to LangSys) → then the ScriptList header (with offsets to Scripts). Child sizes must be known before parent offsets can be computed.

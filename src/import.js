@@ -7,6 +7,9 @@ import { parseCFF } from './otf/table_CFF.js';
 import { parseCFF2 } from './otf/table_CFF2.js';
 import { DataReader } from './reader.js';
 import { parseCmap } from './sfnt/table_cmap.js';
+import { parseGDEF } from './sfnt/table_GDEF.js';
+import { parseGPOS } from './sfnt/table_GPOS.js';
+import { parseGSUB } from './sfnt/table_GSUB.js';
 import { parseHead } from './sfnt/table_head.js';
 import { parseHhea } from './sfnt/table_hhea.js';
 import { parseHmtx } from './sfnt/table_hmtx.js';
@@ -36,6 +39,9 @@ const tableParsers = {
 	CFF2: parseCFF2,
 	loca: parseLoca,
 	glyf: parseGlyf,
+	GDEF: parseGDEF,
+	GPOS: parseGPOS,
+	GSUB: parseGSUB,
 };
 
 /**
