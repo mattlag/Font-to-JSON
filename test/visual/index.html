@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Font-to-JSON — Visual Round-Trip Comparison</title>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				font-family:
+					system-ui,
+					-apple-system,
+					sans-serif;
+				background: #1a1a2e;
+				color: #e0e0e0;
+				padding: 20px 30px;
+			}
+
+			h1 {
+				font-size: 1.6rem;
+				margin-bottom: 6px;
+				color: #fff;
+			}
+
+			.subtitle {
+				color: #888;
+				margin-bottom: 24px;
+				font-size: 0.9rem;
+			}
+
+			/* Controls bar */
+			.controls {
+				position: sticky;
+				top: 0;
+				background: #1a1a2e;
+				z-index: 100;
+				padding: 12px 0;
+				border-bottom: 1px solid #333;
+				margin-bottom: 20px;
+				display: flex;
+				align-items: center;
+				gap: 20px;
+				flex-wrap: wrap;
+			}
+
+			.controls label {
+				font-size: 0.85rem;
+				color: #aaa;
+			}
+
+			.controls input[type='text'] {
+				background: #2a2a3e;
+				border: 1px solid #444;
+				color: #fff;
+				padding: 6px 10px;
+				border-radius: 4px;
+				font-size: 0.85rem;
+				width: 320px;
+			}
+
+			.controls input[type='range'] {
+				width: 100px;
+				vertical-align: middle;
+			}
+
+			.controls select {
+				background: #2a2a3e;
+				border: 1px solid #444;
+				color: #fff;
+				padding: 6px 10px;
+				border-radius: 4px;
+				font-size: 0.85rem;
+			}
+
+			.size-display {
+				color: #7fdbca;
+				font-variant-numeric: tabular-nums;
+				min-width: 40px;
+				display: inline-block;
+			}
+
+			/* Summary bar */
+			.summary {
+				margin-bottom: 20px;
+				padding: 12px 16px;
+				background: #2a2a3e;
+				border-radius: 6px;
+				font-size: 0.85rem;
+				display: flex;
+				gap: 24px;
+				flex-wrap: wrap;
+			}
+
+			.summary .stat {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+
+			.summary .dot {
+				width: 10px;
+				height: 10px;
+				border-radius: 50%;
+				display: inline-block;
+			}
+
+			.dot-identical {
+				background: #4caf50;
+			}
+			.dot-different {
+				background: #f44336;
+			}
+			.dot-error {
+				background: #ff9800;
+			}
+
+			/* Font card */
+			.font-card {
+				background: #222240;
+				border: 1px solid #333;
+				border-radius: 8px;
+				margin-bottom: 16px;
+				overflow: hidden;
+			}
+
+			.font-card.identical {
+				border-left: 4px solid #4caf50;
+			}
+			.font-card.different {
+				border-left: 4px solid #f44336;
+			}
+			.font-card.error {
+				border-left: 4px solid #ff9800;
+			}
+
+			.card-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 12px 16px;
+				background: #2a2a4a;
+				cursor: pointer;
+				user-select: none;
+			}
+
+			.card-header:hover {
+				background: #32326a;
+			}
+
+			.card-header h2 {
+				font-size: 1rem;
+				font-weight: 600;
+			}
+
+			.card-header .status {
+				font-size: 0.8rem;
+				padding: 3px 10px;
+				border-radius: 12px;
+				font-weight: 600;
+			}
+
+			.status-identical {
+				background: #1b5e20;
+				color: #81c784;
+			}
+			.status-different {
+				background: #b71c1c;
+				color: #ef9a9a;
+			}
+			.status-error {
+				background: #e65100;
+				color: #ffcc80;
+			}
+			.status-pending {
+				background: #333;
+				color: #888;
+			}
+
+			.card-body {
+				padding: 16px;
+			}
+
+			.card-body.collapsed {
+				display: none;
+			}
+
+			/* Render rows */
+			.render-row {
+				display: grid;
+				grid-template-columns: 90px 1fr;
+				align-items: start;
+				margin-bottom: 12px;
+				gap: 8px;
+			}
+
+			.render-label {
+				font-size: 0.75rem;
+				color: #888;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+				padding-top: 4px;
+				text-align: right;
+			}
+
+			.render-text {
+				padding: 8px 12px;
+				background: #1a1a30;
+				border-radius: 4px;
+				line-height: 1.4;
+				word-break: break-all;
+				min-height: 2.2em;
+			}
+
+			.render-text.original {
+				border-left: 2px solid #5c6bc0;
+			}
+			.render-text.roundtrip {
+				border-left: 2px solid #66bb6a;
+			}
+
+			/* Diff canvas area */
+			.diff-section {
+				margin-top: 12px;
+				padding-top: 12px;
+				border-top: 1px solid #333;
+			}
+
+			.diff-section h3 {
+				font-size: 0.8rem;
+				color: #aaa;
+				margin-bottom: 8px;
+				font-weight: 500;
+			}
+
+			.diff-canvases {
+				display: flex;
+				gap: 12px;
+				flex-wrap: wrap;
+			}
+
+			.diff-canvases > div {
+				flex: 1;
+				min-width: 200px;
+			}
+
+			.diff-canvases canvas {
+				width: 100%;
+				image-rendering: auto;
+				border-radius: 4px;
+			}
+
+			.diff-canvases .canvas-label {
+				font-size: 0.7rem;
+				color: #666;
+				margin-bottom: 4px;
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+			}
+
+			.diff-result {
+				margin-top: 8px;
+				font-size: 0.8rem;
+				padding: 6px 10px;
+				border-radius: 4px;
+			}
+
+			.diff-match {
+				background: #1b5e20;
+				color: #81c784;
+			}
+
+			.diff-mismatch {
+				background: #b71c1c;
+				color: #ef9a9a;
+			}
+
+			/* Loading state */
+			.loading {
+				text-align: center;
+				padding: 60px 20px;
+				color: #888;
+				font-size: 1.1rem;
+			}
+
+			.loading .spinner {
+				display: inline-block;
+				width: 24px;
+				height: 24px;
+				border: 3px solid #444;
+				border-top-color: #7fdbca;
+				border-radius: 50%;
+				animation: spin 0.8s linear infinite;
+				margin-bottom: 12px;
+			}
+
+			@keyframes spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Font-to-JSON — Visual Round-Trip Comparison</h1>
+		<p class="subtitle">
+			Each font is loaded as the original file and the round-tripped version.
+			Text is rendered side by side, and a pixel-level diff highlights any
+			visual differences.
+		</p>
+
+		<div class="controls">
+			<label>
+				Test string:
+				<input
+					type="text"
+					id="testString"
+					value="ABCDEFghijklm 0123456789 !@#$%"
+				/>
+			</label>
+			<label>
+				Size: <span class="size-display" id="sizeDisplay">48</span>px
+				<input type="range" id="fontSize" min="12" max="120" value="48" />
+			</label>
+			<label>
+				View:
+				<select id="viewMode">
+					<option value="stacked">Stacked</option>
+					<option value="diff-only">Diff Only</option>
+				</select>
+			</label>
+		</div>
+
+		<div class="summary" id="summary"></div>
+
+		<div id="fontList">
+			<div class="loading">
+				<div class="spinner"></div>
+				<br />Loading fonts and running comparisons…
+			</div>
+		</div>
+
+		<script>
+			// =======================================================================
+			// Configuration
+			// =======================================================================
+
+			const FONT_BASE = '/fonts';
+			const TEST_PHRASES = [
+				'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+				'0123456789 !@#$%^&*()_+-=[]{}|;:\'",.<>?/~`',
+				'The quick brown fox jumps over the lazy dog.',
+				'Handgloves & Jokingly Quizzed Wyverns.',
+			];
+
+			// =======================================================================
+			// State
+			// =======================================================================
+
+			let fonts = []; // [{name, origUrl, rtUrl, origFace, rtFace, status, diffPct}]
+			let currentFontSize = 48;
+			let currentTestString = '';
+			let currentView = 'stacked';
+
+			// =======================================================================
+			// Initialization
+			// =======================================================================
+
+			document.addEventListener('DOMContentLoaded', async () => {
+				// Fetch font manifest from the server
+				const resp = await fetch('/api/fonts');
+				const manifest = await resp.json(); // [{name, original, roundtrip}]
+
+				fonts = manifest.map((entry) => ({
+					name: entry.name,
+					origUrl: `${FONT_BASE}/original/${entry.name}`,
+					rtUrl: `${FONT_BASE}/roundtrip/${entry.name}`,
+					origFace: null,
+					rtFace: null,
+					status: 'pending', // pending | identical | different | error
+					diffPct: null,
+					origSize: entry.originalSize,
+					rtSize: entry.roundtripSize,
+				}));
+
+				// Load all font faces
+				await Promise.all(fonts.map((f, i) => loadFontPair(f, i)));
+
+				// Wire up controls
+				const testStringInput = document.getElementById('testString');
+				const fontSizeInput = document.getElementById('fontSize');
+				const sizeDisplay = document.getElementById('sizeDisplay');
+				const viewMode = document.getElementById('viewMode');
+
+				currentTestString = testStringInput.value;
+				currentFontSize = parseInt(fontSizeInput.value);
+				currentView = viewMode.value;
+
+				testStringInput.addEventListener('input', () => {
+					currentTestString = testStringInput.value;
+					renderAll();
+				});
+
+				fontSizeInput.addEventListener('input', () => {
+					currentFontSize = parseInt(fontSizeInput.value);
+					sizeDisplay.textContent = currentFontSize;
+					renderAll();
+				});
+
+				viewMode.addEventListener('change', () => {
+					currentView = viewMode.value;
+					renderAll();
+				});
+
+				renderAll();
+			});
+
+			async function loadFontPair(fontEntry, index) {
+				const safeName = fontEntry.name.replace(/[^a-zA-Z0-9]/g, '_');
+				const origFamily = `orig_${safeName}_${index}`;
+				const rtFamily = `rt_${safeName}_${index}`;
+
+				try {
+					const [origFace, rtFace] = await Promise.all([
+						new FontFace(origFamily, `url(${fontEntry.origUrl})`).load(),
+						new FontFace(rtFamily, `url(${fontEntry.rtUrl})`).load(),
+					]);
+
+					document.fonts.add(origFace);
+					document.fonts.add(rtFace);
+
+					fontEntry.origFace = origFamily;
+					fontEntry.rtFace = rtFamily;
+					fontEntry.status = 'loaded';
+				} catch (err) {
+					console.warn(`Failed to load ${fontEntry.name}:`, err);
+					fontEntry.status = 'error';
+					fontEntry.errorMsg = err.message;
+				}
+			}
+
+			// =======================================================================
+			// Rendering
+			// =======================================================================
+
+			function renderAll() {
+				renderFontCards();
+				// Run diffs after a small delay so fonts have rendered
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => {
+						runAllDiffs();
+						renderSummary();
+					});
+				});
+			}
+
+			function renderSummary() {
+				const summary = document.getElementById('summary');
+				const identical = fonts.filter((f) => f.status === 'identical').length;
+				const different = fonts.filter((f) => f.status === 'different').length;
+				const errors = fonts.filter((f) => f.status === 'error').length;
+				const pending = fonts.filter(
+					(f) => f.status === 'pending' || f.status === 'loaded',
+				).length;
+
+				summary.innerHTML = `
+		<div class="stat"><span class="dot dot-identical"></span> ${identical} identical</div>
+		<div class="stat"><span class="dot dot-different"></span> ${different} different</div>
+		${errors ? `<div class="stat"><span class="dot dot-error"></span> ${errors} error(s)</div>` : ''}
+		${pending ? `<div class="stat">⏳ ${pending} pending</div>` : ''}
+		<div class="stat" style="color:#666">Total: ${fonts.length} fonts</div>
+	`;
+			}
+
+			function renderFontCards() {
+				const container = document.getElementById('fontList');
+				container.innerHTML = '';
+
+				for (let i = 0; i < fonts.length; i++) {
+					const f = fonts[i];
+					const card = document.createElement('div');
+					card.className = `font-card ${f.status === 'error' ? 'error' : ''}`;
+					card.id = `card-${i}`;
+
+					const testStr = currentTestString || TEST_PHRASES[0];
+					const sizeDiff = f.rtSize - f.origSize;
+					const sign = sizeDiff >= 0 ? '+' : '';
+					const sizeInfo = f.origSize
+						? `${f.origSize.toLocaleString()} → ${f.rtSize.toLocaleString()} bytes (${sign}${sizeDiff.toLocaleString()})`
+						: '';
+
+					let statusClass = 'status-pending';
+					let statusText = 'Comparing…';
+					if (f.status === 'identical') {
+						statusClass = 'status-identical';
+						statusText = '✓ Identical';
+					} else if (f.status === 'different') {
+						statusClass = 'status-different';
+						statusText = `✗ ${f.diffPct.toFixed(3)}% different`;
+					} else if (f.status === 'error') {
+						statusClass = 'status-error';
+						statusText = '⚠ Error';
+					}
+
+					let bodyHTML = '';
+
+					if (f.status === 'error') {
+						bodyHTML = `<p style="color:#ff9800;font-size:0.85rem">
+				Could not load font: ${f.errorMsg || 'Unknown error'}</p>`;
+					} else {
+						const phrases =
+							currentView === 'diff-only'
+								? [testStr]
+								: [testStr, ...TEST_PHRASES];
+						const stackedHTML = phrases
+							.map(
+								(phrase) => `
+				<div class="render-row">
+					<div class="render-label">Original</div>
+					<div class="render-text original"
+						style="font-family:'${f.origFace}',sans-serif; font-size:${currentFontSize}px">
+						${escapeHTML(phrase)}
+					</div>
+				</div>
+				<div class="render-row">
+					<div class="render-label">Round-trip</div>
+					<div class="render-text roundtrip"
+						style="font-family:'${f.rtFace}',sans-serif; font-size:${currentFontSize}px">
+						${escapeHTML(phrase)}
+					</div>
+				</div>
+			`,
+							)
+							.join('');
+
+						bodyHTML = `
+				${currentView !== 'diff-only' ? stackedHTML : ''}
+				<div class="diff-section">
+					<h3>Pixel-level diff — "${escapeHTML(testStr)}"</h3>
+					<div class="diff-canvases">
+						<div>
+							<div class="canvas-label">Original</div>
+							<canvas id="diff-orig-${i}" height="0"></canvas>
+						</div>
+						<div>
+							<div class="canvas-label">Round-trip</div>
+							<canvas id="diff-rt-${i}" height="0"></canvas>
+						</div>
+						<div>
+							<div class="canvas-label">Difference (red = changed pixels)</div>
+							<canvas id="diff-result-${i}" height="0"></canvas>
+						</div>
+					</div>
+					<div class="diff-result" id="diff-msg-${i}"></div>
+				</div>
+			`;
+					}
+
+					card.innerHTML = `
+			<div class="card-header" onclick="toggleCard(${i})">
+				<h2>${escapeHTML(f.name)} <span style="color:#666;font-size:0.8rem;font-weight:400">${sizeInfo}</span></h2>
+				<span class="status ${statusClass}">${statusText}</span>
+			</div>
+			<div class="card-body" id="body-${i}">
+				${bodyHTML}
+			</div>
+		`;
+
+					container.appendChild(card);
+				}
+			}
+
+			function toggleCard(index) {
+				const body = document.getElementById(`body-${index}`);
+				body.classList.toggle('collapsed');
+			}
+
+			// =======================================================================
+			// Pixel Diff
+			// =======================================================================
+
+			function runAllDiffs() {
+				for (let i = 0; i < fonts.length; i++) {
+					if (fonts[i].status === 'error') continue;
+					runDiff(i);
+				}
+			}
+
+			function runDiff(index) {
+				const f = fonts[index];
+				const testStr = currentTestString || TEST_PHRASES[0];
+				const fontSize = currentFontSize;
+
+				const origCanvas = document.getElementById(`diff-orig-${index}`);
+				const rtCanvas = document.getElementById(`diff-rt-${index}`);
+				const diffCanvas = document.getElementById(`diff-result-${index}`);
+				const msgEl = document.getElementById(`diff-msg-${index}`);
+
+				if (!origCanvas || !rtCanvas || !diffCanvas) return;
+
+				// Measure text to size canvases
+				const measureCanvas = document.createElement('canvas');
+				const measureCtx = measureCanvas.getContext('2d');
+				measureCtx.font = `${fontSize}px '${f.origFace}', sans-serif`;
+				const metrics = measureCtx.measureText(testStr);
+				const width = Math.ceil(metrics.width) + 40;
+				const height = Math.ceil(fontSize * 1.8);
+
+				// Set canvas dimensions
+				for (const c of [origCanvas, rtCanvas, diffCanvas]) {
+					c.width = width;
+					c.height = height;
+				}
+
+				// Render original
+				const origCtx = origCanvas.getContext('2d');
+				origCtx.fillStyle = '#fff';
+				origCtx.fillRect(0, 0, width, height);
+				origCtx.fillStyle = '#000';
+				origCtx.font = `${fontSize}px '${f.origFace}', sans-serif`;
+				origCtx.textBaseline = 'middle';
+				origCtx.fillText(testStr, 10, height / 2);
+
+				// Render round-trip
+				const rtCtx = rtCanvas.getContext('2d');
+				rtCtx.fillStyle = '#fff';
+				rtCtx.fillRect(0, 0, width, height);
+				rtCtx.fillStyle = '#000';
+				rtCtx.font = `${fontSize}px '${f.rtFace}', sans-serif`;
+				rtCtx.textBaseline = 'middle';
+				rtCtx.fillText(testStr, 10, height / 2);
+
+				// Compute pixel diff
+				const origData = origCtx.getImageData(0, 0, width, height);
+				const rtData = rtCtx.getImageData(0, 0, width, height);
+				const diffCtx = diffCanvas.getContext('2d');
+				const diffData = diffCtx.createImageData(width, height);
+
+				let diffPixels = 0;
+				const totalPixels = width * height;
+
+				for (let j = 0; j < origData.data.length; j += 4) {
+					const rDiff = Math.abs(origData.data[j] - rtData.data[j]);
+					const gDiff = Math.abs(origData.data[j + 1] - rtData.data[j + 1]);
+					const bDiff = Math.abs(origData.data[j + 2] - rtData.data[j + 2]);
+					const aDiff = Math.abs(origData.data[j + 3] - rtData.data[j + 3]);
+
+					if (rDiff + gDiff + bDiff + aDiff > 0) {
+						// Different pixel — show in red
+						diffData.data[j] = 255; // R
+						diffData.data[j + 1] = 0; // G
+						diffData.data[j + 2] = 0; // B
+						diffData.data[j + 3] = Math.min(
+							255,
+							(rDiff + gDiff + bDiff + aDiff) * 3,
+						);
+						diffPixels++;
+					} else {
+						// Same pixel — show muted version of original
+						diffData.data[j] = origData.data[j];
+						diffData.data[j + 1] = origData.data[j + 1];
+						diffData.data[j + 2] = origData.data[j + 2];
+						diffData.data[j + 3] = 30; // very faint
+					}
+				}
+
+				diffCtx.putImageData(diffData, 0, 0);
+
+				const pct = (diffPixels / totalPixels) * 100;
+				f.diffPct = pct;
+
+				if (pct === 0) {
+					f.status = 'identical';
+					msgEl.className = 'diff-result diff-match';
+					msgEl.textContent = `✓ Pixel-perfect match — 0 different pixels out of ${totalPixels.toLocaleString()}`;
+				} else {
+					f.status = 'different';
+					msgEl.className = 'diff-result diff-mismatch';
+					msgEl.textContent = `✗ ${diffPixels.toLocaleString()} different pixels out of ${totalPixels.toLocaleString()} (${pct.toFixed(4)}%)`;
+				}
+
+				// Update card styling and header status
+				const card = document.getElementById(`card-${index}`);
+				card.className = `font-card ${f.status}`;
+				const statusEl = card.querySelector('.status');
+				if (f.status === 'identical') {
+					statusEl.className = 'status status-identical';
+					statusEl.textContent = '✓ Identical';
+				} else {
+					statusEl.className = 'status status-different';
+					statusEl.textContent = `✗ ${pct.toFixed(3)}% diff`;
+				}
+			}
+
+			// =======================================================================
+			// Utilities
+			// =======================================================================
+
+			function escapeHTML(str) {
+				return str
+					.replace(/&/g, '&amp;')
+					.replace(/</g, '&lt;')
+					.replace(/>/g, '&gt;')
+					.replace(/"/g, '&quot;');
+			}
+		</script>
+	</body>
+</html>
