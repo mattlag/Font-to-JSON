@@ -58,6 +58,17 @@ for (const file of files) {
 		// Write the round-tripped font
 		fs.writeFileSync(outPath, Buffer.from(exported));
 
+		// Write the intermediate JSON
+		const jsonPath = path.join(GENERATED_DIR, file + '.json');
+		fs.writeFileSync(
+			jsonPath,
+			JSON.stringify(
+				fontData,
+				(_k, v) => (typeof v === 'bigint' ? `BigInt:${v}` : v),
+				2,
+			),
+		);
+
 		const origSize = buf.length;
 		const rtSize = exported.byteLength;
 		const diff = rtSize - origSize;

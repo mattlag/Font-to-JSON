@@ -303,6 +303,118 @@
 					transform: rotate(360deg);
 				}
 			}
+
+			/* JSON viewer */
+			.json-section {
+				margin-top: 12px;
+				padding-top: 12px;
+				border-top: 1px solid #333;
+			}
+
+			.json-toggle-btn {
+				background: #2a2a4e;
+				border: 1px solid #555;
+				color: #9fa8da;
+				padding: 6px 14px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 0.8rem;
+				transition: background 0.15s;
+			}
+
+			.json-toggle-btn:hover {
+				background: #3a3a6e;
+			}
+
+			.json-container {
+				margin-top: 10px;
+				max-height: 600px;
+				overflow: auto;
+				background: #111122;
+				border: 1px solid #333;
+				border-radius: 6px;
+				padding: 12px;
+				font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+				font-size: 0.78rem;
+				line-height: 1.5;
+			}
+
+			.json-container.hidden {
+				display: none;
+			}
+
+			.json-search {
+				margin-top: 8px;
+				margin-bottom: 6px;
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
+
+			.json-search input {
+				background: #1a1a30;
+				border: 1px solid #444;
+				color: #e0e0e0;
+				padding: 4px 8px;
+				border-radius: 3px;
+				font-size: 0.78rem;
+				width: 240px;
+			}
+
+			.json-search .match-count {
+				color: #666;
+				font-size: 0.75rem;
+			}
+
+			.json-size {
+				color: #666;
+				font-size: 0.75rem;
+				margin-left: 8px;
+			}
+
+			/* JSON syntax coloring */
+			.j-key {
+				color: #9fa8da;
+			}
+			.j-str {
+				color: #81c784;
+			}
+			.j-num {
+				color: #7fdbca;
+			}
+			.j-bool {
+				color: #f48fb1;
+			}
+			.j-null {
+				color: #888;
+			}
+			.j-brace {
+				color: #bbb;
+			}
+			.j-toggle {
+				cursor: pointer;
+				user-select: none;
+			}
+			.j-toggle:hover {
+				text-decoration: underline;
+			}
+			.j-collapsed {
+				display: none;
+			}
+			.j-ellipsis {
+				color: #666;
+				cursor: pointer;
+			}
+			.j-line {
+				white-space: pre;
+			}
+			.j-line.j-highlight {
+				background: rgba(255, 235, 59, 0.15);
+			}
+			.j-match {
+				background: rgba(255, 235, 59, 0.4);
+				border-radius: 2px;
+			}
 		</style>
 	</head>
 	<body>
@@ -385,6 +497,7 @@
 					diffPct: null,
 					origSize: entry.originalSize,
 					rtSize: entry.roundtripSize,
+					jsonSize: entry.jsonSize || null,
 				}));
 
 				// Load all font faces
@@ -557,6 +670,15 @@
 					</div>
 					<div class="diff-result" id="diff-msg-${i}"></div>
 				</div>
+				<div class="json-section">
+					<button class="json-toggle-btn" onclick="toggleJson(${i})">View Intermediate JSON</button>
+					<span class="json-size" id="json-size-${i}"></span>
+					<div class="json-search hidden" id="json-search-${i}">
+						<input type="text" placeholder="Search JSON…" oninput="searchJson(${i}, this.value)" />
+						<span class="match-count" id="json-match-count-${i}"></span>
+					</div>
+					<div class="json-container hidden" id="json-viewer-${i}">Loading…</div>
+				</div>
 			`;
 					}
 
@@ -706,6 +828,264 @@
 					.replace(/</g, '&lt;')
 					.replace(/>/g, '&gt;')
 					.replace(/"/g, '&quot;');
+			}
+
+			// =======================================================================
+			// JSON Viewer
+			// =======================================================================
+
+			const jsonCache = {}; // index → parsed object
+			const jsonOpen = {}; // index → boolean
+
+			async function toggleJson(index) {
+				const viewer = document.getElementById(`json-viewer-${index}`);
+				const searchBar = document.getElementById(`json-search-${index}`);
+				const sizeEl = document.getElementById(`json-size-${index}`);
+				const btn = viewer.parentElement.querySelector('.json-toggle-btn');
+
+				if (jsonOpen[index]) {
+					viewer.classList.add('hidden');
+					searchBar.classList.add('hidden');
+					btn.textContent = 'View Intermediate JSON';
+					jsonOpen[index] = false;
+					return;
+				}
+
+				jsonOpen[index] = true;
+				btn.textContent = 'Hide JSON';
+				viewer.classList.remove('hidden');
+				searchBar.classList.remove('hidden');
+
+				if (jsonCache[index]) {
+					return; // already loaded
+				}
+
+				viewer.textContent = 'Loading…';
+				try {
+					const f = fonts[index];
+					const resp = await fetch(`/api/json/${encodeURIComponent(f.name)}`);
+					if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+					const text = await resp.text();
+					const data = JSON.parse(text);
+					jsonCache[index] = data;
+
+					const sizeKB = (text.length / 1024).toFixed(1);
+					sizeEl.textContent = `(${sizeKB} KB)`;
+
+					viewer.innerHTML = '';
+					viewer.appendChild(renderJsonTree(data, '', 0, true));
+				} catch (err) {
+					viewer.textContent = `Error loading JSON: ${err.message}`;
+				}
+			}
+
+			/**
+			 * Recursively render a JSON value as a collapsible DOM tree.
+			 */
+			function renderJsonTree(value, key, depth, isLast) {
+				const indent = '  '.repeat(depth);
+				const nextIndent = '  '.repeat(depth + 1);
+				const comma = isLast ? '' : ',';
+
+				const keyPrefix =
+					key !== '' ? `<span class="j-key">"${escapeHTML(key)}"</span>: ` : '';
+
+				if (value === null) {
+					return makeLine(
+						`${indent}${keyPrefix}<span class="j-null">null</span>${comma}`,
+					);
+				}
+
+				if (typeof value === 'boolean') {
+					return makeLine(
+						`${indent}${keyPrefix}<span class="j-bool">${value}</span>${comma}`,
+					);
+				}
+
+				if (typeof value === 'number') {
+					return makeLine(
+						`${indent}${keyPrefix}<span class="j-num">${value}</span>${comma}`,
+					);
+				}
+
+				if (typeof value === 'string') {
+					// Truncate very long strings for display
+					const display =
+						value.length > 200
+							? escapeHTML(value.slice(0, 200)) + '…'
+							: escapeHTML(value);
+					return makeLine(
+						`${indent}${keyPrefix}<span class="j-str">"${display}"</span>${comma}`,
+					);
+				}
+
+				if (Array.isArray(value)) {
+					return renderCollapsible(value, key, depth, isLast, '[', ']', true);
+				}
+
+				if (typeof value === 'object') {
+					return renderCollapsible(value, key, depth, isLast, '{', '}', false);
+				}
+
+				return makeLine(
+					`${indent}${keyPrefix}${escapeHTML(String(value))}${comma}`,
+				);
+			}
+
+			function renderCollapsible(
+				value,
+				key,
+				depth,
+				isLast,
+				openBrace,
+				closeBrace,
+				isArray,
+			) {
+				const indent = '  '.repeat(depth);
+				const closeIndent = '  '.repeat(depth);
+				const comma = isLast ? '' : ',';
+				const entries = isArray ? value : Object.entries(value);
+				const count = isArray ? value.length : Object.keys(value).length;
+
+				const keyPrefix =
+					key !== '' ? `<span class="j-key">"${escapeHTML(key)}"</span>: ` : '';
+
+				const frag = document.createDocumentFragment();
+
+				const uid = 'jn_' + Math.random().toString(36).slice(2, 10);
+
+				// Auto-collapse large arrays (like raw byte arrays, glyph arrays, etc.)
+				const autoCollapse = count > 20 || depth > 3;
+
+				// Header line: key: { or [
+				const headerLine = makeLine(
+					`${indent}${keyPrefix}<span class="j-brace j-toggle" data-target="${uid}">${openBrace}</span>` +
+						`<span class="j-ellipsis ${autoCollapse ? '' : 'j-collapsed'}" data-target="${uid}"> ${count} items… </span>`,
+				);
+				frag.appendChild(headerLine);
+
+				// Children container
+				const childContainer = document.createElement('span');
+				childContainer.id = uid;
+				if (autoCollapse) childContainer.classList.add('j-collapsed');
+
+				if (isArray) {
+					for (let i = 0; i < value.length; i++) {
+						childContainer.appendChild(
+							renderJsonTree(value[i], '', depth + 1, i === value.length - 1),
+						);
+					}
+				} else {
+					const keys = Object.keys(value);
+					for (let i = 0; i < keys.length; i++) {
+						childContainer.appendChild(
+							renderJsonTree(
+								value[keys[i]],
+								keys[i],
+								depth + 1,
+								i === keys.length - 1,
+							),
+						);
+					}
+				}
+
+				frag.appendChild(childContainer);
+
+				// Closing brace
+				frag.appendChild(
+					makeLine(
+						`${closeIndent}<span class="j-brace">${closeBrace}</span>${comma}`,
+					),
+				);
+
+				return frag;
+			}
+
+			function makeLine(html) {
+				const div = document.createElement('div');
+				div.className = 'j-line';
+				div.innerHTML = html;
+				return div;
+			}
+
+			// Delegate click for toggling collapsed sections
+			document.addEventListener('click', (e) => {
+				const target = e.target.closest('[data-target]');
+				if (!target) return;
+				const uid = target.dataset.target;
+				const container = document.getElementById(uid);
+				if (!container) return;
+
+				container.classList.toggle('j-collapsed');
+
+				// Also toggle the ellipsis sibling(s) with the same target
+				const parent = target.closest('.j-line');
+				if (parent) {
+					parent
+						.querySelectorAll(`.j-ellipsis[data-target="${uid}"]`)
+						.forEach((el) => {
+							el.classList.toggle('j-collapsed');
+						});
+				}
+			});
+
+			/**
+			 * Search/filter within the JSON viewer — highlights matching lines.
+			 */
+			function searchJson(index, query) {
+				const viewer = document.getElementById(`json-viewer-${index}`);
+				const countEl = document.getElementById(`json-match-count-${index}`);
+				if (!viewer) return;
+
+				const lines = viewer.querySelectorAll('.j-line');
+
+				// Clear previous highlights
+				lines.forEach((line) => {
+					line.classList.remove('j-highlight');
+					// Remove old mark tags
+					line.querySelectorAll('.j-match').forEach((m) => {
+						m.replaceWith(m.textContent);
+					});
+				});
+
+				if (!query || query.length < 2) {
+					countEl.textContent = '';
+					return;
+				}
+
+				const lowerQuery = query.toLowerCase();
+				let matchCount = 0;
+
+				lines.forEach((line) => {
+					const text = line.textContent;
+					if (text.toLowerCase().includes(lowerQuery)) {
+						line.classList.add('j-highlight');
+						matchCount++;
+
+						// Expand collapsed parents so the match is visible
+						let el = line.parentElement;
+						while (el && el !== viewer) {
+							if (el.classList.contains('j-collapsed')) {
+								el.classList.remove('j-collapsed');
+								// Show ellipsis toggle
+								const uid = el.id;
+								if (uid) {
+									viewer
+										.querySelectorAll(`.j-ellipsis[data-target="${uid}"]`)
+										.forEach((e) => {
+											e.classList.add('j-collapsed');
+										});
+								}
+							}
+							el = el.parentElement;
+						}
+					}
+				});
+
+				countEl.textContent =
+					matchCount > 0
+						? `${matchCount} match${matchCount === 1 ? '' : 'es'}`
+						: 'No matches';
 			}
 		</script>
 	</body>

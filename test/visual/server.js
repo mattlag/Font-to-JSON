@@ -57,9 +57,16 @@ console.log(`  Generating round-tripped fonts…\n`);
 
 const manifest = [];
 
+/** JSON replacer that handles BigInt values */
+function jsonReplacer(_key, value) {
+	if (typeof value === 'bigint') return `BigInt:${value.toString()}`;
+	return value;
+}
+
 for (const file of fontFiles) {
 	const srcPath = path.join(SAMPLES_DIR, file);
 	const outPath = path.join(GENERATED_DIR, file);
+	const jsonPath = path.join(GENERATED_DIR, file + '.json');
 
 	try {
 		const buf = fs.readFileSync(srcPath);
@@ -71,10 +78,14 @@ for (const file of fontFiles) {
 		const exported = exportFont(fontData);
 		fs.writeFileSync(outPath, Buffer.from(exported));
 
+		// Save the intermediate JSON representation
+		fs.writeFileSync(jsonPath, JSON.stringify(fontData, jsonReplacer, 2));
+
 		manifest.push({
 			name: file,
 			originalSize: buf.length,
 			roundtripSize: exported.byteLength,
+			jsonSize: fs.statSync(jsonPath).size,
 		});
 
 		const diff = exported.byteLength - buf.length;
@@ -112,6 +123,12 @@ const server = http.createServer((req, res) => {
 	if (pathname.startsWith('/fonts/roundtrip/')) {
 		const name = decodeURIComponent(pathname.slice('/fonts/roundtrip/'.length));
 		return serveFile(path.join(GENERATED_DIR, name), res);
+	}
+
+	// Serve intermediate JSON
+	if (pathname.startsWith('/api/json/')) {
+		const name = decodeURIComponent(pathname.slice('/api/json/'.length));
+		return serveFile(path.join(GENERATED_DIR, name + '.json'), res);
 	}
 
 	// Serve index.html for root
