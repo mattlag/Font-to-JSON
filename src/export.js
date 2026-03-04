@@ -6,6 +6,8 @@
 import { writeCFF } from './otf/table_CFF.js';
 import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeCmap } from './sfnt/table_cmap.js';
+import { writeCOLR } from './sfnt/table_COLR.js';
+import { writeCPAL } from './sfnt/table_CPAL.js';
 import { writeGDEF } from './sfnt/table_GDEF.js';
 import { writeGPOS } from './sfnt/table_GPOS.js';
 import { writeGSUB } from './sfnt/table_GSUB.js';
@@ -16,6 +18,7 @@ import { writeMaxp } from './sfnt/table_maxp.js';
 import { writeName } from './sfnt/table_name.js';
 import { writeOS2 } from './sfnt/table_OS-2.js';
 import { writePost } from './sfnt/table_post.js';
+import { writeSVG } from './sfnt/table_SVG.js';
 import { writeVhea } from './sfnt/table_vhea.js';
 import { writeVmtx } from './sfnt/table_vmtx.js';
 import { writeCvt } from './ttf/table_cvt.js';
@@ -52,6 +55,9 @@ const tableWriters = {
 	gasp: writeGasp,
 	vhea: writeVhea,
 	vmtx: writeVmtx,
+	COLR: writeCOLR,
+	CPAL: writeCPAL,
+	'SVG ': writeSVG,
 };
 
 /** Size of the font file header (Offset Table) in bytes. */

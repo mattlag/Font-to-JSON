@@ -115,6 +115,9 @@ src/
     table_post.js   — parsePost(), writePost() — version-dependent (v1/v2/v2.5/v3, 32+ bytes)
     table_vhea.js   — parseVhea(), writeVhea() — Vertical header (36 bytes, v1.0/1.1)
     table_vmtx.js   — parseVmtx(), writeVmtx() — Vertical metrics (cross-table: vhea, maxp)
+    table_COLR.js   — parseCOLR(), writeCOLR() — Color table (v0 full, v1 raw bytes fallback)
+    table_CPAL.js   — parseCPAL(), writeCPAL() — Color palette (v0/v1 full)
+    table_SVG.js    — parseSVG(), writeSVG() — SVG glyph descriptions (plain text + gzip)
 
 test/
   roundtrip.test.js       — import→export→reimport for OTF and TTF (oblegg.otf, oblegg.ttf)
@@ -146,6 +149,9 @@ test/
     table_post.test.js     — post parsing, version checking, round-trip, synthetic v1/v2/v3
     table_vhea.test.js     — vhea parsing, v1.0/v1.1, round-trip, size check (8 tests)
     table_vmtx.test.js     — vmtx parsing, cross-table validation, round-trip (7 tests)
+    table_COLR.test.js     — COLR parsing, v0 structure, round-trip, synthetic (8 tests)
+    table_CPAL.test.js     — CPAL parsing, BGRA colors, round-trip, synthetic v0/v1 (8 tests)
+    table_SVG.test.js      — SVG parsing, plain text/gzip, round-trip 3 fonts, synthetic (10 tests)
 ```
 
 ## Completed Work
@@ -393,6 +399,37 @@ test/
 - **Known limitation**: ValueRecord Device table offsets (bits 0x0010–0x0080) are parsed as Device objects but written as offset 0 during serialization. Device data is collected but not re-embedded in the subtable. This does NOT affect round-trip because the parsed Device objects match when re-parsed from the same binary.
 - Tests: 9 in table_GPOS.test.js
 
+### CPAL Table (`src/sfnt/table_CPAL.js`)
+
+- **Color palette table**: Defines named color palettes used by COLR and SVG tables
+- **Two versions**: v0 (header + palettes), v1 (adds paletteTypes, paletteLabels, paletteEntryLabels)
+- **ColorRecord format**: BGRA order — blue, green, red, alpha (each uint8), NOT RGBA
+- **JSON shape**: `{ version, numPaletteEntries, palettes: Array<Array<{blue, green, red, alpha}>>, paletteTypes?: number[], paletteLabels?: number[], paletteEntryLabels?: number[] }`
+- **v1 optional arrays**: paletteTypes (uint32 flags per palette), paletteLabels/paletteEntryLabels (uint16 name IDs, 0xFFFF = no label)
+- **No cross-table deps**: Parser uses standard `(rawBytes)` signature
+- Tests: 8 in table_CPAL.test.js
+
+### SVG Table (`src/sfnt/table_SVG.js`)
+
+- **SVG glyph descriptions**: Contains SVG documents for color glyph rendering
+- **Tag has trailing space**: Binary tag is `'SVG '` (4 bytes), registry key must be `'SVG '`
+- **Document storage**: Plain-text SVG stored as `{ compressed: false, text: "..." }`, gzip-compressed (magic 0x1F 0x8B) stored as `{ compressed: true, data: number[] }`
+- **Document deduplication**: Multiple entries can share the same document (tracked by documentIndex)
+- **JSON shape**: `{ version, documents: Array<{compressed, text?, data?}>, entries: Array<{startGlyphID, endGlyphID, documentIndex}> }`
+- **Binary layout**: 10-byte header (version u16, svgDocumentListOffset u32, reserved u32) → SVGDocumentList (numEntries u16 + SVGDocumentRecord array) → document data blocks
+- **No cross-table deps**: Parser uses standard `(rawBytes)` signature
+- Tests: 10 in table_SVG.test.js
+
+### COLR Table (`src/sfnt/table_COLR.js`)
+
+- **Color glyph definitions**: Maps base glyphs to layered color glyph compositions
+- **v0 fully parsed**: BaseGlyphRecord (glyphID, firstLayerIndex, numLayers) + LayerRecord (glyphID, paletteIndex)
+- **v1 raw bytes fallback**: v1 header fields parsed into `v1Header` object, entire table stored as `_v1RawBytes` for round-trip fidelity (v1 has 32 Paint formats with complex DAG — not fully parsed)
+- **JSON shape (v0)**: `{ version, baseGlyphRecords: Array<{glyphID, firstLayerIndex, numLayers}>, layerRecords: Array<{glyphID, paletteIndex}> }`
+- **v0 header**: 14 bytes (version u16, numBaseGlyphRecords u16, baseGlyphRecordsOffset u32, layerRecordsOffset u32, numLayerRecords u16)
+- **No cross-table deps**: Parser uses standard `(rawBytes)` signature
+- Tests: 8 in table_COLR.test.js
+
 ### Cross-Table Dependency System
 
 - `extractTableData()` in import.js now processes tables in a **dependency-safe order** defined by `tableParseOrder`
@@ -417,10 +454,11 @@ TTF outline tables complete: **loca**, **glyf**.
 Advanced Typographic tables complete: **GDEF**, **GPOS**, **GSUB** (with shared OpenType Layout common module).
 TTF Hinting tables complete: **cvt**, **fpgm**, **prep**, **gasp**.
 Vertical Metrics tables complete: **vhea**, **vmtx**.
+Color Font tables complete: **COLR**, **CPAL**, **SVG**.
 
 Possible future work:
 
-- Additional tables (kern, MATH, BASE, JSTF, COLR, CPAL, SVG, etc.)
+- Additional tables (kern, MATH, BASE, JSTF, etc.)
 
 - WOFF/WOFF2 container support
 - Full JSON serialization (BigInt replacer/reviver)
@@ -440,7 +478,7 @@ Possible future work:
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
 - **Table-specific tests** validate parsing details (field values, structure)
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 209 tests total, all passing
+- Currently 235 tests total, all passing
 
 ## Gotchas & Lessons Learned
 
@@ -475,3 +513,8 @@ Possible future work:
 29. **gasp is technically not TTF-only**: The spec says gasp can appear in any font, but in practice it only occurs in TTF fonts (TrueType outlines). We place it in `src/ttf/` since it's part of the TTF hinting ecosystem.
 30. **vhea version field differs from hhea**: hhea stores version as two separate uint16 fields (`majorVersion`, `minorVersion`), but vhea uses a single Version16Dot16 uint32 field. v1.0 = `0x00010000`, v1.1 = `0x00011000`.
 31. **vmtx mirrors hmtx exactly**: Same structure — array of {advanceHeight, topSideBearing} records followed by extra topSideBearing array. Uses `vhea.numOfLongVerMetrics` instead of `hhea.numberOfHMetrics`. Both live in `src/sfnt/` (shared tables).
+32. **SVG tag has trailing space**: The binary tag is `'SVG '` (4 bytes, with trailing space). Same pattern as `'CFF '` and `'cvt '`.
+33. **CPAL ColorRecord is BGRA, not RGBA**: The spec defines color records as blue, green, red, alpha (uint8 each). Don't confuse with the more common RGBA order.
+34. **COLR v1 not fully parsed**: v1 has 32 Paint formats forming a complex DAG. We store the entire table as `_v1RawBytes` for round-trip fidelity rather than attempting full parsing. v0 is fully parsed.
+35. **SVG documents can be gzip-compressed**: Check for gzip magic bytes (0x1F, 0x8B, 0x08) at start of document data. Compressed docs stored as byte arrays; plain text as strings via TextDecoder/TextEncoder.
+36. **DataWriter method is `toArray()`, not `finish()`**: Easy to confuse. Always use `w.toArray()` to get the final byte array.

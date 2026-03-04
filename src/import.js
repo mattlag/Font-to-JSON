@@ -7,6 +7,8 @@ import { parseCFF } from './otf/table_CFF.js';
 import { parseCFF2 } from './otf/table_CFF2.js';
 import { DataReader } from './reader.js';
 import { parseCmap } from './sfnt/table_cmap.js';
+import { parseCOLR } from './sfnt/table_COLR.js';
+import { parseCPAL } from './sfnt/table_CPAL.js';
 import { parseGDEF } from './sfnt/table_GDEF.js';
 import { parseGPOS } from './sfnt/table_GPOS.js';
 import { parseGSUB } from './sfnt/table_GSUB.js';
@@ -17,6 +19,7 @@ import { parseMaxp } from './sfnt/table_maxp.js';
 import { parseName } from './sfnt/table_name.js';
 import { parseOS2 } from './sfnt/table_OS-2.js';
 import { parsePost } from './sfnt/table_post.js';
+import { parseSVG } from './sfnt/table_SVG.js';
 import { parseVhea } from './sfnt/table_vhea.js';
 import { parseVmtx } from './sfnt/table_vmtx.js';
 import { parseCvt } from './ttf/table_cvt.js';
@@ -54,6 +57,9 @@ const tableParsers = {
 	gasp: parseGasp,
 	vhea: parseVhea,
 	vmtx: parseVmtx,
+	COLR: parseCOLR,
+	CPAL: parseCPAL,
+	'SVG ': parseSVG,
 };
 
 /**
