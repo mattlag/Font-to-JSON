@@ -8,6 +8,7 @@ import { parseHead } from './otf/table_head.js';
 import { parseHhea } from './otf/table_hhea.js';
 import { parseHmtx } from './otf/table_hmtx.js';
 import { parseMaxp } from './otf/table_maxp.js';
+import { parseName } from './otf/table_name.js';
 import { DataReader } from './reader.js';
 
 /**
@@ -22,6 +23,7 @@ const tableParsers = {
 	hhea: parseHhea,
 	hmtx: parseHmtx,
 	maxp: parseMaxp,
+	name: parseName,
 };
 
 /**

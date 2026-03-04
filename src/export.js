@@ -8,6 +8,7 @@ import { writeHead } from './otf/table_head.js';
 import { writeHhea } from './otf/table_hhea.js';
 import { writeHmtx } from './otf/table_hmtx.js';
 import { writeMaxp } from './otf/table_maxp.js';
+import { writeName } from './otf/table_name.js';
 
 /**
  * Registry of table writers.
@@ -20,6 +21,7 @@ const tableWriters = {
 	hhea: writeHhea,
 	hmtx: writeHmtx,
 	maxp: writeMaxp,
+	name: writeName,
 };
 
 /** Size of the font file header (Offset Table) in bytes. */

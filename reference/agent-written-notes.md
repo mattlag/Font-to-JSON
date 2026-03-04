@@ -95,6 +95,7 @@ src/
     table_hhea.js   — parseHhea(), writeHhea() — fixed-size 36-byte table
     table_hmtx.js   — parseHmtx(), writeHmtx() — variable-size, cross-table deps
     table_maxp.js   — parseMaxp(), writeMaxp() — v0.5 (6 bytes) or v1.0 (32 bytes)
+    table_name.js   — parseName(), writeName() — variable-size, string encoding/decoding
 
 test/
   roundtrip.test.js       — import→export→reimport for OTF and TTF (oblegg.otf, oblegg.ttf)
@@ -108,6 +109,7 @@ test/
     table_hhea.test.js     — hhea parsing, metrics, reserved fields, round-trip, size check
     table_hmtx.test.js     — hmtx parsing, cross-table validation, round-trip
     table_maxp.test.js     — maxp parsing, v0.5/v1.0 variants, round-trip, size check
+    table_name.test.js     — name parsing, field validation, round-trip, synthetic v0/v1/MacRoman
 ```
 
 ## Completed Work
@@ -156,6 +158,18 @@ test/
 - **leftSideBearings**: Additional lsb values for glyphs beyond numberOfHMetrics; count = numGlyphs - numberOfHMetrics (often 0 for variable-width fonts)
 - Tests: 7 in table_hmtx.test.js
 
+### name Table (`src/otf/table_name.js`)
+
+- **Variable-size**: Header (6 bytes) + name records (12 bytes each) + optional lang-tag records + string storage
+- **Two versions**: v0 (platform-specific language IDs only) and v1 (adds LangTagRecord array for BCP 47 language tags)
+- **String encoding**: Platform 0 (Unicode) and 3 (Windows) use UTF-16BE; Platform 1 (Macintosh) encodingID 0 uses MacRoman
+- **MacRoman encoding**: Full 256-char mapping including high-range (0x80–0xFF) to Unicode. Reverse map for encoding.
+- **String deduplication**: Writer deduplicates identical byte sequences in the string storage pool
+- **Hex escape fallback**: Non-decodable strings stored as `"0x:AABB..."` prefix for lossless round-trip
+- **LangTagRecords**: Version 1 only. Language IDs ≥ 0x8000 reference these records (0-indexed from 0x8000). Always UTF-16BE.
+- **No cross-table deps**: Parser uses standard `(rawBytes)` signature
+- Tests: 10 in table_name.test.js
+
 ### Cross-Table Dependency System
 
 - `extractTableData()` in import.js now processes tables in a **dependency-safe order** defined by `tableParseOrder`
@@ -173,7 +187,7 @@ test/
 
 ## Pending Work (from agent-context.md project plan)
 
-Next tables for OTF, in order: **name**, **OS-2**, **post**
+Next tables for OTF, in order: **OS-2**, **post**
 
 Each follows the same workflow:
 
@@ -189,7 +203,7 @@ Each follows the same workflow:
 - **Table name case**: Always honor the original case from the spec (e.g., `cmap` lowercase, `OS/2` mixed)
 - **head table**: Contains `checkSumAdjustment` field (global font checksum); during write, this may need special handling
 - **hmtx table**: DONE. Uses cross-table deps (hhea.numberOfHMetrics, maxp.numGlyphs). Parser receives `tables` as second argument.
-- **name table**: Has platform-specific string encodings — will need encoding/decoding logic
+- **name table**: DONE. Has platform-specific string encodings (UTF-16BE for platforms 0/3, MacRoman for platform 1 encoding 0). Hex-escape fallback for unknown encodings.
 - **export.js refactor**: Still uses raw ArrayBuffer/DataView for the font header and table directory writing. Could be converted to DataWriter but works fine as-is.
 
 ## Testing Strategy
@@ -197,7 +211,7 @@ Each follows the same workflow:
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
 - **Table-specific tests** validate parsing details (field values, structure)
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 46 tests total, all passing
+- Currently 56 tests total, all passing
 
 ## Gotchas & Lessons Learned
 
