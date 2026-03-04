@@ -33,10 +33,10 @@ JSON object
 
 Adding a new table requires touching exactly 4 files:
 
-1. **`src/otf/table_XYZ.js`** — Create parse and write functions
-2. **`src/import.js`** — Add to `tableParsers` registry: `import { parseXyz } from './otf/table_XYZ.js'; const tableParsers = { ..., XYZ: parseXyz };`
-3. **`src/export.js`** — Add to `tableWriters` registry: `import { writeXyz } from './otf/table_XYZ.js'; const tableWriters = { ..., XYZ: writeXyz };`
-4. **`test/otf/table_XYZ.test.js`** — Create tests
+1. **`src/sfnt/table_XYZ.js`** — Create parse and write functions
+2. **`src/import.js`** — Add to `tableParsers` registry: `import { parseXyz } from './sfnt/table_XYZ.js'; const tableParsers = { ..., XYZ: parseXyz };`
+3. **`src/export.js`** — Add to `tableWriters` registry: `import { writeXyz } from './sfnt/table_XYZ.js'; const tableWriters = { ..., XYZ: writeXyz };`
+4. **`test/sfnt/table_XYZ.test.js`** — Create tests
 
 Parser signature: `(rawBytes: number[]) → object` (receives raw byte array, returns structured JSON)
 Writer signature: `(data: object) → number[]` (receives structured JSON, returns byte array)
@@ -89,7 +89,9 @@ src/
   export.js         — exportFont(), tableWriters registry (NOTE: not yet refactored to use DataWriter)
   reader.js         — DataReader class
   writer.js         — DataWriter class
-  otf/
+  otf/               — future: CFF/CFF2-specific table parsers
+  ttf/               — future: TrueType-specific table parsers (glyf, loca)
+  sfnt/
     table_cmap.js   — parseCmap(), writeCmap() — fully refactored to use DataReader/DataWriter
     table_head.js   — parseHead(), writeHead() — fixed-size 54-byte table
     table_hhea.js   — parseHhea(), writeHhea() — fixed-size 36-byte table
@@ -104,8 +106,10 @@ test/
   sample fonts/            — binary font files for testing
     oblegg.otf, oblegg.ttf — primary test fonts (small, simple)
     (others: BungeeTint, EmojiOneColor, fira, mtextra, noto, Multicoloure, Reinebow, oblegg.woff/woff2)
-  otf/
-    otf.test.js            — header parsing, table directory, required tables
+  otf/                         — future: CFF-specific tests
+  ttf/                         — future: TrueType-specific tests
+  sfnt/
+    sfnt.test.js               — header parsing, table directory, required tables
     table_cmap.test.js     — cmap parsing, round-trip, format 4 specifics
     table_head.test.js     — head parsing, field validation, round-trip, size check
     table_hhea.test.js     — hhea parsing, metrics, reserved fields, round-trip, size check
@@ -122,9 +126,9 @@ test/
 
 - `import.js`: Reads 12-byte Offset Table → table directory (16 bytes × numTables) → extracts table data
 - `export.js`: Reconstructs the full binary from JSON (header + padded table data with 4-byte alignment)
-- Tests: 6 in otf.test.js, 2 round-trip tests
+- Tests: 6 in sfnt.test.js, 2 round-trip tests
 
-### cmap Table (`src/otf/table_cmap.js`)
+### cmap Table (`src/sfnt/table_cmap.js`)
 
 - **Parsed formats**: 0 (byte encoding), 4 (segment mapping), 6 (trimmed table), 12 (segmented coverage), 13 (many-to-one), 14 (Unicode variation sequences)
 - **Raw fallback formats**: 2, 8, 10 — stored as `{ format, _raw }` and passed through on write
@@ -132,7 +136,7 @@ test/
 - **Format 14 complexity**: Has nested sub-structures (DefaultUVS, NonDefaultUVS) at offsets relative to the format 14 subtable start. Uses reader.seek/save pattern for random-access parsing.
 - Tests: 7 in table_cmap.test.js
 
-### head Table (`src/otf/table_head.js`)
+### head Table (`src/sfnt/table_head.js`)
 
 - **Fixed-size**: Always 54 bytes, no variable-length data
 - **LONGDATETIME fields**: `created` and `modified` are BigInt values (seconds since 1904-01-01). Vitest `toEqual` handles BigInt comparison correctly.
@@ -140,7 +144,7 @@ test/
 - **checksumAdjustment**: Global font checksum adjustment — we preserve the original value on round-trip (no recalculation)
 - Tests: 9 in table_head.test.js
 
-### hhea Table (`src/otf/table_hhea.js`)
+### hhea Table (`src/sfnt/table_hhea.js`)
 
 - **Fixed-size**: Always 36 bytes
 - **Key field**: `numberOfHMetrics` — used by hmtx table to determine how many full longHorMetric records exist
@@ -148,13 +152,13 @@ test/
 - **FWORD/UFWORD types**: ascender, descender, lineGap use fword (signed int16); advanceWidthMax uses ufword (unsigned uint16)
 - Tests: 9 in table_hhea.test.js
 
-### maxp Table (`src/otf/table_maxp.js`)
+### maxp Table (`src/sfnt/table_maxp.js`)
 
 - **Two versions**: v0.5 (0x00005000, CFF/OTF, 6 bytes) has only version+numGlyphs; v1.0 (0x00010000, TrueType/TTF, 32 bytes) has 13 additional uint16 fields
 - **Key field**: `numGlyphs` — used by hmtx to know total glyph count
 - Tests: 6 in table_maxp.test.js
 
-### hmtx Table (`src/otf/table_hmtx.js`)
+### hmtx Table (`src/sfnt/table_hmtx.js`)
 
 - **Variable-size**: hMetrics array (4 bytes each) + leftSideBearings array (2 bytes each)
 - **Cross-table dependencies**: Requires `hhea.numberOfHMetrics` and `maxp.numGlyphs` (passed via `tables` argument)
@@ -162,7 +166,7 @@ test/
 - **leftSideBearings**: Additional lsb values for glyphs beyond numberOfHMetrics; count = numGlyphs - numberOfHMetrics (often 0 for variable-width fonts)
 - Tests: 7 in table_hmtx.test.js
 
-### name Table (`src/otf/table_name.js`)
+### name Table (`src/sfnt/table_name.js`)
 
 - **Variable-size**: Header (6 bytes) + name records (12 bytes each) + optional lang-tag records + string storage
 - **Two versions**: v0 (platform-specific language IDs only) and v1 (adds LangTagRecord array for BCP 47 language tags)
@@ -174,7 +178,7 @@ test/
 - **No cross-table deps**: Parser uses standard `(rawBytes)` signature
 - Tests: 10 in table_name.test.js
 
-### OS/2 Table (`src/otf/table_OS-2.js`)
+### OS/2 Table (`src/sfnt/table_OS-2.js`)
 
 - **Version-dependent size**: v0 (78 bytes), v1 (86 bytes), v2/v3/v4 (96 bytes), v5 (100 bytes)
 - **Six versions (0–5)**: Each version adds fields. v2/v3/v4 share the same binary layout; v3 and v4 only revise spec text.
@@ -185,7 +189,7 @@ test/
 - **No cross-table deps**: Parser uses standard `(rawBytes)` signature
 - Tests: 10 in table_OS-2.test.js
 
-### post Table (`src/otf/table_post.js`)
+### post Table (`src/sfnt/table_post.js`)
 
 - **Version-dependent layout**: v1.0 and v3.0 are header-only (32 bytes); v2.0 adds glyph name data; v2.5 (deprecated) uses offset array
 - **Version stored as raw uint32**: 0x00010000 (1.0), 0x00020000 (2.0), 0x00025000 (2.5), 0x00030000 (3.0)

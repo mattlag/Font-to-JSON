@@ -29,7 +29,13 @@ WOFF and WOFF2 will come later
 
 This will be where all main code is written. It should be organized in a way that will make sense to human maintainers. The root can have individual JS files that contain similar functionality. The `src` folder will have a `main.js` file where everything starts, and exposes the main import and export functionality. Additional `import.js` and `export.js` files will hold conversion code.
 
-In addition, there will be child folders for each font type ("otf", "ttf", and eventually "woff") and in each of those folders, import and export code will be broken down further by table, in files with the naming convention (if the table has the name XYZ): `table_XYZ.js`. One special note is the "OS/2" table, this should be referred to in code and file names as "OS-2". Font tables have mixed uppercase / lowercase, and table name case should always be honored.
+There are three child folders:
+
+- `src/sfnt/` — shared tables that are identical for both OTF and TTF (e.g. cmap, head, hhea, hmtx, maxp, name, OS/2, post, and shared optional tables like kern, GPOS, GSUB). Files follow the naming convention `table_XYZ.js`.
+- `src/otf/` — CFF/CFF2-specific table parsers (future: CFF outline data).
+- `src/ttf/` — TrueType-specific table parsers (future: glyf, loca outline data).
+
+One special note is the "OS/2" table, this should be referred to in code and file names as "OS-2". Font tables have mixed uppercase / lowercase, and table name case should always be honored.
 
 ## test
 
@@ -50,8 +56,109 @@ Here is the order in which we will build this library.
 We will start with OTF fonts, importing and exporting general file header data, then moving on to tables in this order:
 'cmap', 'head', 'hhea', 'hmtx', 'maxp', 'name', 'OS-2', 'post'
 
-When support for a table is being written, the flow will work like this (using OTF as an example file format and 'OS/2' as an example table):
+When support for a table is being written, the flow will work like this (using 'OS/2' as an example shared table):
+
 1. read the online spec to understand that table and how it is constructed.
-2. create a file in `src\otf` that will handle OS/2 data called `table_OS-2.js`, which will contain both the logic that will read binary data and convert it to JSON, as well as take well-formatted JSON data and convert it back into binary for that table.
+2. create a file in `src\sfnt` (for shared tables) or `src\ttf`/`src\otf` (for format-specific tables) called `table_OS-2.js`, which will contain both the logic that will read binary data and convert it to JSON, as well as take well-formatted JSON data and convert it back into binary for that table.
 3. add any updates to `src\main.js` or any other JS files in src that may need to handle this new table.
-4. create a file in `test\otf` called `table_OS-2.test.js` for any table specific tests.
+4. create a file in `test\sfnt` (or `test\ttf`/`test\otf`) called `table_OS-2.test.js` for any table specific tests.
+
+# Roadmap — Complete Table Checklist
+
+Every table defined in the OpenType specification, categorized by where it lives
+in this project. Checked items are implemented and tested. Unchecked items are
+listed in recommended implementation order (highest priority first).
+
+## SFNT — Shared Tables (src/sfnt)
+
+Tables that are identical for both TrueType- and CFF-based fonts.
+
+### Required Tables
+
+- [x] cmap — Character to glyph mapping
+- [x] head — Font header
+- [x] hhea — Horizontal header
+- [x] hmtx — Horizontal metrics
+- [x] maxp — Maximum profile
+- [x] name — Naming table
+- [x] OS/2 — OS/2 and Windows specific metrics
+- [x] post — PostScript name mapping
+
+### Advanced Typographic Tables
+
+- [ ] GDEF — Glyph definition data
+- [ ] GPOS — Glyph positioning data
+- [ ] GSUB — Glyph substitution data
+- [ ] BASE — Baseline data
+- [ ] JSTF — Justification data
+- [ ] MATH — Math layout data
+
+### Vertical Metrics
+
+- [ ] vhea — Vertical metrics header
+- [ ] vmtx — Vertical metrics
+
+### Other Shared Tables
+
+- [ ] kern — Kerning (legacy, prefer GPOS)
+- [ ] DSIG — Digital signature
+- [ ] hdmx — Horizontal device metrics
+- [ ] LTSH — Linear threshold data
+- [ ] MERG — Merge
+- [ ] meta — Metadata
+- [ ] PCLT — PCL 5 data
+- [ ] VDMX — Vertical device metrics
+
+### Bitmap Glyph Tables
+
+- [ ] EBLC — Embedded bitmap location data
+- [ ] EBDT — Embedded bitmap data
+- [ ] EBSC — Embedded bitmap scaling data
+- [ ] CBLC — Color bitmap location data
+- [ ] CBDT — Color bitmap data
+- [ ] sbix — Standard bitmap graphics
+
+### Color Font Tables
+
+- [ ] COLR — Color table
+- [ ] CPAL — Color palette table
+- [ ] SVG — SVG glyph descriptions
+
+### Font Variations Tables (shared)
+
+- [ ] fvar — Font variations (defines axes)
+- [ ] avar — Axis variations (axis mapping)
+- [ ] STAT — Style attributes (required for variable, optional otherwise)
+- [ ] MVAR — Metrics variations
+- [ ] HVAR — Horizontal metrics variations
+- [ ] VVAR — Vertical metrics variations
+
+## TTF — TrueType-Specific Tables (src/ttf)
+
+### Outline Tables (required for TrueType fonts)
+
+- [ ] loca — Index to location (glyph offsets)
+- [ ] glyf — Glyph data (TrueType outlines)
+
+### Hinting Tables (optional)
+
+- [ ] cvt — Control Value Table
+- [ ] fpgm — Font program
+- [ ] prep — Control Value Program
+- [ ] gasp — Grid-fitting/Scan-conversion
+
+### TrueType Variation Tables
+
+- [ ] gvar — Glyph variations
+- [ ] cvar — CVT variations
+
+## OTF — CFF-Specific Tables (src/otf)
+
+### Outline Tables (one required for CFF-based fonts)
+
+- [ ] CFF — Compact Font Format 1.0
+- [ ] CFF2 — Compact Font Format 2.0
+
+### Optional
+
+- [ ] VORG — Vertical Origin

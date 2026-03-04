@@ -3,14 +3,14 @@
  * Takes a JSON font object and converts it back to binary font data.
  */
 
-import { writeCmap } from './otf/table_cmap.js';
-import { writeHead } from './otf/table_head.js';
-import { writeHhea } from './otf/table_hhea.js';
-import { writeHmtx } from './otf/table_hmtx.js';
-import { writeMaxp } from './otf/table_maxp.js';
-import { writeName } from './otf/table_name.js';
-import { writeOS2 } from './otf/table_OS-2.js';
-import { writePost } from './otf/table_post.js';
+import { writeCmap } from './sfnt/table_cmap.js';
+import { writeHead } from './sfnt/table_head.js';
+import { writeHhea } from './sfnt/table_hhea.js';
+import { writeHmtx } from './sfnt/table_hmtx.js';
+import { writeMaxp } from './sfnt/table_maxp.js';
+import { writeName } from './sfnt/table_name.js';
+import { writeOS2 } from './sfnt/table_OS-2.js';
+import { writePost } from './sfnt/table_post.js';
 
 /**
  * Registry of table writers.

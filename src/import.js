@@ -3,15 +3,15 @@
  * Reads binary font data and converts it to a JSON representation.
  */
 
-import { parseCmap } from './otf/table_cmap.js';
-import { parseHead } from './otf/table_head.js';
-import { parseHhea } from './otf/table_hhea.js';
-import { parseHmtx } from './otf/table_hmtx.js';
-import { parseMaxp } from './otf/table_maxp.js';
-import { parseName } from './otf/table_name.js';
-import { parseOS2 } from './otf/table_OS-2.js';
-import { parsePost } from './otf/table_post.js';
 import { DataReader } from './reader.js';
+import { parseCmap } from './sfnt/table_cmap.js';
+import { parseHead } from './sfnt/table_head.js';
+import { parseHhea } from './sfnt/table_hhea.js';
+import { parseHmtx } from './sfnt/table_hmtx.js';
+import { parseMaxp } from './sfnt/table_maxp.js';
+import { parseName } from './sfnt/table_name.js';
+import { parseOS2 } from './sfnt/table_OS-2.js';
+import { parsePost } from './sfnt/table_post.js';
 
 /**
  * Registry of table parsers.

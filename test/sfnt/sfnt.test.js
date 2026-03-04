@@ -1,6 +1,6 @@
 /**
- * OTF import / export tests
- * Tests for the general OTF file structure: header and table directory.
+ * SFNT import / export tests
+ * Tests for the general sfnt file structure: header and table directory.
  * Table-specific tests will live in sibling files (e.g. table_cmap.test.js).
  */
 
@@ -11,7 +11,7 @@ import { importFont } from '../../src/main.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
-describe('OTF header parsing', () => {
+describe('sfnt header parsing', () => {
 	it('should read the font header from an OTF file', async () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
@@ -53,7 +53,7 @@ describe('OTF header parsing', () => {
 	});
 });
 
-describe('OTF table directory', () => {
+describe('sfnt table directory', () => {
 	it('should extract tables matching numTables count', async () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
@@ -64,7 +64,7 @@ describe('OTF table directory', () => {
 		expect(tableCount).toBe(font.header.numTables);
 	});
 
-	it('should include required OTF tables', async () => {
+	it('should include required sfnt tables', async () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 

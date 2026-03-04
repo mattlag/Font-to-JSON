@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { importFont } from '../../src/main.js';
-import { parseHmtx, writeHmtx } from '../../src/otf/table_hmtx.js';
+import { parseHmtx, writeHmtx } from '../../src/sfnt/table_hmtx.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 

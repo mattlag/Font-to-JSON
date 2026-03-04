@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { importFont } from '../../src/main.js';
-import { parseCmap, writeCmap } from '../../src/otf/table_cmap.js';
+import { parseCmap, writeCmap } from '../../src/sfnt/table_cmap.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
