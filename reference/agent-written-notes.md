@@ -556,6 +556,7 @@ Color Font tables complete: **COLR**, **CPAL**, **SVG**.
 Variation tables complete: **fvar**, **avar**, **STAT**, **gvar**, **HVAR**, **MVAR**, **VVAR**, **cvar**.
 Additional OpenType tables complete: **kern**, **BASE**.
 Bitmap glyph tables complete: **EBLC**, **EBDT**, **EBSC**, **CBLC**, **CBDT**, **sbix**.
+Additional shared tables complete: **DSIG**, **hdmx**, **LTSH**.
 
 Possible future work:
 
@@ -623,3 +624,6 @@ Possible future work:
 38. **No bitmap fixtures in sample fonts**: Current repository sample fonts did not expose these bitmap tags, so block-4 tests are synthetic round-trip tests focused on parser/writer fidelity and registry wiring.
 39. **JSTF implementation scope**: `JSTF` is implemented at container level (version + JstfScript records with preserved raw script subtables). This keeps offsets stable and enables lossless round-trip without full Justification structure decoding yet.
 40. **MATH implementation scope**: `MATH` is implemented at container level (version + offsets to MathConstants/MathGlyphInfo/MathVariants, each preserved as raw bytes). This provides safe round-trip while deferring deep parsing of math constants and glyph assemblies.
+41. **DSIG implementation scope**: `DSIG` parses header/signature records (`format`, `length`, `offset`) and preserves each signature block as `_raw` bytes. Writer rebuilds offsets from serialized block lengths.
+42. **hdmx implementation scope**: `hdmx` parses per-device records (`pixelSize`, `maxWidth`, width array) and preserves record padding. If `maxp.numGlyphs` is available it is used to split widths vs padding; otherwise payload bytes are treated as widths.
+43. **LTSH implementation scope**: `LTSH` is fully parsed (`version`, `numGlyphs`, `yPels[]`) and written directly with truncation/padding safeguards when explicit `numGlyphs` and `yPels.length` differ.

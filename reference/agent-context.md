@@ -109,9 +109,9 @@ Tables that are identical for both TrueType- and CFF-based fonts.
 ### Other Shared Tables
 
 - [x] kern — Kerning (legacy, prefer GPOS)
-- [ ] DSIG — Digital signature
-- [ ] hdmx — Horizontal device metrics
-- [ ] LTSH — Linear threshold data
+- [x] DSIG — Digital signature
+- [x] hdmx — Horizontal device metrics
+- [x] LTSH — Linear threshold data
 - [ ] MERG — Merge
 - [ ] meta — Metadata
 - [ ] PCLT — PCL 5 data

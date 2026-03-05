@@ -12,6 +12,7 @@ import { writeCBLC } from './sfnt/table_CBLC.js';
 import { writeCmap } from './sfnt/table_cmap.js';
 import { writeCOLR } from './sfnt/table_COLR.js';
 import { writeCPAL } from './sfnt/table_CPAL.js';
+import { writeDSIG } from './sfnt/table_DSIG.js';
 import { writeEBDT } from './sfnt/table_EBDT.js';
 import { writeEBLC } from './sfnt/table_EBLC.js';
 import { writeEBSC } from './sfnt/table_EBSC.js';
@@ -25,10 +26,12 @@ import { writeHmtx } from './sfnt/table_hmtx.js';
 import { writeHVAR } from './sfnt/table_HVAR.js';
 import { writeJSTF } from './sfnt/table_JSTF.js';
 import { writeKern } from './sfnt/table_kern.js';
+import { writeLTSH } from './sfnt/table_LTSH.js';
 import { writeMATH } from './sfnt/table_MATH.js';
 import { writeMaxp } from './sfnt/table_maxp.js';
 import { writeMVAR } from './sfnt/table_MVAR.js';
 import { writeName } from './sfnt/table_name.js';
+import { writeHdmx } from './sfnt/table_hdmx.js';
 import { writeOS2 } from './sfnt/table_OS-2.js';
 import { writePost } from './sfnt/table_post.js';
 import { writeSbix } from './sfnt/table_sbix.js';
@@ -60,9 +63,12 @@ const tableWriters = {
 	maxp: writeMaxp,
 	MVAR: writeMVAR,
 	name: writeName,
+	hdmx: writeHdmx,
 	BASE: writeBASE,
 	JSTF: writeJSTF,
 	MATH: writeMATH,
+	DSIG: writeDSIG,
+	LTSH: writeLTSH,
 	CBLC: writeCBLC,
 	CBDT: writeCBDT,
 	'OS/2': writeOS2,

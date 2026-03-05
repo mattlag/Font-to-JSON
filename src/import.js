@@ -13,6 +13,7 @@ import { parseCBLC } from './sfnt/table_CBLC.js';
 import { parseCmap } from './sfnt/table_cmap.js';
 import { parseCOLR } from './sfnt/table_COLR.js';
 import { parseCPAL } from './sfnt/table_CPAL.js';
+import { parseDSIG } from './sfnt/table_DSIG.js';
 import { parseEBDT } from './sfnt/table_EBDT.js';
 import { parseEBLC } from './sfnt/table_EBLC.js';
 import { parseEBSC } from './sfnt/table_EBSC.js';
@@ -26,10 +27,12 @@ import { parseHmtx } from './sfnt/table_hmtx.js';
 import { parseHVAR } from './sfnt/table_HVAR.js';
 import { parseJSTF } from './sfnt/table_JSTF.js';
 import { parseKern } from './sfnt/table_kern.js';
+import { parseLTSH } from './sfnt/table_LTSH.js';
 import { parseMATH } from './sfnt/table_MATH.js';
 import { parseMaxp } from './sfnt/table_maxp.js';
 import { parseMVAR } from './sfnt/table_MVAR.js';
 import { parseName } from './sfnt/table_name.js';
+import { parseHdmx } from './sfnt/table_hdmx.js';
 import { parseOS2 } from './sfnt/table_OS-2.js';
 import { parsePost } from './sfnt/table_post.js';
 import { parseSbix } from './sfnt/table_sbix.js';
@@ -62,9 +65,12 @@ const tableParsers = {
 	maxp: parseMaxp,
 	MVAR: parseMVAR,
 	name: parseName,
+	hdmx: parseHdmx,
 	BASE: parseBASE,
 	JSTF: parseJSTF,
 	MATH: parseMATH,
+	DSIG: parseDSIG,
+	LTSH: parseLTSH,
 	CBLC: parseCBLC,
 	CBDT: parseCBDT,
 	'OS/2': parseOS2,
@@ -121,6 +127,9 @@ const tableParseOrder = [
 	'MVAR',
 	'OS/2',
 	'kern',
+	'hdmx',
+	'LTSH',
+	'DSIG',
 	'post',
 	'CFF ',
 	'CFF2',
