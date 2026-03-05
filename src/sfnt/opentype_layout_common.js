@@ -197,7 +197,9 @@ export function parseDevice(reader, offset) {
 		mask = 0xff;
 		signBit = 128;
 	} else {
-		throw new Error(`Unknown Device deltaFormat: ${deltaFormat}`);
+		throw new Error(
+			`Unknown Device deltaFormat: ${deltaFormat} at offset ${offset} (words: ${first}, ${second}, ${third})`,
+		);
 	}
 
 	const deltasPerWord = 16 / bitsPerDelta;

@@ -46,6 +46,18 @@ describe('GPOS table parsing', () => {
 		expect(gpos.majorVersion).toBe(1);
 	});
 
+	it('should parse GPOS from SegUIVar-test.ttf (variation device offsets)', async () => {
+		const buffer = (
+			await readFile(resolve(SAMPLES_DIR, 'SegUIVar-test.ttf'))
+		).buffer;
+		const font = importFont(buffer);
+		const gpos = font.tables['GPOS'];
+
+		expect(gpos).toBeDefined();
+		expect(gpos.majorVersion).toBe(1);
+		expect(gpos.lookupList.lookups.length).toBeGreaterThan(0);
+	});
+
 	it('should have scriptList with script records', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'fira.ttf'))).buffer;
 		const font = importFont(buffer);

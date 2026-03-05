@@ -19,6 +19,10 @@ Tables: https://learn.microsoft.com/en-us/typography/opentype/spec/otff#font-tab
 Table of contents: https://developer.apple.com/fonts/TrueType-Reference-Manual/
 Tables: https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
 
+## TTC
+
+Overview: https://docs.fileformat.com/font/ttc/
+
 ## WOFF
 
 WOFF and WOFF2 will come later

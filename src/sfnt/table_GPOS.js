@@ -63,6 +63,7 @@ function valueFormatSize(fmt) {
  */
 function parseValueRecord(reader, valueFormat, subtableOffset) {
 	if (valueFormat === 0) return null;
+	const valueRecordStart = reader.position;
 	const vr = {};
 	if (valueFormat & 0x0001) vr.xPlacement = reader.int16();
 	if (valueFormat & 0x0002) vr.yPlacement = reader.int16();
@@ -73,15 +74,49 @@ function parseValueRecord(reader, valueFormat, subtableOffset) {
 	const yPlaDevOff = valueFormat & 0x0020 ? reader.uint16() : 0;
 	const xAdvDevOff = valueFormat & 0x0040 ? reader.uint16() : 0;
 	const yAdvDevOff = valueFormat & 0x0080 ? reader.uint16() : 0;
+	const returnPos = reader.position;
 
-	if (xPlaDevOff)
-		vr.xPlaDevice = parseDevice(reader, subtableOffset + xPlaDevOff);
-	if (yPlaDevOff)
-		vr.yPlaDevice = parseDevice(reader, subtableOffset + yPlaDevOff);
-	if (xAdvDevOff)
-		vr.xAdvDevice = parseDevice(reader, subtableOffset + xAdvDevOff);
-	if (yAdvDevOff)
-		vr.yAdvDevice = parseDevice(reader, subtableOffset + yAdvDevOff);
+	const parseDeviceWithContext = (deviceOffset, fieldName) => {
+		const primaryOffset = subtableOffset + deviceOffset;
+		const fallbackOffset = valueRecordStart + deviceOffset;
+
+		try {
+			return parseDevice(reader, primaryOffset);
+		} catch (primaryError) {
+			if (fallbackOffset !== primaryOffset) {
+				try {
+					return parseDevice(reader, fallbackOffset);
+				} catch {
+					// fall through to contextual error below
+				}
+			}
+
+			const msg =
+				primaryError instanceof Error
+					? primaryError.message
+					: String(primaryError);
+			throw new Error(
+				`${msg}; ValueRecord context: valueFormat=${valueFormat}, subtableOffset=${subtableOffset}, valueRecordStart=${valueRecordStart}, offsets={xPla:${xPlaDevOff},yPla:${yPlaDevOff},xAdv:${xAdvDevOff},yAdv:${yAdvDevOff}}, field=${fieldName}`,
+			);
+		}
+	};
+
+	if (xPlaDevOff) {
+		vr.xPlaDevice = parseDeviceWithContext(xPlaDevOff, 'xPlaDevice');
+		reader.seek(returnPos);
+	}
+	if (yPlaDevOff) {
+		vr.yPlaDevice = parseDeviceWithContext(yPlaDevOff, 'yPlaDevice');
+		reader.seek(returnPos);
+	}
+	if (xAdvDevOff) {
+		vr.xAdvDevice = parseDeviceWithContext(xAdvDevOff, 'xAdvDevice');
+		reader.seek(returnPos);
+	}
+	if (yAdvDevOff) {
+		vr.yAdvDevice = parseDeviceWithContext(yAdvDevOff, 'yAdvDevice');
+		reader.seek(returnPos);
+	}
 
 	return vr;
 }
@@ -239,13 +274,14 @@ function parsePairPos(reader, offset) {
 		const pairSetOffsets = reader.array('uint16', pairSetCount);
 
 		const pairSets = pairSetOffsets.map((pso) => {
-			reader.seek(offset + pso);
+			const pairSetOffset = offset + pso;
+			reader.seek(pairSetOffset);
 			const pvCount = reader.uint16();
 			const pvRecords = [];
 			for (let i = 0; i < pvCount; i++) {
 				const secondGlyph = reader.uint16();
-				const value1 = parseValueRecord(reader, valueFormat1, offset);
-				const value2 = parseValueRecord(reader, valueFormat2, offset);
+				const value1 = parseValueRecord(reader, valueFormat1, pairSetOffset);
+				const value2 = parseValueRecord(reader, valueFormat2, pairSetOffset);
 				pvRecords.push({ secondGlyph, value1, value2 });
 			}
 			return pvRecords;
