@@ -173,6 +173,19 @@ export function importFont(buffer) {
 		throw new TypeError('importFont expects an ArrayBuffer');
 	}
 
+	const bytes = new Uint8Array(buffer);
+	if (bytes.length >= 4) {
+		const signature = String.fromCharCode(
+			bytes[0],
+			bytes[1],
+			bytes[2],
+			bytes[3],
+		);
+		if (signature === 'ttcf') {
+			return importCollection(buffer);
+		}
+	}
+
 	const reader = new DataReader(new Uint8Array(buffer));
 	const header = readFontHeader(reader);
 	const tableDirectory = readTableDirectory(reader, header.numTables);
@@ -182,6 +195,102 @@ export function importFont(buffer) {
 		header,
 		tables,
 	};
+}
+
+function importCollection(buffer) {
+	const reader = new DataReader(new Uint8Array(buffer));
+	const tag = reader.tag();
+	if (tag !== 'ttcf') {
+		throw new Error('Invalid TTC/OTC collection signature');
+	}
+
+	const majorVersion = reader.uint16();
+	const minorVersion = reader.uint16();
+	const numFonts = reader.uint32();
+	const offsetTable = reader.array('uint32', numFonts);
+
+	let dsigTag;
+	let dsigLength;
+	let dsigOffset;
+	if (majorVersion >= 2) {
+		dsigTag = reader.uint32();
+		dsigLength = reader.uint32();
+		dsigOffset = reader.uint32();
+	}
+
+	const fonts = offsetTable.map((sfntOffset) => {
+		const sfntReader = new DataReader(new Uint8Array(buffer), sfntOffset);
+		const header = readFontHeader(sfntReader);
+		const tableDirectory = readTableDirectory(sfntReader, header.numTables);
+		const normalizedTableDirectory = normalizeTtcTableDirectoryOffsets(
+			buffer,
+			tableDirectory,
+			sfntOffset,
+		);
+		const tables = extractTableData(buffer, normalizedTableDirectory);
+		return { header, tables };
+	});
+
+	const collection = {
+		tag,
+		majorVersion,
+		minorVersion,
+		numFonts,
+		offsetTable,
+	};
+	if (majorVersion >= 2) {
+		collection.dsigTag = dsigTag;
+		collection.dsigLength = dsigLength;
+		collection.dsigOffset = dsigOffset;
+	}
+
+	return { collection, fonts };
+}
+
+function normalizeTtcTableDirectoryOffsets(buffer, tableDirectory, sfntOffset) {
+	const headEntry = tableDirectory.find((entry) => entry.tag === 'head');
+	if (!headEntry) {
+		return tableDirectory;
+	}
+
+	const absStart = headEntry.offset;
+	const relStart = sfntOffset + headEntry.offset;
+	const absInBounds = absStart + headEntry.length <= buffer.byteLength;
+	const relInBounds = relStart + headEntry.length <= buffer.byteLength;
+
+	if (!absInBounds && relInBounds) {
+		return tableDirectory.map((entry) => ({
+			...entry,
+			offset: sfntOffset + entry.offset,
+		}));
+	}
+
+	if (absInBounds && !relInBounds) {
+		return tableDirectory;
+	}
+
+	if (!absInBounds && !relInBounds) {
+		return tableDirectory;
+	}
+
+	const absHead = parseHead(
+		Array.from(new Uint8Array(buffer, absStart, headEntry.length)),
+	);
+	const relHead = parseHead(
+		Array.from(new Uint8Array(buffer, relStart, headEntry.length)),
+	);
+
+	const absLooksValid = absHead.magicNumber === 0x5f0f3cf5;
+	const relLooksValid = relHead.magicNumber === 0x5f0f3cf5;
+
+	if (relLooksValid && !absLooksValid) {
+		return tableDirectory.map((entry) => ({
+			...entry,
+			offset: sfntOffset + entry.offset,
+		}));
+	}
+
+	return tableDirectory;
 }
 
 /**
@@ -268,7 +377,8 @@ function extractTableData(buffer, tableDirectory) {
 
 	for (const tag of sortedTags) {
 		const entry = entryByTag.get(tag);
-		const raw = new Uint8Array(buffer, entry.offset, entry.length);
+		const tableOffset = entry.offset;
+		const raw = new Uint8Array(buffer, tableOffset, entry.length);
 		const rawArray = Array.from(raw);
 		const parser = tableParsers[tag];
 

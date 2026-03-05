@@ -47,9 +47,8 @@ describe('GPOS table parsing', () => {
 	});
 
 	it('should parse GPOS from SegUIVar-test.ttf (variation device offsets)', async () => {
-		const buffer = (
-			await readFile(resolve(SAMPLES_DIR, 'SegUIVar-test.ttf'))
-		).buffer;
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'SegUIVar-test.ttf')))
+			.buffer;
 		const font = importFont(buffer);
 		const gpos = font.tables['GPOS'];
 

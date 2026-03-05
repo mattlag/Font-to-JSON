@@ -128,6 +128,22 @@ export function exportFont(fontData) {
 		throw new TypeError('exportFont expects a font data object');
 	}
 
+	if (isCollection(fontData)) {
+		return exportCollection(fontData);
+	}
+
+	return exportSFNT(fontData, 0);
+}
+
+function isCollection(fontData) {
+	return (
+		fontData.collection &&
+		fontData.collection.tag === 'ttcf' &&
+		Array.isArray(fontData.fonts)
+	);
+}
+
+function exportSFNT(fontData, directoryOffsetBase) {
 	const { header, tables } = fontData;
 	const tableNames = Object.keys(tables);
 	const numTables = tableNames.length;
@@ -204,13 +220,70 @@ export function exportFont(fontData) {
 			view.setUint8(pos + j, entry.tag.charCodeAt(j));
 		}
 		view.setUint32(pos + 4, entry.checksum);
-		view.setUint32(pos + 8, entry.offset);
+		view.setUint32(pos + 8, entry.offset + directoryOffsetBase);
 		view.setUint32(pos + 12, entry.length);
 	}
 
 	// Write table data (padding between tables is already zeroed)
 	for (const entry of tableEntries) {
 		bytes.set(entry.data, entry.offset);
+	}
+
+	return buffer;
+}
+
+function exportCollection(collectionData) {
+	const { collection, fonts } = collectionData;
+	if (!Array.isArray(fonts) || fonts.length === 0) {
+		throw new Error('TTC/OTC export expects a non-empty fonts array');
+	}
+
+	const majorVersion = collection.majorVersion ?? 2;
+	const minorVersion = collection.minorVersion ?? 0;
+	const numFonts = fonts.length;
+	const hasDsigFields = majorVersion >= 2;
+
+	const headerSize = 12 + numFonts * 4 + (hasDsigFields ? 12 : 0);
+	let currentOffset = headerSize + ((4 - (headerSize % 4)) % 4);
+
+	const firstPass = fonts.map((font) => new Uint8Array(exportSFNT(font, 0)));
+	const faceOffsets = firstPass.map((faceBytes) => {
+		const off = currentOffset;
+		currentOffset += faceBytes.length;
+		currentOffset += (4 - (currentOffset % 4)) % 4;
+		return off;
+	});
+
+	const secondPass = fonts.map(
+		(font, i) => new Uint8Array(exportSFNT(font, faceOffsets[i])),
+	);
+
+	const totalSize = currentOffset;
+	const buffer = new ArrayBuffer(totalSize);
+	const view = new DataView(buffer);
+	const bytes = new Uint8Array(buffer);
+
+	view.setUint8(0, 't'.charCodeAt(0));
+	view.setUint8(1, 't'.charCodeAt(0));
+	view.setUint8(2, 'c'.charCodeAt(0));
+	view.setUint8(3, 'f'.charCodeAt(0));
+	view.setUint16(4, majorVersion);
+	view.setUint16(6, minorVersion);
+	view.setUint32(8, numFonts);
+
+	for (let i = 0; i < numFonts; i++) {
+		view.setUint32(12 + i * 4, faceOffsets[i]);
+	}
+
+	if (hasDsigFields) {
+		const dsigBase = 12 + numFonts * 4;
+		view.setUint32(dsigBase + 0, collection.dsigTag ?? 0);
+		view.setUint32(dsigBase + 4, collection.dsigLength ?? 0);
+		view.setUint32(dsigBase + 8, collection.dsigOffset ?? 0);
+	}
+
+	for (let i = 0; i < numFonts; i++) {
+		bytes.set(secondPass[i], faceOffsets[i]);
 	}
 
 	return buffer;

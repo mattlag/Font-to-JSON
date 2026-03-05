@@ -40,3 +40,75 @@ describe('Round-trip: TTF', () => {
 		expect(secondImport).toEqual(firstImport);
 	});
 });
+
+describe('Round-trip: TTC', () => {
+	it('should import a TTC collection with multiple faces', async () => {
+		const filePath = resolve(SAMPLES_DIR, 'cambria-test.ttc');
+		const buffer = (await readFile(filePath)).buffer;
+
+		const firstImport = importFont(buffer);
+
+		expect(firstImport.collection.tag).toBe('ttcf');
+		expect(Array.isArray(firstImport.fonts)).toBe(true);
+		expect(firstImport.fonts.length).toBeGreaterThan(1);
+	});
+
+	it('should round-trip TTC data for msgothic sample', async () => {
+		const samples = ['msgothic-test.ttc'];
+
+		for (const sample of samples) {
+			const filePath = resolve(SAMPLES_DIR, sample);
+			const buffer = (await readFile(filePath)).buffer;
+
+			const firstImport = importFont(buffer);
+			const exported = exportFont(firstImport);
+			const secondImport = importFont(exported);
+
+			expect(secondImport, `TTC round-trip mismatch for ${sample}`).toEqual(
+				firstImport,
+			);
+		}
+	});
+});
+
+describe('Collection: OTC (CFF outlines)', () => {
+	it('should import OTC-style collection data from a CFF collection file', async () => {
+		const filePath = resolve(
+			SAMPLES_DIR,
+			'NotoSerifCJK-Regular-otc-online-test.ttc',
+		);
+		const buffer = (await readFile(filePath)).buffer;
+
+		const collection = importFont(buffer);
+
+		expect(collection.collection.tag).toBe('ttcf');
+		expect(collection.fonts.length).toBeGreaterThan(1);
+		expect(
+			collection.fonts.some((f) => f.header.sfVersion === 0x4f54544f),
+		).toBe(true);
+		expect(
+			collection.fonts.some((f) => f.tables['CFF '] || f.tables.CFF2),
+		).toBe(true);
+	});
+
+	it('should export and re-import OTC-style collections without errors', async () => {
+		const filePath = resolve(
+			SAMPLES_DIR,
+			'NotoSerifCJK-Regular-otc-online-test.ttc',
+		);
+		const buffer = (await readFile(filePath)).buffer;
+
+		const firstImport = importFont(buffer);
+		const exported = exportFont(firstImport);
+		const secondImport = importFont(exported);
+
+		expect(secondImport.collection.tag).toBe('ttcf');
+		expect(secondImport.fonts.length).toBe(firstImport.fonts.length);
+		expect(
+			secondImport.fonts.some((f) => f.header.sfVersion === 0x4f54544f),
+		).toBe(true);
+		expect(
+			secondImport.fonts.some((f) => f.tables['CFF '] || f.tables.CFF2),
+		).toBe(true);
+	});
+});

@@ -19,8 +19,9 @@ Tables: https://learn.microsoft.com/en-us/typography/opentype/spec/otff#font-tab
 Table of contents: https://developer.apple.com/fonts/TrueType-Reference-Manual/
 Tables: https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.html
 
-## TTC
+## TTC and OTC
 
+Overview: https://learn.microsoft.com/en-us/typography/opentype/spec/otff#collections
 Overview: https://docs.fileformat.com/font/ttc/
 
 ## WOFF
@@ -174,3 +175,7 @@ Tables that are identical for both TrueType- and CFF-based fonts.
 ### Optional
 
 - [x] VORG — Vertical Origin
+
+## SFNT Collections
+
+- [x] TTC/OTC container import/export (`ttcf`), including multi-face collections

@@ -17,6 +17,7 @@
 ```
 Binary font (ArrayBuffer)
   → importFont(buffer)          [src/import.js]
+    → detects `ttcf` and parses TTC collections (`{ collection, fonts[] }`)
     → readFontHeader(reader)    — 12-byte Offset Table
     → readTableDirectory(reader, n) — 16 bytes × numTables
     → extractTableData(buffer, dir) — dispatches to tableParsers or stores _raw
@@ -24,6 +25,7 @@ Binary font (ArrayBuffer)
 
 JSON object
   → exportFont(fontData)        [src/export.js]
+    → if TTC shape, writes `ttcf` header + face offset table + per-face SFNT
     → for each table: tableWriters[tag](data) or use _raw
     → reconstruct header + directory + table data
   → ArrayBuffer
@@ -86,7 +88,7 @@ The returned object from a parser should NOT include `_checksum` or `_raw` — t
 src/
   main.js           — entry point, re-exports importFont + exportFont
   import.js         — importFont(), tableParsers registry, tableParseOrder, dependency-aware extractTableData()
-  export.js         — exportFont(), tableWriters registry (NOTE: not yet refactored to use DataWriter)
+  export.js         — exportFont(), tableWriters registry, SFNT + TTC (`ttcf`) export paths
   reader.js         — DataReader class
   writer.js         — DataWriter class
   otf/
@@ -120,7 +122,7 @@ src/
     table_SVG.js    — parseSVG(), writeSVG() — SVG glyph descriptions (plain text + gzip)
 
 test/
-  roundtrip.test.js       — import→export→reimport for OTF and TTF (oblegg.otf, oblegg.ttf)
+  roundtrip.test.js       — import→export→reimport for OTF, TTF, and TTC samples
   sample fonts/            — binary font files for testing
     oblegg.otf, oblegg.ttf — primary test fonts (small, simple)
     (others: BungeeTint, EmojiOneColor, fira, mtextra, noto, Multicoloure, Reinebow, oblegg.woff/woff2)
@@ -152,6 +154,14 @@ test/
     table_COLR.test.js     — COLR parsing, v0 structure, round-trip, synthetic (8 tests)
     table_CPAL.test.js     — CPAL parsing, BGRA colors, round-trip, synthetic v0/v1 (8 tests)
     table_SVG.test.js      — SVG parsing, plain text/gzip, round-trip 3 fonts, synthetic (10 tests)
+
+  ### TTC Collections (`ttcf`) support
+
+  - `importFont()` now detects `ttcf` signature and parses TTC header + face offsets + optional DSIG fields for v2+
+  - TTC JSON shape: `{ collection: { tag, majorVersion, minorVersion, numFonts, offsetTable, ... }, fonts: [{ header, tables }, ...] }`
+  - `exportFont()` now accepts the TTC shape and emits a collection file with per-face SFNTs and adjusted table record offsets
+  - Added TTC round-trip coverage in `test/roundtrip.test.js` (full round-trip on `msgothic-test.ttc`)
+  - `cambria-test.ttc` is currently import-covered but excluded from all-samples round-trip stabilization due to an existing GPOS writer edge case in that sample
 ```
 
 ## Completed Work
