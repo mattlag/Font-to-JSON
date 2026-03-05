@@ -549,6 +549,7 @@ All planned shared SFNT tables are now complete: **cmap**, **head**, **hhea**, *
 OTF CFF-specific tables complete: **CFF** (v1), **CFF2**.
 TTF outline tables complete: **loca**, **glyf**.
 Advanced Typographic tables complete: **GDEF**, **GPOS**, **GSUB** (with shared OpenType Layout common module).
+Additional advanced typographic tables complete: **BASE**, **JSTF**, **MATH**.
 TTF Hinting tables complete: **cvt**, **fpgm**, **prep**, **gasp**.
 Vertical Metrics tables complete: **vhea**, **vmtx**.
 Color Font tables complete: **COLR**, **CPAL**, **SVG**.
@@ -620,3 +621,5 @@ Possible future work:
 36. **DataWriter method is `toArray()`, not `finish()`**: Easy to confuse. Always use `w.toArray()` to get the final byte array.
 37. **Bitmap table scope (block 4)**: `CBLC/CBDT/EBLC/EBDT/EBSC/sbix` are currently implemented as container-level parse/write with raw payload preservation for complex internals. This keeps round-trip stable while deferring deeper format-specific decoding.
 38. **No bitmap fixtures in sample fonts**: Current repository sample fonts did not expose these bitmap tags, so block-4 tests are synthetic round-trip tests focused on parser/writer fidelity and registry wiring.
+39. **JSTF implementation scope**: `JSTF` is implemented at container level (version + JstfScript records with preserved raw script subtables). This keeps offsets stable and enables lossless round-trip without full Justification structure decoding yet.
+40. **MATH implementation scope**: `MATH` is implemented at container level (version + offsets to MathConstants/MathGlyphInfo/MathVariants, each preserved as raw bytes). This provides safe round-trip while deferring deep parsing of math constants and glyph assemblies.

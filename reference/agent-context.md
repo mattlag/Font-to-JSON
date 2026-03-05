@@ -98,8 +98,8 @@ Tables that are identical for both TrueType- and CFF-based fonts.
 - [x] GPOS — Glyph positioning data
 - [x] GSUB — Glyph substitution data
 - [x] BASE — Baseline data
-- [ ] JSTF — Justification data
-- [ ] MATH — Math layout data
+- [x] JSTF — Justification data
+- [x] MATH — Math layout data
 
 ### Vertical Metrics
 

@@ -24,7 +24,9 @@ import { parseHead } from './sfnt/table_head.js';
 import { parseHhea } from './sfnt/table_hhea.js';
 import { parseHmtx } from './sfnt/table_hmtx.js';
 import { parseHVAR } from './sfnt/table_HVAR.js';
+import { parseJSTF } from './sfnt/table_JSTF.js';
 import { parseKern } from './sfnt/table_kern.js';
+import { parseMATH } from './sfnt/table_MATH.js';
 import { parseMaxp } from './sfnt/table_maxp.js';
 import { parseMVAR } from './sfnt/table_MVAR.js';
 import { parseName } from './sfnt/table_name.js';
@@ -61,6 +63,8 @@ const tableParsers = {
 	MVAR: parseMVAR,
 	name: parseName,
 	BASE: parseBASE,
+	JSTF: parseJSTF,
+	MATH: parseMATH,
 	CBLC: parseCBLC,
 	CBDT: parseCBDT,
 	'OS/2': parseOS2,
@@ -111,6 +115,8 @@ const tableParseOrder = [
 	'HVAR',
 	'name',
 	'BASE',
+	'JSTF',
+	'MATH',
 	'STAT',
 	'MVAR',
 	'OS/2',

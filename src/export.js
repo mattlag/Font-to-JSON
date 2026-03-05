@@ -23,7 +23,9 @@ import { writeHead } from './sfnt/table_head.js';
 import { writeHhea } from './sfnt/table_hhea.js';
 import { writeHmtx } from './sfnt/table_hmtx.js';
 import { writeHVAR } from './sfnt/table_HVAR.js';
+import { writeJSTF } from './sfnt/table_JSTF.js';
 import { writeKern } from './sfnt/table_kern.js';
+import { writeMATH } from './sfnt/table_MATH.js';
 import { writeMaxp } from './sfnt/table_maxp.js';
 import { writeMVAR } from './sfnt/table_MVAR.js';
 import { writeName } from './sfnt/table_name.js';
@@ -59,6 +61,8 @@ const tableWriters = {
 	MVAR: writeMVAR,
 	name: writeName,
 	BASE: writeBASE,
+	JSTF: writeJSTF,
+	MATH: writeMATH,
 	CBLC: writeCBLC,
 	CBDT: writeCBDT,
 	'OS/2': writeOS2,
