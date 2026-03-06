@@ -5,5 +5,6 @@
 
 import { exportFont } from './export.js';
 import { importFont } from './import.js';
+import { validateJSON } from './validate/index.js';
 
-export { exportFont, importFont };
+export { exportFont, importFont, validateJSON };

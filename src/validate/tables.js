@@ -1,0 +1,70 @@
+export const SHARED_SFNT_TABLES = [
+	'BASE',
+	'CBDT',
+	'CBLC',
+	'COLR',
+	'CPAL',
+	'DSIG',
+	'EBDT',
+	'EBLC',
+	'EBSC',
+	'GDEF',
+	'GPOS',
+	'GSUB',
+	'HVAR',
+	'JSTF',
+	'LTSH',
+	'MATH',
+	'MERG',
+	'MVAR',
+	'OS/2',
+	'PCLT',
+	'STAT',
+	'SVG ',
+	'VDMX',
+	'VVAR',
+	'avar',
+	'cmap',
+	'fvar',
+	'hdmx',
+	'head',
+	'hhea',
+	'hmtx',
+	'kern',
+	'maxp',
+	'meta',
+	'name',
+	'post',
+	'sbix',
+	'vhea',
+	'vmtx',
+];
+
+export const OTF_SPECIFIC_TABLES = ['CFF ', 'CFF2', 'VORG'];
+
+export const TTF_SPECIFIC_TABLES = [
+	'cvar',
+	'cvt ',
+	'fpgm',
+	'gasp',
+	'glyf',
+	'gvar',
+	'loca',
+	'prep',
+];
+
+export const ALL_SUPPORTED_TABLES = new Set([
+	...SHARED_SFNT_TABLES,
+	...OTF_SPECIFIC_TABLES,
+	...TTF_SPECIFIC_TABLES,
+]);
+
+export const REQUIRED_CORE_TABLES = [
+	'cmap',
+	'head',
+	'hhea',
+	'hmtx',
+	'maxp',
+	'name',
+	'post',
+];
