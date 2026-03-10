@@ -37,8 +37,8 @@ import {
 	writeINDEXv1,
 } from './cff_common.js';
 
-// ── Operators whose operands contain binary offsets and must use fixed-width
-//    (5-byte int32) encoding to keep Top DICT size deterministic. ──
+// -- Operators whose operands contain binary offsets and must use fixed-width
+//    (5-byte int32) encoding to keep Top DICT size deterministic. --
 const TOP_DICT_OFFSET_OPS = new Set([
 	15, // charset
 	16, // Encoding
@@ -52,9 +52,9 @@ const PRIVATE_DICT_OFFSET_OPS = new Set([
 	19, // Subrs  (relative offset from Private start)
 ]);
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  Helpers — DICT encoding with forced int32 for offset-bearing operators
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Encode DICT entries, forcing 5-byte int32 encoding for operators in
@@ -86,7 +86,7 @@ function encodeDICTForced(entries, offsetOps) {
 	return result;
 }
 
-// ── String / byte conversions ────────────────────────────────────────────
+// -- String / byte conversions --------------------------------------------
 
 function stringToBytes(str) {
 	const arr = [];
@@ -98,9 +98,9 @@ function bytesToString(bytes) {
 	return String.fromCharCode(...bytes);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  PARSE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a CFF v1 table.
@@ -112,35 +112,35 @@ function bytesToString(bytes) {
 export function parseCFF(rawArray, _tables) {
 	const data = new Uint8Array(rawArray);
 
-	// ── 1. Header ──────────────────────────────────────────────────────
+	// -- 1. Header ------------------------------------------------------
 	const majorVersion = data[0];
 	const minorVersion = data[1];
 	const hdrSize = data[2];
 	// data[3] is the header's offSize field — informational only
 
-	// ── 2. Name INDEX ──────────────────────────────────────────────────
+	// -- 2. Name INDEX --------------------------------------------------
 	let pos = hdrSize;
 	const nameIdx = parseINDEXv1(data, pos);
 	pos += nameIdx.totalBytes;
 
 	const names = nameIdx.items.map(bytesToString);
 
-	// ── 3. Top DICT INDEX ──────────────────────────────────────────────
+	// -- 3. Top DICT INDEX ----------------------------------------------
 	const topDictIdx = parseINDEXv1(data, pos);
 	pos += topDictIdx.totalBytes;
 
-	// ── 4. String INDEX ────────────────────────────────────────────────
+	// -- 4. String INDEX ------------------------------------------------
 	const stringIdx = parseINDEXv1(data, pos);
 	pos += stringIdx.totalBytes;
 
 	const strings = stringIdx.items.map(bytesToString);
 
-	// ── 5. Global Subr INDEX ───────────────────────────────────────────
+	// -- 5. Global Subr INDEX -------------------------------------------
 	const globalSubrIdx = parseINDEXv1(data, pos);
 
 	const globalSubrs = globalSubrIdx.items.map((item) => Array.from(item));
 
-	// ── 6. Per-font data ───────────────────────────────────────────────
+	// -- 6. Per-font data -----------------------------------------------
 	const fonts = topDictIdx.items.map((raw) => parseCFFFont(data, raw));
 
 	return {
@@ -161,11 +161,11 @@ export function parseCFF(rawArray, _tables) {
  * @returns {object}
  */
 function parseCFFFont(data, topDictRaw) {
-	// Decode Top DICT entries → named key-value object
+	// Decode Top DICT entries -> named key-value object
 	const rawEntries = decodeDICT(topDictRaw, 0, topDictRaw.length);
 	const topDict = dictEntriesToObject(rawEntries, CFF1_TOP_DICT_OPS);
 
-	// ── Extract offset-based fields (remove from topDict) ──────────────
+	// -- Extract offset-based fields (remove from topDict) --------------
 	const charStringsOffset = topDict.CharStrings;
 	const charsetOffset = topDict.charset ?? 0;
 	const encodingOffset = topDict.Encoding ?? 0;
@@ -182,7 +182,7 @@ function parseCFFFont(data, topDictRaw) {
 	delete topDict.FDArray;
 	delete topDict.FDSelect;
 
-	// ── CharStrings INDEX ──────────────────────────────────────────────
+	// == CharStrings INDEX ==============================================
 	let charStrings = [];
 	if (charStringsOffset !== undefined) {
 		const csIdx = parseINDEXv1(data, charStringsOffset);
@@ -190,13 +190,13 @@ function parseCFFFont(data, topDictRaw) {
 	}
 	const numGlyphs = charStrings.length;
 
-	// ── Charset ────────────────────────────────────────────────────────
+	// == Charset ========================================================
 	const charset = parseCharset(data, charsetOffset, numGlyphs);
 
-	// ── Encoding ───────────────────────────────────────────────────────
+	// == Encoding =======================================================
 	const encoding = parseEncoding(data, encodingOffset);
 
-	// ── Private DICT + Local Subrs ─────────────────────────────────────
+	// -- Private DICT + Local Subrs -------------------------------------
 	let privateDict = {};
 	let localSubrs = [];
 
@@ -212,7 +212,7 @@ function parseCFFFont(data, topDictRaw) {
 		}
 	}
 
-	// ── CIDFont extras ─────────────────────────────────────────────────
+	// == CIDFont extras =================================================
 	const isCIDFont = topDict.ROS !== undefined;
 	let fdArray;
 	let fdSelect;
@@ -252,7 +252,7 @@ function parseCFFFont(data, topDictRaw) {
 		}
 	}
 
-	// ── Assemble result ────────────────────────────────────────────────
+	// == Assemble result ================================================
 	const font = {
 		topDict,
 		charset,
@@ -271,9 +271,9 @@ function parseCFFFont(data, topDictRaw) {
 	return font;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  WRITE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Write a CFF v1 table from a parsed JSON object.
@@ -291,7 +291,7 @@ export function writeCFF(tableData) {
 		fonts = [],
 	} = tableData;
 
-	// ── 1. Encode fixed-content sections ───────────────────────────────
+	// -- 1. Encode fixed-content sections -------------------------------
 	const headerBytes = [majorVersion, minorVersion, 4, 4];
 
 	const nameIndexBytes = writeINDEXv1(names.map(stringToBytes));
@@ -300,18 +300,18 @@ export function writeCFF(tableData) {
 		globalSubrs.map((s) => new Uint8Array(s)),
 	);
 
-	// ── 2. Pre-compute per-font data sections ──────────────────────────
+	// -- 2. Pre-compute per-font data sections --------------------------
 	//    Each font produces an ordered list of byte sections and tells us
 	//    the relative offsets for the Top DICT entries.
 	const fontBuilds = fonts.map((font) => buildFontSections(font));
 
-	// ── 3. Build Top DICTs with dummy offsets (to measure INDEX size) ──
+	// -- 3. Build Top DICTs with dummy offsets (to measure INDEX size) --
 	const dummyTopDicts = fonts.map((font, i) =>
 		buildTopDictBytes(font, fontBuilds[i], /* baseOffset */ 0),
 	);
 	const dummyTopDictIndexBytes = writeINDEXv1(dummyTopDicts);
 
-	// ── 4. Compute real baseOffset for font data ───────────────────────
+	// -- 4. Compute real baseOffset for font data -----------------------
 	const fontDataStart =
 		headerBytes.length +
 		nameIndexBytes.length +
@@ -319,7 +319,7 @@ export function writeCFF(tableData) {
 		stringIndexBytes.length +
 		globalSubrBytes.length;
 
-	// ── 5. Build real Top DICTs with correct offsets ───────────────────
+	// -- 5. Build real Top DICTs with correct offsets -------------------
 	let offset = fontDataStart;
 	const realTopDicts = fonts.map((font, i) => {
 		const td = buildTopDictBytes(font, fontBuilds[i], offset);
@@ -335,7 +335,7 @@ export function writeCFF(tableData) {
 		);
 	}
 
-	// ── 6. Assemble ────────────────────────────────────────────────────
+	// -- 6. Assemble ----------------------------------------------------
 	const result = [
 		...headerBytes,
 		...nameIndexBytes,
@@ -353,7 +353,7 @@ export function writeCFF(tableData) {
 	return result;
 }
 
-// ─── Font section builder ────────────────────────────────────────────────
+// === Font section builder ================================================
 
 /**
  * Build all per-font data sections and compute relative offsets.
@@ -369,14 +369,14 @@ function buildFontSections(font) {
 	const offsets = {};
 	let cursor = 0;
 
-	// ── CharStrings INDEX ──────────────────────────────────────────────
+	// == CharStrings INDEX ==============================================
 	const csItems = (font.charStrings || []).map((s) => new Uint8Array(s));
 	const csBytes = writeINDEXv1(csItems);
 	offsets.charStrings = cursor;
 	sections.push(csBytes);
 	cursor += csBytes.length;
 
-	// ── Charset ────────────────────────────────────────────────────────
+	// == Charset ========================================================
 	const charsetVal = font.charset;
 	if (typeof charsetVal === 'string') {
 		// Predefined charset — offset stored directly in Top DICT
@@ -391,7 +391,7 @@ function buildFontSections(font) {
 		cursor += csData.length;
 	}
 
-	// ── Encoding ───────────────────────────────────────────────────────
+	// == Encoding =======================================================
 	const encVal = font.encoding;
 	if (typeof encVal === 'string') {
 		offsets.encoding = encVal === 'Standard' ? 0 : 1;
@@ -407,7 +407,7 @@ function buildFontSections(font) {
 		offsets.encodingIsPredefined = true;
 	}
 
-	// ── Private DICT + Local Subrs ─────────────────────────────────────
+	// -- Private DICT + Local Subrs -------------------------------------
 	const privEntries = objectToDictEntries(
 		font.privateDict || {},
 		CFF1_PRIVATE_DICT_OPS_BY_NAME,
@@ -449,7 +449,7 @@ function buildFontSections(font) {
 		cursor += localSubrBytes.length;
 	}
 
-	// ── CIDFont: FDArray + FDSelect ────────────────────────────────────
+	// -- CIDFont: FDArray + FDSelect ------------------------------------
 	if (font.isCIDFont) {
 		if (font.fdSelect) {
 			const fdSelBytes = writeFDSelect(font.fdSelect);
@@ -555,7 +555,7 @@ function buildTopDictBytes(font, build, baseOffset) {
 	return encodeDICTForced(entries, TOP_DICT_OFFSET_OPS);
 }
 
-// ── Encoding writer ──────────────────────────────────────────────────────
+// == Encoding writer ======================================================
 
 /**
  * Write an Encoding data block from a parsed encoding object.

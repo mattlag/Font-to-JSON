@@ -14,7 +14,7 @@ function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	return importFont(
 		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	);
+	).raw;
 }
 
 describe('gasp table', () => {
@@ -55,7 +55,7 @@ describe('gasp table', () => {
 	it('should round-trip gasp from oblegg.ttf', () => {
 		const font1 = loadFont('oblegg.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.gasp.version).toEqual(font1.tables.gasp.version);
 		expect(font2.tables.gasp.gaspRanges).toEqual(font1.tables.gasp.gaspRanges);
 	});
@@ -63,7 +63,7 @@ describe('gasp table', () => {
 	it('should round-trip gasp from fira.ttf', () => {
 		const font1 = loadFont('fira.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.gasp.version).toEqual(font1.tables.gasp.version);
 		expect(font2.tables.gasp.gaspRanges).toEqual(font1.tables.gasp.gaspRanges);
 	});
@@ -71,7 +71,7 @@ describe('gasp table', () => {
 	it('should round-trip gasp from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.gasp.version).toEqual(font1.tables.gasp.version);
 		expect(font2.tables.gasp.gaspRanges).toEqual(font1.tables.gasp.gaspRanges);
 	});
@@ -87,7 +87,7 @@ describe('gasp table', () => {
 			],
 		};
 		const bytes = writeGasp(data);
-		// 4 header + 4 ranges × 4 bytes = 20
+		// 4 header + 4 ranges Ãƒâ€” 4 bytes = 20
 		expect(bytes).toHaveLength(20);
 		const parsed = parseGasp(bytes);
 		expect(parsed.version).toBe(1);

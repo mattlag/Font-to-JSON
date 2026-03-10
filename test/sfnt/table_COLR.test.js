@@ -15,12 +15,12 @@ const SAMPLES = path.resolve('test/sample fonts');
 function loadCOLR(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-	const font = importFont(ab);
+	const font = importFont(ab).raw;
 	return { font, colr: font.tables['COLR'] };
 }
 
 describe('COLR table', () => {
-	// ── Parsing ────────────────────────────────────────────────────────
+	// == Parsing ========================================================
 
 	it('should parse the COLR table from BungeeTint-Regular.ttf', () => {
 		const { colr } = loadCOLR('BungeeTint-Regular.ttf');
@@ -81,7 +81,7 @@ describe('COLR table', () => {
 		expect(colr._raw).toBeUndefined();
 	});
 
-	// ── Round-trip ──────────────────────────────────────────────────────
+	// == Round-trip ======================================================
 
 	it('should round-trip COLR from BungeeTint-Regular.ttf', () => {
 		const buf = fs.readFileSync(path.join(SAMPLES, 'BungeeTint-Regular.ttf'));
@@ -89,10 +89,10 @@ describe('COLR table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab);
+		const font = importFont(ab).raw;
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported);
+		const reimported = importFont(exported).raw;
 		const orig = font.tables['COLR'];
 		const rt = reimported.tables['COLR'];
 
@@ -109,7 +109,7 @@ describe('COLR table', () => {
 		}
 	});
 
-	// ── Synthetic ───────────────────────────────────────────────────────
+	// == Synthetic =======================================================
 
 	it('should handle a synthetic v0 COLR table', () => {
 		const original = {

@@ -11,9 +11,9 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a cmap table from raw bytes.
@@ -66,7 +66,7 @@ export function parseCmap(rawBytes) {
 	return { version, encodingRecords, subtables };
 }
 
-// ─── Subtable dispatch ──────────────────────────────────────────────────────
+// --- Subtable dispatch ------------------------------------------------------
 
 function parseSubtable(reader, offset) {
 	reader.seek(offset);
@@ -89,7 +89,7 @@ function parseSubtable(reader, offset) {
 	}
 }
 
-// ─── Format 0 : Byte encoding table ────────────────────────────────────────
+// --- Format 0 : Byte encoding table ----------------------------------------
 
 function parseFormat0(reader) {
 	// format already read; length(2) + language(2) + glyphIdArray(256×1)
@@ -99,7 +99,7 @@ function parseFormat0(reader) {
 	return { format: 0, language, glyphIdArray };
 }
 
-// ─── Format 4 : Segment mapping to delta values ────────────────────────────
+// --- Format 4 : Segment mapping to delta values ----------------------------
 
 function parseFormat4(reader, subtableOffset) {
 	// format already read
@@ -132,7 +132,7 @@ function parseFormat4(reader, subtableOffset) {
 	return { format: 4, language, segments, glyphIdArray };
 }
 
-// ─── Format 6 : Trimmed table mapping ──────────────────────────────────────
+// --- Format 6 : Trimmed table mapping --------------------------------------
 
 function parseFormat6(reader) {
 	// format already read
@@ -144,7 +144,7 @@ function parseFormat6(reader) {
 	return { format: 6, language, firstCode, glyphIdArray };
 }
 
-// ─── Format 12 : Segmented coverage ────────────────────────────────────────
+// --- Format 12 : Segmented coverage ----------------------------------------
 
 function parseFormat12(reader) {
 	// format already read; reserved(2) + length(4) + language(4) + numGroups(4) = 14 bytes
@@ -163,7 +163,7 @@ function parseFormat12(reader) {
 	return { format: 12, language, groups };
 }
 
-// ─── Format 13 : Many-to-one range mappings ────────────────────────────────
+// --- Format 13 : Many-to-one range mappings --------------------------------
 
 function parseFormat13(reader) {
 	// Same binary layout as format 12, different field semantics
@@ -182,7 +182,7 @@ function parseFormat13(reader) {
 	return { format: 13, language, groups };
 }
 
-// ─── Format 14 : Unicode variation sequences ────────────────────────────────
+// --- Format 14 : Unicode variation sequences --------------------------------
 
 function parseFormat14(reader, subtableOffset) {
 	// format already read; length(4) + numVarSelectorRecords(4)
@@ -244,7 +244,7 @@ function parseNonDefaultUVS(reader, offset) {
 	return mappings;
 }
 
-// ─── Raw fallback for unsupported formats ───────────────────────────────────
+// --- Raw fallback for unsupported formats -----------------------------------
 
 function parseFormatRaw(reader, subtableOffset, format) {
 	let length;
@@ -262,9 +262,9 @@ function parseFormatRaw(reader, subtableOffset, format) {
 	return { format, _raw };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write a cmap JSON object back to raw bytes.
@@ -313,7 +313,7 @@ export function writeCmap(cmapData) {
 	return w.toArray();
 }
 
-// ─── Subtable dispatch ──────────────────────────────────────────────────────
+// --- Subtable dispatch ------------------------------------------------------
 
 function writeSubtable(subtable) {
 	switch (subtable.format) {
@@ -335,7 +335,7 @@ function writeSubtable(subtable) {
 	}
 }
 
-// ─── Format 0 ───────────────────────────────────────────────────────────────
+// --- Format 0 ---------------------------------------------------------------
 
 function writeFormat0(subtable) {
 	const totalLen = 262; // format(2) + length(2) + language(2) + glyphIdArray(256)
@@ -347,7 +347,7 @@ function writeFormat0(subtable) {
 	return w.toArray();
 }
 
-// ─── Format 4 ───────────────────────────────────────────────────────────────
+// --- Format 4 ---------------------------------------------------------------
 
 function writeFormat4(subtable) {
 	const { language, segments, glyphIdArray } = subtable;
@@ -385,7 +385,7 @@ function writeFormat4(subtable) {
 	return w.toArray();
 }
 
-// ─── Format 6 ───────────────────────────────────────────────────────────────
+// --- Format 6 ---------------------------------------------------------------
 
 function writeFormat6(subtable) {
 	const { language, firstCode, glyphIdArray } = subtable;
@@ -403,7 +403,7 @@ function writeFormat6(subtable) {
 	return w.toArray();
 }
 
-// ─── Format 12 ──────────────────────────────────────────────────────────────
+// --- Format 12 --------------------------------------------------------------
 
 function writeFormat12(subtable) {
 	const numGroups = subtable.groups.length;
@@ -425,7 +425,7 @@ function writeFormat12(subtable) {
 	return w.toArray();
 }
 
-// ─── Format 13 ──────────────────────────────────────────────────────────────
+// --- Format 13 --------------------------------------------------------------
 
 function writeFormat13(subtable) {
 	const numGroups = subtable.groups.length;
@@ -447,7 +447,7 @@ function writeFormat13(subtable) {
 	return w.toArray();
 }
 
-// ─── Format 14 ──────────────────────────────────────────────────────────────
+// --- Format 14 --------------------------------------------------------------
 
 function writeFormat14(subtable) {
 	const { varSelectorRecords } = subtable;

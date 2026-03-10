@@ -3,6 +3,7 @@
  * Takes a JSON font object and converts it back to binary font data.
  */
 
+import { buildRawFromSimplified } from './expand.js';
 import { writeCFF } from './otf/table_CFF.js';
 import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeVORG } from './otf/table_VORG.js';
@@ -56,7 +57,7 @@ import { writePrep } from './ttf/table_prep.js';
 
 /**
  * Registry of table writers.
- * Each key is a table tag; the value is a function (object) → number[].
+ * Each key is a table tag; the value is a function (object) -> number[].
  * Tables not listed here must have _raw bytes.
  */
 const tableWriters = {
@@ -132,14 +133,55 @@ export function exportFont(fontData) {
 		return exportCollection(fontData);
 	}
 
-	return exportSFNT(fontData, 0);
+	// Resolve the raw data to export.
+	// If the input has the new { raw, simplified } shape, determine which
+	// source to use.  When a simplified object is present it takes priority
+	// (covers both imported-then-edited and human-authored cases).  If only
+	// raw is present, use it directly (backwards-compatible path).
+	const resolved = resolveExportSource(fontData);
+
+	return exportSFNT(resolved, 0);
 }
 
 function isCollection(fontData) {
 	return (
-		fontData.collection &&
-		fontData.collection.tag === 'ttcf' &&
-		Array.isArray(fontData.fonts)
+		(fontData.collection &&
+			fontData.collection.tag === 'ttcf' &&
+			Array.isArray(fontData.fonts)) ||
+		// New shape: collection may be inside raw
+		(fontData.raw &&
+			fontData.raw.collection &&
+			fontData.raw.collection.tag === 'ttcf' &&
+			Array.isArray(fontData.raw.fonts))
+	);
+}
+
+/**
+ * Resolve the raw data to export from the (potentially new-shape) fontData.
+ *
+ * Priority:
+ * 1. If fontData has `header` + `tables` (legacy shape), use it as-is.
+ * 2. If fontData has `raw`, use it directly (round-trip / imported font).
+ * 3. If fontData has only `simplified` (hand-authored), expand it to raw.
+ */
+function resolveExportSource(fontData) {
+	// Legacy shape: { header, tables } — already the raw format
+	if (fontData.header && fontData.tables) {
+		return fontData;
+	}
+
+	// New shape with raw present — use the original parsed data
+	if (fontData.raw) {
+		return fontData.raw;
+	}
+
+	// Simplified-only (hand-authored font) — expand to raw
+	if (fontData.simplified) {
+		return buildRawFromSimplified(fontData.simplified);
+	}
+
+	throw new Error(
+		'exportFont: input must have { header, tables }, { raw }, or { simplified }',
 	);
 }
 
@@ -149,7 +191,7 @@ function exportSFNT(fontData, directoryOffsetBase) {
 	const numTables = tableNames.length;
 
 	// --- Coordinate cross-table write dependencies ---------------------------
-	// glyf ↔ loca: writing glyf may produce a different binary layout than the
+	// glyf <-> loca: writing glyf may produce a different binary layout than the
 	// original, so loca offsets must be recomputed from the new glyf bytes.
 	// Additionally, head.indexToLocFormat must match the loca format actually
 	// used.  We pre-compute these tables here so the main loop can use cached
@@ -233,20 +275,30 @@ function exportSFNT(fontData, directoryOffsetBase) {
 }
 
 function exportCollection(collectionData) {
-	const { collection, fonts } = collectionData;
+	// Handle new shape: { raw: { collection, fonts }, simplified... }
+	let source = collectionData;
+	if (collectionData.raw && collectionData.raw.collection) {
+		source = collectionData.raw;
+	}
+	const { collection, fonts } = source;
 	if (!Array.isArray(fonts) || fonts.length === 0) {
 		throw new Error('TTC/OTC export expects a non-empty fonts array');
 	}
 
+	// Each font in the collection may itself have the new { raw, simplified } shape
+	const resolvedFonts = fonts.map((f) => resolveExportSource(f));
+
 	const majorVersion = collection.majorVersion ?? 2;
 	const minorVersion = collection.minorVersion ?? 0;
-	const numFonts = fonts.length;
+	const numFonts = resolvedFonts.length;
 	const hasDsigFields = majorVersion >= 2;
 
 	const headerSize = 12 + numFonts * 4 + (hasDsigFields ? 12 : 0);
 	let currentOffset = headerSize + ((4 - (headerSize % 4)) % 4);
 
-	const firstPass = fonts.map((font) => new Uint8Array(exportSFNT(font, 0)));
+	const firstPass = resolvedFonts.map(
+		(font) => new Uint8Array(exportSFNT(font, 0)),
+	);
 	const faceOffsets = firstPass.map((faceBytes) => {
 		const off = currentOffset;
 		currentOffset += faceBytes.length;
@@ -254,7 +306,7 @@ function exportCollection(collectionData) {
 		return off;
 	});
 
-	const secondPass = fonts.map(
+	const secondPass = resolvedFonts.map(
 		(font, i) => new Uint8Array(exportSFNT(font, faceOffsets[i])),
 	);
 
@@ -289,15 +341,15 @@ function exportCollection(collectionData) {
 	return buffer;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  Cross-table write coordination
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Pre-compute tables that have cross-table write dependencies.
  *
  * Currently handles:
- *   glyf ↔ loca — loca offsets must reflect the actual byte positions of
+ *   glyf <-> loca — loca offsets must reflect the actual byte positions of
  *                  glyphs inside the written glyf data.
  *   head.indexToLocFormat — must agree with the loca format actually emitted.
  *

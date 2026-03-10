@@ -10,9 +10,9 @@ import { describe, expect, it } from 'vitest';
 import { parseINDEXv2, writeINDEXv2 } from '../../src/otf/cff_common.js';
 import { parseCFF2, writeCFF2 } from '../../src/otf/table_CFF2.js';
 
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
 //  INDEX v2 round-trip (uint32 count)
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
 
 describe('CFF2 INDEX v2 round-trip', () => {
 	it('should round-trip an empty INDEX', () => {
@@ -46,9 +46,9 @@ describe('CFF2 INDEX v2 round-trip', () => {
 	});
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
 //  Synthetic CFF2 table round-trip
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
 
 describe('CFF2 synthetic round-trip', () => {
 	/**
@@ -88,7 +88,7 @@ describe('CFF2 synthetic round-trip', () => {
 		expect(written[0]).toBe(2);
 	});
 
-	it('should round-trip a synthetic CFF2: write → parse → write', () => {
+	it('should round-trip a synthetic CFF2: write -> parse -> write', () => {
 		const original = buildMinimalCFF2();
 		const written1 = writeCFF2(original);
 		const parsed = parseCFF2(written1);

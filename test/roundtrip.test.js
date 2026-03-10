@@ -1,6 +1,6 @@
 /**
  * Round-trip test
- * Import a sample font → JSON → export back to binary → re-import → compare JSON.
+ * Import a sample font -> JSON -> export back to binary -> re-import -> compare JSON.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -11,7 +11,7 @@ import { exportFont, importFont } from '../src/main.js';
 const SAMPLES_DIR = resolve(import.meta.dirname, 'sample fonts');
 
 describe('Round-trip: OTF', () => {
-	it('should produce identical JSON after import → export → re-import', async () => {
+	it('should produce identical JSON after import -> export -> re-import', async () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
@@ -27,7 +27,7 @@ describe('Round-trip: OTF', () => {
 });
 
 describe('Round-trip: TTF', () => {
-	it('should produce identical JSON after import → export → re-import', async () => {
+	it('should produce identical JSON after import -> export -> re-import', async () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.ttf');
 		const buffer = (await readFile(filePath)).buffer;
 
@@ -63,7 +63,7 @@ describe('Round-trip: TTC', () => {
 
 		expect(secondImport.collection.tag).toBe('ttcf');
 		expect(secondImport.fonts.length).toBe(firstImport.fonts.length);
-		expect(secondImport.fonts.every((font) => font.tables.GPOS)).toBe(true);
+		expect(secondImport.fonts.every((font) => font.raw.tables.GPOS)).toBe(true);
 	}, 60000);
 
 	it('should round-trip TTC data for msgothic sample', async () => {
@@ -97,10 +97,10 @@ describe('Collection: OTC (CFF outlines)', () => {
 		expect(collection.collection.tag).toBe('ttcf');
 		expect(collection.fonts.length).toBeGreaterThan(1);
 		expect(
-			collection.fonts.some((f) => f.header.sfVersion === 0x4f54544f),
+			collection.fonts.some((f) => f.raw.header.sfVersion === 0x4f54544f),
 		).toBe(true);
 		expect(
-			collection.fonts.some((f) => f.tables['CFF '] || f.tables.CFF2),
+			collection.fonts.some((f) => f.raw.tables['CFF '] || f.raw.tables.CFF2),
 		).toBe(true);
 	}, 60000);
 
@@ -118,10 +118,10 @@ describe('Collection: OTC (CFF outlines)', () => {
 		expect(secondImport.collection.tag).toBe('ttcf');
 		expect(secondImport.fonts.length).toBe(firstImport.fonts.length);
 		expect(
-			secondImport.fonts.some((f) => f.header.sfVersion === 0x4f54544f),
+			secondImport.fonts.some((f) => f.raw.header.sfVersion === 0x4f54544f),
 		).toBe(true);
 		expect(
-			secondImport.fonts.some((f) => f.tables['CFF '] || f.tables.CFF2),
+			secondImport.fonts.some((f) => f.raw.tables['CFF '] || f.raw.tables.CFF2),
 		).toBe(true);
 	}, 120000);
 });

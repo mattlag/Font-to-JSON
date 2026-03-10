@@ -10,26 +10,26 @@
  * with a common encoded-number scheme.
  */
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  ENCODED NUMBERS — decoding
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Decode one encoded number from `bytes` starting at `offset`.
  * Returns { value, bytesConsumed }.
  *
  * Encodings shared by DICT and CharString data:
- *   b0 32–246   → value = b0 − 139                      (1 byte)
- *   b0 247–250  → value = (b0−247)*256 + b1 + 108       (2 bytes)
- *   b0 251–254  → value = −(b0−251)*256 − b1 − 108      (2 bytes)
- *   b0 = 28     → value = int16(b1,b2)                   (3 bytes)
+ *   b0 32–246   -> value = b0 − 139                      (1 byte)
+ *   b0 247–250  -> value = (b0−247)*256 + b1 + 108       (2 bytes)
+ *   b0 251–254  -> value = −(b0−251)*256 − b1 − 108      (2 bytes)
+ *   b0 = 28     -> value = int16(b1,b2)                   (3 bytes)
  *
  * DICT-only:
- *   b0 = 29     → value = int32(b1..b4)                  (5 bytes)
- *   b0 = 30     → BCD real number                        (variable)
+ *   b0 = 29     -> value = int32(b1..b4)                  (5 bytes)
+ *   b0 = 30     -> BCD real number                        (variable)
  *
  * CharString-only:
- *   b0 = 255    → value = Fixed 16.16                    (5 bytes)
+ *   b0 = 255    -> value = Fixed 16.16                    (5 bytes)
  *
  * @param {number[]|Uint8Array} bytes
  * @param {number} offset
@@ -144,9 +144,9 @@ function decodeBCD(bytes, offset) {
 	return { value, bytesConsumed: 1 + (pos - offset) };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  ENCODED NUMBERS — encoding
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Encode a number into CFF DICT format.
@@ -160,7 +160,7 @@ export function encodeNumber(value) {
 	if (Number.isInteger(value)) {
 		return encodeInteger(value);
 	}
-	// Real / float → BCD
+	// Real / float -> BCD
 	return encodeBCD(value);
 }
 
@@ -279,9 +279,9 @@ function encodeBCD(value) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  DICT — decoding
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Byte ranges that represent operators (not numbers) in DICT data.
@@ -361,9 +361,9 @@ export function encodeDICT(entries) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  INDEX — parsing
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a CFF v1 INDEX structure (uint16 count).
@@ -469,9 +469,9 @@ export function parseINDEXv2(bytes, offset) {
 	return { items, totalBytes };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  INDEX — writing
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Write a CFF v1 INDEX (uint16 count).
@@ -570,9 +570,9 @@ export function writeINDEXv2(items) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  DICT operator name mappings
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * CFF v1 Top DICT operator names.
@@ -618,7 +618,7 @@ export const CFF1_TOP_DICT_OPS = {
 };
 
 /**
- * Reverse lookup: name → operator code for CFF1 Top DICT.
+ * Reverse lookup: name -> operator code for CFF1 Top DICT.
  */
 export const CFF1_TOP_DICT_OPS_BY_NAME = Object.fromEntries(
 	Object.entries(CFF1_TOP_DICT_OPS).map(([k, v]) => [v, Number(k)]),
@@ -704,14 +704,14 @@ export const CFF2_PRIVATE_DICT_OPS = {
  * Convert an array of decoded DICT entries into a named key-value object.
  *
  * @param {Array<{ operator: number, operands: number[] }>} entries
- * @param {object} opNames - operator → name mapping
+ * @param {object} opNames - operator -> name mapping
  * @returns {object}
  */
 export function dictEntriesToObject(entries, opNames) {
 	const result = {};
 	for (const { operator, operands } of entries) {
 		const name = opNames[operator] || `op_${operator}`;
-		// Single operand → scalar; multiple → array
+		// Single operand -> scalar; multiple -> array
 		result[name] = operands.length === 1 ? operands[0] : operands;
 	}
 	return result;
@@ -721,7 +721,7 @@ export function dictEntriesToObject(entries, opNames) {
  * Convert a named key-value object back to DICT entries.
  *
  * @param {object} obj
- * @param {object} opsByName - name → operator code mapping
+ * @param {object} opsByName - name -> operator code mapping
  * @returns {Array<{ operator: number, operands: number[] }>}
  */
 export function objectToDictEntries(obj, opsByName) {
@@ -735,9 +735,9 @@ export function objectToDictEntries(obj, opsByName) {
 	return entries;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  FDSelect — parsing and writing
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse an FDSelect structure.
@@ -819,7 +819,7 @@ export function parseFDSelect(bytes, offset, numGlyphs) {
 
 /**
  * Write an FDSelect as format 0 (simple, always correct).
- * @param {number[]} fdSelectArray - glyph ID → FD index
+ * @param {number[]} fdSelectArray - glyph ID -> FD index
  * @returns {number[]}
  */
 export function writeFDSelect(fdSelectArray) {
@@ -832,9 +832,9 @@ export function writeFDSelect(fdSelectArray) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  CFF1 Charset — parsing
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a CFF1 charset.  Returns an array of SIDs (one per glyph, starting
@@ -905,12 +905,12 @@ export function writeCharset(sids) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  CFF1 Encoding — parsing
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
- * Parse a CFF1 Encoding.  Returns an array mapping code → glyph index,
+ * Parse a CFF1 Encoding.  Returns an array mapping code -> glyph index,
  * or a predefined name.
  *
  * @param {number[]|Uint8Array} bytes

@@ -39,7 +39,7 @@ import {
 	writeINDEXv2,
 } from './cff_common.js';
 
-// ── Reverse lookup tables ────────────────────────────────────────────────
+// -- Reverse lookup tables ------------------------------------------------
 
 const CFF2_FONT_DICT_OPS_BY_NAME = Object.fromEntries(
 	Object.entries(CFF2_FONT_DICT_OPS).map(([k, v]) => [v, Number(k)]),
@@ -49,7 +49,7 @@ const CFF2_PRIVATE_DICT_OPS_BY_NAME = Object.fromEntries(
 	Object.entries(CFF2_PRIVATE_DICT_OPS).map(([k, v]) => [v, Number(k)]),
 );
 
-// ── Operators with offset operands (forced to 5-byte int32) ──────────────
+// -- Operators with offset operands (forced to 5-byte int32) --------------
 
 const TOP_DICT_OFFSET_OPS = new Set([
 	17, // CharStrings
@@ -66,9 +66,9 @@ const PRIVATE_DICT_OFFSET_OPS = new Set([
 	19, // Subrs  (relative offset)
 ]);
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  Helpers — DICT encoding with forced int32 for offset-bearing operators
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 function encodeDICTForced(entries, offsetOps) {
 	const result = [];
@@ -96,9 +96,9 @@ function encodeDICTForced(entries, offsetOps) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  PARSE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a CFF2 table.
@@ -110,13 +110,13 @@ function encodeDICTForced(entries, offsetOps) {
 export function parseCFF2(rawArray, _tables) {
 	const data = new Uint8Array(rawArray);
 
-	// ── 1. Header (5 bytes) ────────────────────────────────────────────
+	// -- 1. Header (5 bytes) --------------------------------------------
 	const majorVersion = data[0]; // 2
 	const minorVersion = data[1]; // 0
 	const headerSize = data[2]; // typically 5
 	const topDictLength = (data[3] << 8) | data[4];
 
-	// ── 2. Top DICT (inline, not in an INDEX) ──────────────────────────
+	// -- 2. Top DICT (inline, not in an INDEX) --------------------------
 	const topDictStart = headerSize;
 	const topDictEnd = topDictStart + topDictLength;
 	const rawEntries = decodeDICT(data, topDictStart, topDictEnd);
@@ -133,11 +133,11 @@ export function parseCFF2(rawArray, _tables) {
 	delete topDict.FDArray;
 	delete topDict.FDSelect;
 
-	// ── 3. Global Subr INDEX ───────────────────────────────────────────
+	// -- 3. Global Subr INDEX -------------------------------------------
 	const globalSubrIdx = parseINDEXv2(data, topDictEnd);
 	const globalSubrs = globalSubrIdx.items.map((item) => Array.from(item));
 
-	// ── 4. CharStrings INDEX ───────────────────────────────────────────
+	// -- 4. CharStrings INDEX -------------------------------------------
 	let charStrings = [];
 	if (charStringsOffset !== undefined) {
 		const csIdx = parseINDEXv2(data, charStringsOffset);
@@ -145,7 +145,7 @@ export function parseCFF2(rawArray, _tables) {
 	}
 	const numGlyphs = charStrings.length;
 
-	// ── 5. Font DICT INDEX ─────────────────────────────────────────────
+	// -- 5. Font DICT INDEX ---------------------------------------------
 	let fontDicts = [];
 	if (fdArrayOffset !== undefined) {
 		const fdIdx = parseINDEXv2(data, fdArrayOffset);
@@ -180,13 +180,13 @@ export function parseCFF2(rawArray, _tables) {
 		});
 	}
 
-	// ── 6. FDSelect ────────────────────────────────────────────────────
+	// -- 6. FDSelect ----------------------------------------------------
 	let fdSelect = null;
 	if (fdSelectOffset !== undefined && numGlyphs > 0) {
 		fdSelect = parseFDSelect(data, fdSelectOffset, numGlyphs);
 	}
 
-	// ── 7. VariationStore (raw bytes for now) ──────────────────────────
+	// -- 7. VariationStore (raw bytes for now) --------------------------
 	let variationStore = null;
 	if (variationStoreOffset !== undefined) {
 		// VariationStore length: read the first uint16 (length field)
@@ -209,9 +209,9 @@ export function parseCFF2(rawArray, _tables) {
 	};
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  WRITE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Write a CFF2 table from a parsed JSON object.
@@ -231,14 +231,14 @@ export function writeCFF2(tableData) {
 		variationStore = null,
 	} = tableData;
 
-	// ── 1. Encode sections that don't depend on offsets ─────────────────
+	// -- 1. Encode sections that don't depend on offsets -----------------
 	const globalSubrBytes = writeINDEXv2(
 		globalSubrs.map((s) => new Uint8Array(s)),
 	);
 
 	const csBytes = writeINDEXv2(charStrings.map((s) => new Uint8Array(s)));
 
-	// ── 2. Encode Font DICTs and their Private DICTs ────────────────────
+	// -- 2. Encode Font DICTs and their Private DICTs --------------------
 	//    We need the Private DICT bytes and offsets before building
 	//    the Font DICT INDEX, because Font DICTs reference them.
 	//    We'll allocate Private DICTs after all other sections.
@@ -251,7 +251,7 @@ export function writeCFF2(tableData) {
 		? new Uint8Array(variationStore)
 		: null;
 
-	// ── 3. Compute layout ───────────────────────────────────────────────
+	// -- 3. Compute layout -----------------------------------------------
 	//    Header (5 bytes) + TopDICT + GlobalSubrINDEX + data sections
 	//
 	//    Because TopDICT size must be known for the header and everything
@@ -363,7 +363,7 @@ export function writeCFF2(tableData) {
 		cursor += fdArrayBytes.length;
 	}
 
-	// ── 4. Build real TopDICT with correct offsets ──────────────────────
+	// -- 4. Build real TopDICT with correct offsets ----------------------
 	const realTopDictBytes = buildCFF2TopDict(topDict, {
 		charStrings: csOffset,
 		fdArray: fdArrayOffset,
@@ -378,7 +378,7 @@ export function writeCFF2(tableData) {
 		);
 	}
 
-	// ── 5. Write header ────────────────────────────────────────────────
+	// -- 5. Write header ------------------------------------------------
 	const header = [
 		majorVersion,
 		minorVersion,
@@ -387,7 +387,7 @@ export function writeCFF2(tableData) {
 		topDictLength & 0xff,
 	];
 
-	// ── 6. Assemble ────────────────────────────────────────────────────
+	// -- 6. Assemble ----------------------------------------------------
 	const result = [
 		...header,
 		...realTopDictBytes,
@@ -420,7 +420,7 @@ export function writeCFF2(tableData) {
 	return result;
 }
 
-// ─── TopDICT builder ─────────────────────────────────────────────────────
+// --- TopDICT builder -----------------------------------------------------
 
 /**
  * Build CFF2 TopDICT bytes with the given offset values.

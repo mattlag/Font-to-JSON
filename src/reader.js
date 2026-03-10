@@ -40,7 +40,7 @@ export class DataReader {
 		return this._view;
 	}
 
-	// ─── Cursor control ─────────────────────────────────────────────────
+	// --- Cursor control -------------------------------------------------
 
 	/** Move the cursor to an absolute byte offset. */
 	seek(offset) {
@@ -54,7 +54,7 @@ export class DataReader {
 		return this;
 	}
 
-	// ─── Unsigned integers ──────────────────────────────────────────────
+	// --- Unsigned integers ----------------------------------------------
 
 	/** Read uint8 (1 byte). */
 	uint8() {
@@ -87,7 +87,7 @@ export class DataReader {
 		return v;
 	}
 
-	// ─── Signed integers ────────────────────────────────────────────────
+	// --- Signed integers ------------------------------------------------
 
 	/** Read int8 (1 byte, signed). */
 	int8() {
@@ -110,7 +110,7 @@ export class DataReader {
 		return v;
 	}
 
-	// ─── OpenType-specific types ────────────────────────────────────────
+	// --- OpenType-specific types ----------------------------------------
 
 	/** Read a Tag — 4 ASCII bytes returned as a string. */
 	tag() {
@@ -134,7 +134,7 @@ export class DataReader {
 		return this.uint32();
 	}
 
-	/** Read Fixed (16.16 signed fixed-point → JS number). */
+	/** Read Fixed (16.16 signed fixed-point -> JS number). */
 	fixed() {
 		const raw = this._view.getInt32(this._pos);
 		this._pos += 4;
@@ -151,7 +151,7 @@ export class DataReader {
 		return this.uint16();
 	}
 
-	/** Read F2DOT14 (2.14 signed fixed-point → JS number). */
+	/** Read F2DOT14 (2.14 signed fixed-point -> JS number). */
 	f2dot14() {
 		const raw = this._view.getInt16(this._pos);
 		this._pos += 2;
@@ -169,7 +169,7 @@ export class DataReader {
 		return (BigInt(hi) << 32n) | BigInt(lo);
 	}
 
-	// ─── Bulk reads ─────────────────────────────────────────────────────
+	// --- Bulk reads -----------------------------------------------------
 
 	/**
 	 * Read `count` values using the named method.

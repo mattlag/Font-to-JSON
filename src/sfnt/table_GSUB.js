@@ -33,9 +33,9 @@ import {
 	writeSequenceContext,
 } from './opentype_layout_common.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a GSUB table from raw bytes.
@@ -74,7 +74,7 @@ export function parseGSUB(rawBytes) {
 	return result;
 }
 
-// ─── GSUB Lookup subtable dispatcher ────────────────────────────────────────
+// --- GSUB Lookup subtable dispatcher ----------------------------------------
 
 function parseGSUBSubtable(reader, offset, lookupType) {
 	switch (lookupType) {
@@ -99,7 +99,7 @@ function parseGSUBSubtable(reader, offset, lookupType) {
 	}
 }
 
-// ─── Type 1: Single substitution ────────────────────────────────────────────
+// --- Type 1: Single substitution --------------------------------------------
 
 function parseSingleSubst(reader, offset) {
 	reader.seek(offset);
@@ -121,7 +121,7 @@ function parseSingleSubst(reader, offset) {
 	throw new Error(`Unknown SingleSubst format: ${format}`);
 }
 
-// ─── Type 2: Multiple substitution ──────────────────────────────────────────
+// --- Type 2: Multiple substitution ------------------------------------------
 
 function parseMultipleSubst(reader, offset) {
 	reader.seek(offset);
@@ -142,7 +142,7 @@ function parseMultipleSubst(reader, offset) {
 	return { format, coverage, sequences };
 }
 
-// ─── Type 3: Alternate substitution ─────────────────────────────────────────
+// --- Type 3: Alternate substitution -----------------------------------------
 
 function parseAlternateSubst(reader, offset) {
 	reader.seek(offset);
@@ -163,7 +163,7 @@ function parseAlternateSubst(reader, offset) {
 	return { format, coverage, alternateSets };
 }
 
-// ─── Type 4: Ligature substitution ──────────────────────────────────────────
+// --- Type 4: Ligature substitution ------------------------------------------
 
 function parseLigatureSubst(reader, offset) {
 	reader.seek(offset);
@@ -192,7 +192,7 @@ function parseLigatureSubst(reader, offset) {
 	return { format, coverage, ligatureSets };
 }
 
-// ─── Type 7: Extension substitution ─────────────────────────────────────────
+// --- Type 7: Extension substitution -----------------------------------------
 
 function parseExtensionSubst(reader, offset) {
 	reader.seek(offset);
@@ -212,7 +212,7 @@ function parseExtensionSubst(reader, offset) {
 	return { format, extensionLookupType, extensionOffset, subtable };
 }
 
-// ─── Type 8: Reverse chained contexts single substitution ───────────────────
+// --- Type 8: Reverse chained contexts single substitution -------------------
 
 function parseReverseChainSingleSubst(reader, offset) {
 	reader.seek(offset);
@@ -245,9 +245,9 @@ function parseReverseChainSingleSubst(reader, offset) {
 	};
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Serialize a GSUB table to bytes.
@@ -305,7 +305,7 @@ export function writeGSUB(gsub) {
 	return w.toArray();
 }
 
-// ─── GSUB Lookup subtable writer dispatcher ─────────────────────────────────
+// --- GSUB Lookup subtable writer dispatcher ---------------------------------
 
 function writeGSUBSubtable(subtable, lookupType) {
 	switch (lookupType) {
@@ -330,7 +330,7 @@ function writeGSUBSubtable(subtable, lookupType) {
 	}
 }
 
-// ─── Type 1 writer ──────────────────────────────────────────────────────────
+// --- Type 1 writer ----------------------------------------------------------
 
 function writeSingleSubst(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -363,7 +363,7 @@ function writeSingleSubst(st) {
 	throw new Error(`Unknown SingleSubst format: ${st.format}`);
 }
 
-// ─── Type 2 writer ──────────────────────────────────────────────────────────
+// --- Type 2 writer ----------------------------------------------------------
 
 function writeMultipleSubst(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -399,7 +399,7 @@ function writeMultipleSubst(st) {
 	return w.toArray();
 }
 
-// ─── Type 3 writer ──────────────────────────────────────────────────────────
+// --- Type 3 writer ----------------------------------------------------------
 
 function writeAlternateSubst(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -434,7 +434,7 @@ function writeAlternateSubst(st) {
 	return w.toArray();
 }
 
-// ─── Type 4 writer ──────────────────────────────────────────────────────────
+// --- Type 4 writer ----------------------------------------------------------
 
 function writeLigatureSubst(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -492,7 +492,7 @@ function writeLigatureSet(ligatures) {
 	return w.toArray();
 }
 
-// ─── Type 7 writer ──────────────────────────────────────────────────────────
+// --- Type 7 writer ----------------------------------------------------------
 
 function writeExtensionSubst(st) {
 	const innerBytes = writeGSUBSubtable(st.subtable, st.extensionLookupType);
@@ -506,7 +506,7 @@ function writeExtensionSubst(st) {
 	return w.toArray();
 }
 
-// ─── Type 8 writer ──────────────────────────────────────────────────────────
+// --- Type 8 writer ----------------------------------------------------------
 
 function writeReverseChainSingleSubst(st) {
 	const covBytes = writeCoverage(st.coverage);

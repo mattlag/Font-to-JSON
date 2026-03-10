@@ -7,7 +7,7 @@
  * Defines color presentations for glyphs as layered compositions.
  *
  * Version 0: Simple layered model.
- *   - BaseGlyphRecords map base glyph → slice of LayerRecords
+ *   - BaseGlyphRecords map base glyph -> slice of LayerRecords
  *   - LayerRecords: each layer = glyph outline + CPAL palette index
  *
  * Version 1: Adds a Paint table DAG for complex gradients, transforms,
@@ -22,9 +22,9 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a COLR table from raw bytes.
@@ -64,7 +64,7 @@ export function parseCOLR(rawBytes) {
 	const layerRecordsOffset = reader.uint32();
 	const numLayerRecords = reader.uint16();
 
-	// ── Read v0 BaseGlyph records ───────────────────────────────────────
+	// -- Read v0 BaseGlyph records ---------------------------------------
 	const baseGlyphRecords = [];
 	if (numBaseGlyphRecords > 0 && baseGlyphRecordsOffset > 0) {
 		reader.seek(baseGlyphRecordsOffset);
@@ -77,7 +77,7 @@ export function parseCOLR(rawBytes) {
 		}
 	}
 
-	// ── Read v0 Layer records ───────────────────────────────────────────
+	// -- Read v0 Layer records -------------------------------------------
 	const layerRecords = [];
 	if (numLayerRecords > 0 && layerRecordsOffset > 0) {
 		reader.seek(layerRecordsOffset);
@@ -95,7 +95,7 @@ export function parseCOLR(rawBytes) {
 		layerRecords,
 	};
 
-	// ── Version 1 extensions ────────────────────────────────────────────
+	// -- Version 1 extensions --------------------------------------------
 	// Read the v1 header offsets. The Paint table DAG is extremely complex
 	// (32 paint formats). For round-trip fidelity, the raw v1 subtable bytes
 	// are stored in _v1Data. Future versions may fully parse Paint tables.
@@ -126,9 +126,9 @@ export function parseCOLR(rawBytes) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write a COLR JSON object back to raw bytes.
@@ -148,7 +148,7 @@ export function writeCOLR(colr) {
 
 	const { baseGlyphRecords, layerRecords } = colr;
 
-	// ── Compute layout ──────────────────────────────────────────────────
+	// -- Compute layout --------------------------------------------------
 	const headerSize = 14;
 	const baseGlyphRecordsOffset = baseGlyphRecords.length > 0 ? headerSize : 0;
 	const baseGlyphRecordsSize = baseGlyphRecords.length * 6;
@@ -159,21 +159,21 @@ export function writeCOLR(colr) {
 	const totalSize = headerSize + baseGlyphRecordsSize + layerRecordsSize;
 	const w = new DataWriter(totalSize);
 
-	// ── Write header ────────────────────────────────────────────────────
+	// -- Write header ----------------------------------------------------
 	w.uint16(colr.version);
 	w.uint16(baseGlyphRecords.length);
 	w.uint32(baseGlyphRecordsOffset);
 	w.uint32(layerRecordsOffset);
 	w.uint16(layerRecords.length);
 
-	// ── Write BaseGlyph records ─────────────────────────────────────────
+	// -- Write BaseGlyph records -----------------------------------------
 	for (const rec of baseGlyphRecords) {
 		w.uint16(rec.glyphID);
 		w.uint16(rec.firstLayerIndex);
 		w.uint16(rec.numLayers);
 	}
 
-	// ── Write Layer records ─────────────────────────────────────────────
+	// -- Write Layer records ---------------------------------------------
 	for (const rec of layerRecords) {
 		w.uint16(rec.glyphID);
 		w.uint16(rec.paletteIndex);

@@ -25,9 +25,9 @@ import { DataWriter } from '../writer.js';
 /** Header size shared by all versions (32 bytes). */
 const HEADER_SIZE = 32;
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  STANDARD MACINTOSH GLYPH NAMES (258 entries)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * The 258 standard Macintosh glyph names used by post table versions 1.0
@@ -76,15 +76,15 @@ const MAC_GLYPH_NAMES = [
 ];
 
 /**
- * Reverse lookup: standard glyph name → index (0–257).
+ * Reverse lookup: standard glyph name -> index (0–257).
  */
 const MAC_GLYPH_NAME_TO_INDEX = new Map(
 	MAC_GLYPH_NAMES.map((name, i) => [name, i]),
 );
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a post table from raw bytes.
@@ -177,7 +177,7 @@ export function parsePost(rawBytes) {
 		const numGlyphs = reader.uint16();
 		const offsets = reader.array('int8', numGlyphs);
 
-		// Resolve glyph names: glyphIndex + offset → standard Mac name index
+		// Resolve glyph names: glyphIndex + offset -> standard Mac name index
 		const glyphNames = offsets.map(
 			(offset, glyphIndex) => MAC_GLYPH_NAMES[glyphIndex + offset],
 		);
@@ -190,9 +190,9 @@ export function parsePost(rawBytes) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write a post table JSON object back to raw bytes.
@@ -250,7 +250,7 @@ function writeVersion2(table) {
 	// Build glyphNameIndex and custom name list
 	const glyphNameIndex = [];
 	const customNames = [];
-	const customNameMap = new Map(); // name → index into customNames
+	const customNameMap = new Map(); // name -> index into customNames
 
 	for (const name of glyphNames) {
 		const stdIndex = MAC_GLYPH_NAME_TO_INDEX.get(name);
@@ -330,7 +330,7 @@ function writeVersion25(table) {
 	// numGlyphs
 	writer.uint16(numGlyphs);
 
-	// offset array: each offset maps glyphIndex → standard Mac name index
+	// offset array: each offset maps glyphIndex -> standard Mac name index
 	for (let glyphIndex = 0; glyphIndex < numGlyphs; glyphIndex++) {
 		const name = glyphNames[glyphIndex];
 		const stdIndex = MAC_GLYPH_NAME_TO_INDEX.get(name);

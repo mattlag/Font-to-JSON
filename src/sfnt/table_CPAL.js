@@ -15,9 +15,9 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a CPAL table from raw bytes.
@@ -67,7 +67,7 @@ export function parseCPAL(rawBytes) {
 		paletteEntryLabelsArrayOffset = reader.uint32();
 	}
 
-	// ── Read all ColorRecords ───────────────────────────────────────────
+	// -- Read all ColorRecords -------------------------------------------
 	reader.seek(colorRecordsArrayOffset);
 	const allColorRecords = [];
 	for (let i = 0; i < numColorRecords; i++) {
@@ -79,7 +79,7 @@ export function parseCPAL(rawBytes) {
 		});
 	}
 
-	// ── Build palettes — each palette is a slice of the color records ───
+	// -- Build palettes — each palette is a slice of the color records ---
 	const palettes = [];
 	for (let p = 0; p < numPalettes; p++) {
 		const startIndex = colorRecordIndices[p];
@@ -96,7 +96,7 @@ export function parseCPAL(rawBytes) {
 		palettes,
 	};
 
-	// ── Version 1: palette types ────────────────────────────────────────
+	// -- Version 1: palette types ----------------------------------------
 	if (version >= 1 && paletteTypesArrayOffset !== 0) {
 		reader.seek(paletteTypesArrayOffset);
 		result.paletteTypes = [];
@@ -105,7 +105,7 @@ export function parseCPAL(rawBytes) {
 		}
 	}
 
-	// ── Version 1: palette labels (name table IDs) ──────────────────────
+	// -- Version 1: palette labels (name table IDs) ----------------------
 	if (version >= 1 && paletteLabelsArrayOffset !== 0) {
 		reader.seek(paletteLabelsArrayOffset);
 		result.paletteLabels = [];
@@ -114,7 +114,7 @@ export function parseCPAL(rawBytes) {
 		}
 	}
 
-	// ── Version 1: palette entry labels (name table IDs) ────────────────
+	// -- Version 1: palette entry labels (name table IDs) ----------------
 	if (version >= 1 && paletteEntryLabelsArrayOffset !== 0) {
 		reader.seek(paletteEntryLabelsArrayOffset);
 		result.paletteEntryLabels = [];
@@ -126,9 +126,9 @@ export function parseCPAL(rawBytes) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write a CPAL JSON object back to raw bytes.
@@ -140,7 +140,7 @@ export function writeCPAL(cpal) {
 	const { version, numPaletteEntries, palettes } = cpal;
 	const numPalettes = palettes.length;
 
-	// ── Build deduplicated color record array ────────────────────────────
+	// -- Build deduplicated color record array ----------------------------
 	// We write palettes contiguously — each palette gets its own block.
 	// Multiple palettes may share identical records in the spec, but for
 	// simplicity (and correct round-trip), we write each palette as its own
@@ -157,7 +157,7 @@ export function writeCPAL(cpal) {
 
 	const numColorRecords = allColorRecords.length;
 
-	// ── Calculate layout sizes ──────────────────────────────────────────
+	// -- Calculate layout sizes ------------------------------------------
 	// Header: 8 bytes (4 uint16s) + 4 bytes (Offset32) + 2×numPalettes (indices)
 	const headerSize = 8 + 4 + numPalettes * 2;
 
@@ -190,7 +190,7 @@ export function writeCPAL(cpal) {
 	const totalSize = currentOffset;
 	const w = new DataWriter(totalSize);
 
-	// ── Write header ────────────────────────────────────────────────────
+	// -- Write header ----------------------------------------------------
 	w.uint16(version);
 	w.uint16(numPaletteEntries);
 	w.uint16(numPalettes);
@@ -207,7 +207,7 @@ export function writeCPAL(cpal) {
 		w.uint32(paletteEntryLabelsArrayOffset);
 	}
 
-	// ── Write color records ─────────────────────────────────────────────
+	// -- Write color records ---------------------------------------------
 	for (const rec of allColorRecords) {
 		w.uint8(rec.blue);
 		w.uint8(rec.green);
@@ -215,7 +215,7 @@ export function writeCPAL(cpal) {
 		w.uint8(rec.alpha);
 	}
 
-	// ── Write v1 optional arrays ────────────────────────────────────────
+	// -- Write v1 optional arrays ----------------------------------------
 	if (version >= 1 && cpal.paletteTypes) {
 		for (const type of cpal.paletteTypes) {
 			w.uint32(type);

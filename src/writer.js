@@ -8,7 +8,7 @@
  *   writer.uint16(4);                     // format
  *   writer.uint16(totalLen);              // length
  *   // ...
- *   const bytes = writer.toArray();       // → number[]
+ *   const bytes = writer.toArray();       // -> number[]
  */
 
 export class DataWriter {
@@ -42,7 +42,7 @@ export class DataWriter {
 		return this._bytes;
 	}
 
-	// ─── Cursor control ─────────────────────────────────────────────────
+	// --- Cursor control -------------------------------------------------
 
 	/** Move the cursor to an absolute byte offset. */
 	seek(offset) {
@@ -56,7 +56,7 @@ export class DataWriter {
 		return this;
 	}
 
-	// ─── Unsigned integers ──────────────────────────────────────────────
+	// --- Unsigned integers ----------------------------------------------
 
 	/** Write uint8 (1 byte). */
 	uint8(value) {
@@ -88,7 +88,7 @@ export class DataWriter {
 		return this;
 	}
 
-	// ─── Signed integers ────────────────────────────────────────────────
+	// --- Signed integers ------------------------------------------------
 
 	/** Write int8 (1 byte, signed). */
 	int8(value) {
@@ -111,7 +111,7 @@ export class DataWriter {
 		return this;
 	}
 
-	// ─── OpenType-specific types ────────────────────────────────────────
+	// --- OpenType-specific types ----------------------------------------
 
 	/** Write a Tag — 4 ASCII bytes from a string. */
 	tag(value) {
@@ -132,7 +132,7 @@ export class DataWriter {
 		return this.uint32(value);
 	}
 
-	/** Write Fixed (JS number → 16.16 signed fixed-point). */
+	/** Write Fixed (JS number -> 16.16 signed fixed-point). */
 	fixed(value) {
 		this._view.setInt32(this._pos, Math.round(value * 65536));
 		this._pos += 4;
@@ -149,7 +149,7 @@ export class DataWriter {
 		return this.uint16(value);
 	}
 
-	/** Write F2DOT14 (JS number → 2.14 signed fixed-point). */
+	/** Write F2DOT14 (JS number -> 2.14 signed fixed-point). */
 	f2dot14(value) {
 		this._view.setInt16(this._pos, Math.round(value * 16384));
 		this._pos += 2;
@@ -167,7 +167,7 @@ export class DataWriter {
 		return this;
 	}
 
-	// ─── Bulk writes ────────────────────────────────────────────────────
+	// --- Bulk writes ----------------------------------------------------
 
 	/**
 	 * Write an array of values using the named method.
@@ -193,7 +193,7 @@ export class DataWriter {
 		return this;
 	}
 
-	// ─── Output ─────────────────────────────────────────────────────────
+	// --- Output ---------------------------------------------------------
 
 	/** Return the buffer contents as a plain number[]. */
 	toArray() {

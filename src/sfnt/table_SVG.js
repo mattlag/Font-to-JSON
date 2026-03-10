@@ -14,9 +14,9 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse an SVG table from raw bytes.
@@ -45,12 +45,12 @@ import { DataWriter } from '../writer.js';
 export function parseSVG(rawBytes) {
 	const reader = new DataReader(rawBytes);
 
-	// ── SVG Header ──────────────────────────────────────────────────────
+	// == SVG Header ======================================================
 	const version = reader.uint16();
 	const svgDocumentListOffset = reader.uint32();
 	const reserved = reader.uint32();
 
-	// ── SVGDocumentList ─────────────────────────────────────────────────
+	// == SVGDocumentList =================================================
 	reader.seek(svgDocumentListOffset);
 	const numEntries = reader.uint16();
 
@@ -64,11 +64,11 @@ export function parseSVG(rawBytes) {
 		});
 	}
 
-	// ── Read SVG documents ──────────────────────────────────────────────
+	// == Read SVG documents ==============================================
 	// Multiple records can point to the same document. We deduplicate
 	// by (offset, length) and store unique documents only once.
 	const decoder = new TextDecoder('utf-8');
-	const docCache = new Map(); // key: "offset:length" → document index
+	const docCache = new Map(); // key: "offset:length" -> document index
 
 	const documents = [];
 
@@ -96,7 +96,7 @@ export function parseSVG(rawBytes) {
 		}
 	}
 
-	// ── Build entries — reference documents by index ─────────────────────
+	// -- Build entries — reference documents by index ---------------------
 	const entries = [];
 	for (const rec of documentRecords) {
 		const key = `${rec.svgDocOffset}:${rec.svgDocLength}`;
@@ -114,9 +114,9 @@ export function parseSVG(rawBytes) {
 	};
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write an SVG JSON object back to raw bytes.
@@ -128,7 +128,7 @@ export function writeSVG(svg) {
 	const { version, documents, entries } = svg;
 	const encoder = new TextEncoder();
 
-	// ── Encode all documents into byte arrays ───────────────────────────
+	// == Encode all documents into byte arrays ===========================
 	const docByteArrays = documents.map((doc) => {
 		if (doc.compressed) {
 			return doc.data instanceof Uint8Array ? Array.from(doc.data) : doc.data;
@@ -136,7 +136,7 @@ export function writeSVG(svg) {
 		return Array.from(encoder.encode(doc.text));
 	});
 
-	// ── Compute layout ──────────────────────────────────────────────────
+	// == Compute layout ==================================================
 	// SVG Header: 10 bytes (uint16 + Offset32 + uint32)
 	const headerSize = 10;
 
@@ -152,7 +152,7 @@ export function writeSVG(svg) {
 	// Documents are referenced by (offset, length) from the SVGDocumentList start.
 	// Multiple entries can share the same document.
 
-	// Build a mapping: documentIndex → (offset relative to docListStart, length)
+	// Build a mapping: documentIndex -> (offset relative to docListStart, length)
 	let docDataOffset = docListHeaderSize; // first doc data offset from SVGDocumentList
 	const docLayout = []; // per unique document: { offset, length }
 
@@ -165,12 +165,12 @@ export function writeSVG(svg) {
 	const totalSize = svgDocumentListOffset + docDataOffset;
 	const w = new DataWriter(totalSize);
 
-	// ── Write SVG Header ────────────────────────────────────────────────
+	// == Write SVG Header ================================================
 	w.uint16(version);
 	w.uint32(svgDocumentListOffset);
 	w.uint32(0); // reserved
 
-	// ── Write SVGDocumentList ───────────────────────────────────────────
+	// == Write SVGDocumentList ===========================================
 	w.uint16(numEntries);
 
 	for (const entry of entries) {
@@ -181,7 +181,7 @@ export function writeSVG(svg) {
 		w.uint32(layout.length);
 	}
 
-	// ── Write document data ─────────────────────────────────────────────
+	// == Write document data =============================================
 	for (const bytes of docByteArrays) {
 		for (const b of bytes) {
 			w.uint8(b);

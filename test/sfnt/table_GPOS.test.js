@@ -16,7 +16,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('GPOS table parsing', () => {
 	it('should parse GPOS from oblegg.ttf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(gpos).toBeDefined();
@@ -29,7 +29,7 @@ describe('GPOS table parsing', () => {
 
 	it('should parse GPOS from fira.ttf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'fira.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(gpos).toBeDefined();
@@ -39,7 +39,7 @@ describe('GPOS table parsing', () => {
 
 	it('should parse GPOS from noto.ttf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'noto.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(gpos).toBeDefined();
@@ -49,7 +49,7 @@ describe('GPOS table parsing', () => {
 	it('should parse GPOS from SegUIVar-test.ttf (variation device offsets)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'SegUIVar-test.ttf')))
 			.buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(gpos).toBeDefined();
@@ -59,7 +59,7 @@ describe('GPOS table parsing', () => {
 
 	it('should have scriptList with script records', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'fira.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(Array.isArray(gpos.scriptList.scriptRecords)).toBe(true);
@@ -69,7 +69,7 @@ describe('GPOS table parsing', () => {
 
 	it('should have featureList with tagged features', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'fira.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(Array.isArray(gpos.featureList.featureRecords)).toBe(true);
@@ -79,7 +79,7 @@ describe('GPOS table parsing', () => {
 
 	it('should not have _raw on parsed GPOS', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const gpos = font.tables['GPOS'];
 
 		expect(gpos._raw).toBeUndefined();
@@ -91,7 +91,7 @@ describe('GPOS table round-trip', () => {
 	for (const fontFile of ['oblegg.ttf', 'fira.ttf', 'noto.ttf']) {
 		it(`should round-trip GPOS from ${fontFile}`, async () => {
 			const buffer = (await readFile(resolve(SAMPLES_DIR, fontFile))).buffer;
-			const font = importFont(buffer);
+			const font = importFont(buffer).raw;
 			const { _checksum, ...gposData } = font.tables['GPOS'];
 
 			const writtenBytes = writeGPOS(gposData);
@@ -105,7 +105,7 @@ describe('GPOS table round-trip', () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'cambria-test.ttc')))
 			.buffer;
 		const collection = importFont(buffer);
-		const { _checksum, ...gposData } = collection.fonts[0].tables.GPOS;
+		const { _checksum, ...gposData } = collection.fonts[0].raw.tables.GPOS;
 
 		const writtenBytes = writeGPOS(gposData);
 		const reparsed = parseGPOS(writtenBytes);

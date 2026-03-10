@@ -95,7 +95,7 @@ describe('import/export common functionality', () => {
 			},
 		};
 
-		const reparsed = importFont(exportFont(input));
+		const reparsed = importFont(exportFont(input)).raw;
 		expect(reparsed.tables.ABCD._raw).toEqual([9, 8, 7, 6, 5]);
 		expect(reparsed.tables.ABCD._checksum).toBe(0x01020304);
 	});

@@ -28,9 +28,9 @@ const SIZE_V1 = 86;
 const SIZE_V2 = 96; // also v3, v4
 const SIZE_V5 = 100;
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse an OS/2 table from raw bytes.
@@ -93,7 +93,7 @@ export function parseOS2(rawBytes) {
 
 	const result = {};
 
-	// ── Shared fields (all versions) ────────────────────────────────────
+	// -- Shared fields (all versions) ------------------------------------
 	result.version = reader.uint16();
 	result.xAvgCharWidth = reader.fword();
 	result.usWeightClass = reader.uint16();
@@ -126,7 +126,7 @@ export function parseOS2(rawBytes) {
 		return result;
 	}
 
-	// ── v0 additional fields ────────────────────────────────────────────
+	// -- v0 additional fields --------------------------------------------
 	result.sTypoAscender = reader.fword();
 	result.sTypoDescender = reader.fword();
 	result.sTypoLineGap = reader.fword();
@@ -137,7 +137,7 @@ export function parseOS2(rawBytes) {
 		return result;
 	}
 
-	// ── v1 additional fields ────────────────────────────────────────────
+	// -- v1 additional fields --------------------------------------------
 	result.ulCodePageRange1 = reader.uint32();
 	result.ulCodePageRange2 = reader.uint32();
 
@@ -145,7 +145,7 @@ export function parseOS2(rawBytes) {
 		return result;
 	}
 
-	// ── v2/v3/v4 additional fields ──────────────────────────────────────
+	// -- v2/v3/v4 additional fields --------------------------------------
 	result.sxHeight = reader.fword();
 	result.sCapHeight = reader.fword();
 	result.usDefaultChar = reader.uint16();
@@ -156,16 +156,16 @@ export function parseOS2(rawBytes) {
 		return result;
 	}
 
-	// ── v5 additional fields ────────────────────────────────────────────
+	// -- v5 additional fields --------------------------------------------
 	result.usLowerOpticalPointSize = reader.uint16();
 	result.usUpperOpticalPointSize = reader.uint16();
 
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write an OS/2 JSON object back to raw bytes.
@@ -193,7 +193,7 @@ export function writeOS2(table) {
 
 	const writer = new DataWriter(size);
 
-	// ── Shared fields ───────────────────────────────────────────────────
+	// -- Shared fields ---------------------------------------------------
 	writer
 		.uint16(version)
 		.fword(table.xAvgCharWidth)
@@ -223,7 +223,7 @@ export function writeOS2(table) {
 
 	if (size <= 68) return writer.toArray();
 
-	// ── v0+ fields ──────────────────────────────────────────────────────
+	// -- v0+ fields ------------------------------------------------------
 	writer
 		.fword(table.sTypoAscender)
 		.fword(table.sTypoDescender)
@@ -233,12 +233,12 @@ export function writeOS2(table) {
 
 	if (version < 1) return writer.toArray();
 
-	// ── v1+ fields ──────────────────────────────────────────────────────
+	// -- v1+ fields ------------------------------------------------------
 	writer.uint32(table.ulCodePageRange1).uint32(table.ulCodePageRange2);
 
 	if (version < 2) return writer.toArray();
 
-	// ── v2+ fields ──────────────────────────────────────────────────────
+	// -- v2+ fields ------------------------------------------------------
 	writer
 		.fword(table.sxHeight)
 		.fword(table.sCapHeight)
@@ -248,7 +248,7 @@ export function writeOS2(table) {
 
 	if (version < 5) return writer.toArray();
 
-	// ── v5 fields ───────────────────────────────────────────────────────
+	// -- v5 fields -------------------------------------------------------
 	writer
 		.uint16(table.usLowerOpticalPointSize)
 		.uint16(table.usUpperOpticalPointSize);

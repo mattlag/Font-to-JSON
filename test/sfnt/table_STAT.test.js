@@ -126,7 +126,7 @@ describe('STAT table', () => {
 		]);
 	});
 
-	it('should be stable across parse → write → parse', () => {
+	it('should be stable across parse -> write -> parse', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 1,

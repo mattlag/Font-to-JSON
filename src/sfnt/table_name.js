@@ -11,17 +11,17 @@
  * version 1 (adds language-tag records for BCP 47 language tags).
  *
  * String encoding varies by platform:
- *   - platformID 0 (Unicode) → UTF-16BE
- *   - platformID 1 (Macintosh), encodingID 0 (Roman) → MacRoman
- *   - platformID 3 (Windows) → UTF-16BE (except encodingIDs 2-5 use code pages)
+ *   - platformID 0 (Unicode) -> UTF-16BE
+ *   - platformID 1 (Macintosh), encodingID 0 (Roman) -> MacRoman
+ *   - platformID 3 (Windows) -> UTF-16BE (except encodingIDs 2-5 use code pages)
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  STRING ENCODING / DECODING
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * MacRoman to Unicode mapping for the high range (0x80–0xFF).
@@ -46,7 +46,7 @@ const MAC_ROMAN_HIGH = [
 ];
 
 /**
- * Build a reverse map: Unicode code point → MacRoman byte value.
+ * Build a reverse map: Unicode code point -> MacRoman byte value.
  */
 const UNICODE_TO_MAC_ROMAN = new Map();
 for (let i = 0; i < 128; i++) {
@@ -170,9 +170,9 @@ function encodeMacRoman(str) {
 	return bytes;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a name table from raw bytes.
@@ -260,9 +260,9 @@ export function parseName(rawBytes) {
 	return result;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write a name table JSON object back to raw bytes.
@@ -301,7 +301,7 @@ export function writeName(table) {
 	// Build string storage — deduplicate identical byte sequences
 	const stringPool = [];
 	let storageLength = 0;
-	const stringOffsetMap = new Map(); // key: stringBytes as comma-separated → offset
+	const stringOffsetMap = new Map(); // key: stringBytes as comma-separated -> offset
 
 	function getStringOffset(bytes) {
 		const key = bytes.join(',');

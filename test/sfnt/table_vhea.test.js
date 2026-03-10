@@ -14,7 +14,7 @@ function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	return importFont(
 		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	);
+	).raw;
 }
 
 describe('vhea table', () => {
@@ -73,7 +73,7 @@ describe('vhea table', () => {
 	it('should round-trip vhea from BungeeTint-Regular.ttf', () => {
 		const font1 = loadFont('BungeeTint-Regular.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		const { _checksum: _a, ...vhea1 } = font1.tables.vhea;
 		const { _checksum: _b, ...vhea2 } = font2.tables.vhea;
 		expect(vhea2).toEqual(vhea1);
@@ -82,7 +82,7 @@ describe('vhea table', () => {
 	it('should round-trip vhea from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		const { _checksum: _a, ...vhea1 } = font1.tables.vhea;
 		const { _checksum: _b, ...vhea2 } = font2.tables.vhea;
 		expect(vhea2).toEqual(vhea1);

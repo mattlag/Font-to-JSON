@@ -19,7 +19,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 function extractRawTable(buffer, tag) {
 	const reader = new DataReader(new Uint8Array(buffer));
 
-	// Font header — skip sfVersion, read numTables
+	// Font header â€” skip sfVersion, read numTables
 	reader.skip(4);
 	const numTables = reader.uint16();
 	reader.skip(6); // searchRange, entrySelector, rangeShift
@@ -39,7 +39,7 @@ function extractRawTable(buffer, tag) {
 describe('loca table parsing', () => {
 	it('should parse loca offsets from a TTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		// Extract raw loca bytes and parse directly
 		const rawBytes = extractRawTable(buffer, 'loca');
@@ -55,7 +55,7 @@ describe('loca table parsing', () => {
 
 	it('should have ascending (non-decreasing) offsets', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		const rawBytes = extractRawTable(buffer, 'loca');
 		const loca = parseLoca(rawBytes, {
@@ -70,7 +70,7 @@ describe('loca table parsing', () => {
 
 	it('should start at offset 0', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		const rawBytes = extractRawTable(buffer, 'loca');
 		const loca = parseLoca(rawBytes, {
@@ -83,7 +83,7 @@ describe('loca table parsing', () => {
 
 	it('should strip loca offsets from JSON output (binary-layout artifact)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		// importFont should have removed the offsets
 		expect(font.tables['loca'].offsets).toBeUndefined();
@@ -93,7 +93,7 @@ describe('loca table parsing', () => {
 
 	it('should not have _raw on parsed loca table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const loca = font.tables['loca'];
 
 		expect(loca._raw).toBeUndefined();
@@ -105,7 +105,7 @@ describe('loca table writing', () => {
 		const offsets = [0, 40, 80, 120, 200];
 		const bytes = writeLoca({ offsets });
 
-		// Short format: 5 entries × 2 bytes = 10 bytes
+		// Short format: 5 entries Ã— 2 bytes = 10 bytes
 		expect(bytes.length).toBe(10);
 	});
 
@@ -114,7 +114,7 @@ describe('loca table writing', () => {
 		const offsets = [0, 200000, 400000];
 		const bytes = writeLoca({ offsets });
 
-		// Long format: 3 entries × 4 bytes = 12 bytes
+		// Long format: 3 entries Ã— 4 bytes = 12 bytes
 		expect(bytes.length).toBe(12);
 	});
 
@@ -122,15 +122,15 @@ describe('loca table writing', () => {
 		const offsets = [0, 41, 83]; // Odd offsets can't be stored short
 		const bytes = writeLoca({ offsets });
 
-		// Long format: 3 entries × 4 bytes = 12 bytes
+		// Long format: 3 entries Ã— 4 bytes = 12 bytes
 		expect(bytes.length).toBe(12);
 	});
 });
 
 describe('loca table round-trip', () => {
-	it('should round-trip via parse → write → re-parse (TTF)', async () => {
+	it('should round-trip via parse â†’ write â†’ re-parse (TTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		const rawBytes = extractRawTable(buffer, 'loca');
 		const tables = {
@@ -139,7 +139,7 @@ describe('loca table round-trip', () => {
 		};
 		const original = parseLoca(rawBytes, tables);
 
-		// Write → re-parse
+		// Write â†’ re-parse
 		const writtenBytes = writeLoca(original);
 
 		// Detect the format writeLoca chose

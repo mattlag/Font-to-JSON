@@ -46,6 +46,7 @@ import { parseVDMX } from './sfnt/table_VDMX.js';
 import { parseVhea } from './sfnt/table_vhea.js';
 import { parseVmtx } from './sfnt/table_vmtx.js';
 import { parseVVAR } from './sfnt/table_VVAR.js';
+import { buildSimplified } from './simplify.js';
 import { parseCvar } from './ttf/table_cvar.js';
 import { parseCvt } from './ttf/table_cvt.js';
 import { parseFpgm } from './ttf/table_fpgm.js';
@@ -57,7 +58,7 @@ import { parsePrep } from './ttf/table_prep.js';
 
 /**
  * Registry of table parsers.
- * Each key is a table tag; the value is a function (number[], tables?) → object.
+ * Each key is a table tag; the value is a function (number[], tables?) -> object.
  * Tables not listed here are stored as raw bytes.
  * Parsers may accept a second argument: the tables object (for cross-table deps).
  */
@@ -191,10 +192,10 @@ export function importFont(buffer) {
 	const tableDirectory = readTableDirectory(reader, header.numTables);
 	const tables = extractTableData(buffer, tableDirectory);
 
-	return {
-		header,
-		tables,
-	};
+	const raw = { header, tables };
+	const simplified = buildSimplified(raw);
+
+	return { raw, simplified };
 }
 
 function importCollection(buffer) {
@@ -228,7 +229,9 @@ function importCollection(buffer) {
 			sfntOffset,
 		);
 		const tables = extractTableData(buffer, normalizedTableDirectory);
-		return { header, tables };
+		const raw = { header, tables };
+		const simplified = buildSimplified(raw);
+		return { raw, simplified };
 	});
 
 	const collection = {
@@ -364,7 +367,7 @@ function readTableDirectory(reader, numTables) {
 function extractTableData(buffer, tableDirectory) {
 	const tables = {};
 
-	// Build a lookup from tag → directory entry
+	// Build a lookup from tag -> directory entry
 	const entryByTag = new Map(tableDirectory.map((e) => [e.tag, e]));
 
 	// Sort tags: ordered tags first (in parse order), then remaining tags

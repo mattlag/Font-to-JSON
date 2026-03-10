@@ -38,9 +38,9 @@ import {
 	writeSequenceContext,
 } from './opentype_layout_common.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  SHARED GPOS HELPERS
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Count of bits set in a 16-bit valueFormat bitmask.
@@ -58,8 +58,8 @@ function valueFormatSize(fmt) {
 
 /**
  * Parse a ValueRecord according to valueFormat bitmask.
- * Bits 0x0001–0x0008  → int16 positioning values
- * Bits 0x0010–0x0080  → Offset16 to Device tables (relative to `subtableOffset`)
+ * Bits 0x0001–0x0008  -> int16 positioning values
+ * Bits 0x0010–0x0080  -> Offset16 to Device tables (relative to `subtableOffset`)
  */
 function parseValueRecord(reader, valueFormat, subtableOffset) {
 	if (valueFormat === 0) return null;
@@ -165,9 +165,9 @@ function parseMarkArray(reader, offset) {
 	}));
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a GPOS table from raw bytes.
@@ -206,7 +206,7 @@ export function parseGPOS(rawBytes) {
 	return result;
 }
 
-// ─── GPOS Lookup subtable dispatcher ────────────────────────────────────────
+// --- GPOS Lookup subtable dispatcher ----------------------------------------
 
 function parseGPOSSubtable(reader, offset, lookupType) {
 	switch (lookupType) {
@@ -233,7 +233,7 @@ function parseGPOSSubtable(reader, offset, lookupType) {
 	}
 }
 
-// ─── Type 1: Single adjustment ──────────────────────────────────────────────
+// --- Type 1: Single adjustment ----------------------------------------------
 
 function parseSinglePos(reader, offset) {
 	reader.seek(offset);
@@ -260,7 +260,7 @@ function parseSinglePos(reader, offset) {
 	throw new Error(`Unknown SinglePos format: ${format}`);
 }
 
-// ─── Type 2: Pair adjustment ────────────────────────────────────────────────
+// --- Type 2: Pair adjustment ------------------------------------------------
 
 function parsePairPos(reader, offset) {
 	reader.seek(offset);
@@ -336,7 +336,7 @@ function parsePairPos(reader, offset) {
 	throw new Error(`Unknown PairPos format: ${format}`);
 }
 
-// ─── Type 3: Cursive attachment ─────────────────────────────────────────────
+// --- Type 3: Cursive attachment ---------------------------------------------
 
 function parseCursivePos(reader, offset) {
 	reader.seek(offset);
@@ -365,7 +365,7 @@ function parseCursivePos(reader, offset) {
 	return { format, coverage, entryExitRecords };
 }
 
-// ─── Type 4: MarkBase attachment ────────────────────────────────────────────
+// --- Type 4: MarkBase attachment --------------------------------------------
 
 function parseMarkBasePos(reader, offset) {
 	reader.seek(offset);
@@ -406,7 +406,7 @@ function parseMarkBasePos(reader, offset) {
 	};
 }
 
-// ─── Type 5: MarkLig attachment ─────────────────────────────────────────────
+// --- Type 5: MarkLig attachment ---------------------------------------------
 
 function parseMarkLigPos(reader, offset) {
 	reader.seek(offset);
@@ -452,7 +452,7 @@ function parseMarkLigPos(reader, offset) {
 	};
 }
 
-// ─── Type 6: MarkMark attachment ────────────────────────────────────────────
+// --- Type 6: MarkMark attachment --------------------------------------------
 
 function parseMarkMarkPos(reader, offset) {
 	reader.seek(offset);
@@ -493,7 +493,7 @@ function parseMarkMarkPos(reader, offset) {
 	};
 }
 
-// ─── Type 9: Extension positioning ──────────────────────────────────────────
+// --- Type 9: Extension positioning ------------------------------------------
 
 function parseExtensionPos(reader, offset) {
 	reader.seek(offset);
@@ -512,9 +512,9 @@ function parseExtensionPos(reader, offset) {
 	return { format, extensionLookupType, extensionOffset, subtable };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  WRITING HELPERS
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Serialize a ValueRecord. Returns byte array.
@@ -632,9 +632,9 @@ function writeMarkArray(markArray) {
 	return w.toArray();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Serialize a GPOS table to bytes.
@@ -812,7 +812,7 @@ function expandCoverageGlyphs(coverage) {
 	return [];
 }
 
-// ─── GPOS subtable writer dispatcher ────────────────────────────────────────
+// --- GPOS subtable writer dispatcher ----------------------------------------
 
 function writeGPOSSubtable(subtable, lookupType) {
 	switch (lookupType) {
@@ -839,7 +839,7 @@ function writeGPOSSubtable(subtable, lookupType) {
 	}
 }
 
-// ─── Type 1 writer ──────────────────────────────────────────────────────────
+// --- Type 1 writer ----------------------------------------------------------
 
 function writeSinglePos(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -886,7 +886,7 @@ function writeSinglePos(st) {
 	throw new Error(`Unknown SinglePos format: ${st.format}`);
 }
 
-// ─── Type 2 writer ──────────────────────────────────────────────────────────
+// --- Type 2 writer ----------------------------------------------------------
 
 function writePairPos(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -992,7 +992,7 @@ function writePairPos(st) {
 	throw new Error(`Unknown PairPos format: ${st.format}`);
 }
 
-// ─── Type 3 writer ──────────────────────────────────────────────────────────
+// --- Type 3 writer ----------------------------------------------------------
 
 function writeCursivePos(st) {
 	const covBytes = writeCoverage(st.coverage);
@@ -1038,7 +1038,7 @@ function writeCursivePos(st) {
 	return w.toArray();
 }
 
-// ─── Type 4 writer ──────────────────────────────────────────────────────────
+// --- Type 4 writer ----------------------------------------------------------
 
 function writeMarkBasePos(st) {
 	const markCovBytes = writeCoverage(st.markCoverage);
@@ -1110,7 +1110,7 @@ function writeBaseArray(baseArray) {
 	return w.toArray();
 }
 
-// ─── Type 5 writer ──────────────────────────────────────────────────────────
+// --- Type 5 writer ----------------------------------------------------------
 
 function writeMarkLigPos(st) {
 	const markCovBytes = writeCoverage(st.markCoverage);
@@ -1199,7 +1199,7 @@ function writeLigatureArray(ligatureArray, markClassCount) {
 	return w.toArray();
 }
 
-// ─── Type 6 writer ──────────────────────────────────────────────────────────
+// --- Type 6 writer ----------------------------------------------------------
 
 function writeMarkMarkPos(st) {
 	const m1CovBytes = writeCoverage(st.mark1Coverage);
@@ -1236,7 +1236,7 @@ function writeMarkMarkPos(st) {
 	return w.toArray();
 }
 
-// ─── Type 9 writer ──────────────────────────────────────────────────────────
+// --- Type 9 writer ----------------------------------------------------------
 
 function writeExtensionPos(st) {
 	const innerBytes = writeGPOSSubtable(st.subtable, st.extensionLookupType);

@@ -14,7 +14,7 @@ function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	return importFont(
 		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	);
+	).raw;
 }
 
 describe('prep table', () => {
@@ -56,7 +56,7 @@ describe('prep table', () => {
 	it('should round-trip prep from fira.ttf', () => {
 		const font1 = loadFont('fira.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.prep.instructions).toEqual(
 			font1.tables.prep.instructions,
 		);
@@ -65,7 +65,7 @@ describe('prep table', () => {
 	it('should round-trip prep from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.prep.instructions).toEqual(
 			font1.tables.prep.instructions,
 		);
@@ -74,7 +74,7 @@ describe('prep table', () => {
 	it('should round-trip prep from mtextra.ttf', () => {
 		const font1 = loadFont('mtextra.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.prep.instructions).toEqual(
 			font1.tables.prep.instructions,
 		);

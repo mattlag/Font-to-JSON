@@ -13,7 +13,7 @@ function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	return importFont(
 		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	);
+	).raw;
 }
 
 describe('vmtx table', () => {
@@ -60,7 +60,7 @@ describe('vmtx table', () => {
 	it('should round-trip vmtx from BungeeTint-Regular.ttf', () => {
 		const font1 = loadFont('BungeeTint-Regular.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.vmtx.vMetrics).toEqual(font1.tables.vmtx.vMetrics);
 		expect(font2.tables.vmtx.topSideBearings).toEqual(
 			font1.tables.vmtx.topSideBearings,
@@ -70,7 +70,7 @@ describe('vmtx table', () => {
 	it('should round-trip vmtx from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported);
+		const font2 = importFont(exported).raw;
 		expect(font2.tables.vmtx.vMetrics).toEqual(font1.tables.vmtx.vMetrics);
 		expect(font2.tables.vmtx.topSideBearings).toEqual(
 			font1.tables.vmtx.topSideBearings,
@@ -79,7 +79,7 @@ describe('vmtx table', () => {
 
 	it('should handle vmtx where all glyphs have full vMetric records', () => {
 		const font = loadFont('BungeeTint-Regular.ttf');
-		// numOfLongVerMetrics == numGlyphs → no extra topSideBearings
+		// numOfLongVerMetrics == numGlyphs Ã¢â€ â€™ no extra topSideBearings
 		expect(font.tables.vhea.numOfLongVerMetrics).toBe(
 			font.tables.maxp.numGlyphs,
 		);

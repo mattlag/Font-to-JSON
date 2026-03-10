@@ -17,7 +17,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('glyf table parsing', () => {
 	it('should parse the glyf table from a TTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		expect(glyf.glyphs).toBeInstanceOf(Array);
@@ -26,10 +26,10 @@ describe('glyf table parsing', () => {
 
 	it('should produce null entries for empty glyphs', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
-		// Space glyph(s) or .notdef may be empty — at least check type
+		// Space glyph(s) or .notdef may be empty â€” at least check type
 		const empties = glyf.glyphs.filter((g) => g === null);
 		// TTF fonts typically have at least a few empty glyphs (e.g. space)
 		expect(empties.length).toBeGreaterThanOrEqual(0);
@@ -37,7 +37,7 @@ describe('glyf table parsing', () => {
 
 	it('should not have _raw on parsed glyf table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		expect(glyf._raw).toBeUndefined();
@@ -48,7 +48,7 @@ describe('glyf table parsing', () => {
 describe('glyf simple glyphs', () => {
 	it('should parse simple glyph structure correctly', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		// Find first non-null simple glyph
@@ -63,7 +63,7 @@ describe('glyf simple glyphs', () => {
 
 	it('should have valid bounding box on simple glyphs', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		const simpleGlyphs = glyf.glyphs.filter((g) => g && g.type === 'simple');
@@ -81,7 +81,7 @@ describe('glyf simple glyphs', () => {
 
 	it('should have points with x, y, and onCurve properties', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		const simple = glyf.glyphs.find((g) => g && g.type === 'simple');
@@ -99,7 +99,7 @@ describe('glyf simple glyphs', () => {
 
 	it('should have contour points within the bounding box', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		const simpleGlyphs = glyf.glyphs.filter((g) => g && g.type === 'simple');
@@ -120,7 +120,7 @@ describe('glyf simple glyphs', () => {
 describe('glyf composite glyphs', () => {
 	it('should parse composite glyph structure if present', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		const composite = glyf.glyphs.find((g) => g && g.type === 'composite');
@@ -143,7 +143,7 @@ describe('glyf composite glyphs', () => {
 
 	it('should have valid bounding box on composite glyphs if present', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyf = font.tables['glyf'];
 
 		const composites = glyf.glyphs.filter((g) => g && g.type === 'composite');
@@ -160,7 +160,7 @@ describe('glyf composite glyphs', () => {
 describe('glyf table writing', () => {
 	it('should write glyf bytes from parsed data', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...glyfData } = font.tables['glyf'];
 
 		const bytes = writeGlyf(glyfData);
@@ -170,7 +170,7 @@ describe('glyf table writing', () => {
 
 	it('should produce offsets from writeGlyfComputeOffsets', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...glyfData } = font.tables['glyf'];
 
 		const { bytes, offsets } = writeGlyfComputeOffsets(glyfData);
@@ -188,7 +188,7 @@ describe('glyf table writing', () => {
 
 	it('should produce even offsets (2-byte aligned) for loca compatibility', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...glyfData } = font.tables['glyf'];
 
 		const { offsets } = writeGlyfComputeOffsets(glyfData);
@@ -200,7 +200,7 @@ describe('glyf table writing', () => {
 
 	it('should handle empty (null) glyphs by producing zero-length segments', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const glyfData = font.tables['glyf'];
 
 		const { offsets } = writeGlyfComputeOffsets(glyfData);
@@ -215,9 +215,9 @@ describe('glyf table writing', () => {
 });
 
 describe('glyf table round-trip', () => {
-	it('should produce identical parsed data after write → re-parse', async () => {
+	it('should produce identical parsed data after write â†’ re-parse', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...glyfData } = font.tables['glyf'];
 
 		// Write glyf and get computed offsets for loca

@@ -23,9 +23,9 @@ import {
 	writeDevice,
 } from './opentype_layout_common.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse a GDEF table from raw bytes.
@@ -99,7 +99,7 @@ export function parseGDEF(rawBytes) {
 	return result;
 }
 
-// ─── AttachList ─────────────────────────────────────────────────────────────
+// --- AttachList -------------------------------------------------------------
 
 function parseAttachList(reader, offset) {
 	reader.seek(offset);
@@ -117,7 +117,7 @@ function parseAttachList(reader, offset) {
 	return { coverage, attachPoints };
 }
 
-// ─── LigCaretList ───────────────────────────────────────────────────────────
+// --- LigCaretList -----------------------------------------------------------
 
 function parseLigCaretList(reader, offset) {
 	reader.seek(offset);
@@ -162,7 +162,7 @@ function parseLigGlyph(reader, offset) {
 	});
 }
 
-// ─── MarkGlyphSets ──────────────────────────────────────────────────────────
+// --- MarkGlyphSets ----------------------------------------------------------
 
 function parseMarkGlyphSets(reader, offset) {
 	reader.seek(offset);
@@ -180,9 +180,9 @@ function parseMarkGlyphSets(reader, offset) {
 	return { format, coverages };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Serialize a GDEF table to bytes.
@@ -280,7 +280,7 @@ export function writeGDEF(gdef) {
 	return w.toArray();
 }
 
-// ─── AttachList writer ──────────────────────────────────────────────────────
+// --- AttachList writer ------------------------------------------------------
 
 function writeAttachList(al) {
 	const covBytes = writeCoverage(al.coverage);
@@ -318,7 +318,7 @@ function writeAttachPoint(points) {
 	return w.toArray();
 }
 
-// ─── LigCaretList writer ────────────────────────────────────────────────────
+// --- LigCaretList writer ----------------------------------------------------
 
 function writeLigCaretList(lcl) {
 	const covBytes = writeCoverage(lcl.coverage);
@@ -394,7 +394,7 @@ function writeCaretValue(cv) {
 	throw new Error(`Unknown CaretValue format: ${cv.format}`);
 }
 
-// ─── MarkGlyphSets writer ───────────────────────────────────────────────────
+// --- MarkGlyphSets writer ---------------------------------------------------
 
 function writeMarkGlyphSets(mgs) {
 	const covBytes = mgs.coverages.map(writeCoverage);

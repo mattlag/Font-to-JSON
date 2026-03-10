@@ -3,7 +3,7 @@
  * Visual Round-Trip Test — Font Generator
  *
  * Reads every OTF/TTF sample font, round-trips it through
- * importFont → exportFont, and writes the result to test/visual/generated/.
+ * importFont -> exportFont, and writes the result to test/visual/generated/.
  *
  * Usage:  node test/visual/generate.js
  */
@@ -51,7 +51,7 @@ for (const file of files) {
 			buf.byteOffset + buf.byteLength,
 		);
 
-		// Round-trip: import → export
+		// Round-trip: import -> export
 		const fontData = importFont(ab);
 		const exported = exportFont(fontData);
 
@@ -74,7 +74,7 @@ for (const file of files) {
 		const diff = rtSize - origSize;
 		const sign = diff >= 0 ? '+' : '';
 		console.log(
-			`  ✓ ${file}  (${origSize.toLocaleString()} → ${rtSize.toLocaleString()} bytes, ${sign}${diff})`,
+			`  ✓ ${file}  (${origSize.toLocaleString()} -> ${rtSize.toLocaleString()} bytes, ${sign}${diff})`,
 		);
 		passed++;
 	} catch (err) {

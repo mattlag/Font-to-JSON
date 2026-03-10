@@ -34,7 +34,7 @@ function readDirectoryEntries(buffer) {
 describe('SFNT container common functionality', () => {
 	it('should parse header search values consistent with numTables', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { numTables, searchRange, entrySelector, rangeShift } = font.header;
 
 		const expectedEntrySelector = Math.floor(Math.log2(numTables));

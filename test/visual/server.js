@@ -4,10 +4,10 @@
  *
  * 1. Generates round-tripped fonts (same as generate.js)
  * 2. Starts a local HTTP server that serves:
- *    - /                        → index.html
- *    - /api/fonts               → JSON manifest of available fonts
- *    - /fonts/original/<name>   → original sample font
- *    - /fonts/roundtrip/<name>  → round-tripped font
+ *    - /                        -> index.html
+ *    - /api/fonts               -> JSON manifest of available fonts
+ *    - /fonts/original/<name>   -> original sample font
+ *    - /fonts/roundtrip/<name>  -> round-tripped font
  *
  * Usage:  node test/visual/server.js [--port=3000]
  */
@@ -40,7 +40,7 @@ const MIME_TYPES = {
 	'.woff2': 'font/woff2',
 };
 
-// ─── Step 1: Generate round-tripped fonts ─────────────────────────────
+// --- Step 1: Generate round-tripped fonts -----------------------------
 
 if (!fs.existsSync(GENERATED_DIR)) {
 	fs.mkdirSync(GENERATED_DIR, { recursive: true });
@@ -52,7 +52,7 @@ const fontFiles = fs.readdirSync(SAMPLES_DIR).filter((f) => {
 });
 
 console.log(`\n  Visual Round-Trip Server`);
-console.log(`  ═══════════════════════\n`);
+console.log(`  =======================\n`);
 console.log(`  Generating round-tripped fonts…\n`);
 
 const manifest = [];
@@ -91,7 +91,7 @@ for (const file of fontFiles) {
 		const diff = exported.byteLength - buf.length;
 		const sign = diff >= 0 ? '+' : '';
 		console.log(
-			`    ✓ ${file}  (${buf.length.toLocaleString()} → ${exported.byteLength.toLocaleString()}, ${sign}${diff})`,
+			`    ✓ ${file}  (${buf.length.toLocaleString()} -> ${exported.byteLength.toLocaleString()}, ${sign}${diff})`,
 		);
 	} catch (err) {
 		console.log(`    ✗ ${file}  ERROR: ${err.message}`);
@@ -100,7 +100,7 @@ for (const file of fontFiles) {
 
 console.log(`\n  ${manifest.length}/${fontFiles.length} fonts generated\n`);
 
-// ─── Step 2: Start HTTP server ────────────────────────────────────────
+// --- Step 2: Start HTTP server ----------------------------------------
 
 const server = http.createServer((req, res) => {
 	const url = new URL(req.url, `http://localhost:${PORT}`);

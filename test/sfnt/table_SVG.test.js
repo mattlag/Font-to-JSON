@@ -15,12 +15,12 @@ const SAMPLES = path.resolve('test/sample fonts');
 function loadSVG(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-	const font = importFont(ab);
+	const font = importFont(ab).raw;
 	return { font, svg: font.tables['SVG '] };
 }
 
 describe('SVG table', () => {
-	// ── Parsing: plain text SVG fonts ────────────────────────────────────
+	// == Parsing: plain text SVG fonts ====================================
 
 	it('should parse the SVG table from Reinebow-SVGinOT.ttf', () => {
 		const { svg } = loadSVG('Reinebow-SVGinOT.ttf');
@@ -54,7 +54,7 @@ describe('SVG table', () => {
 		);
 	});
 
-	// ── Parsing: gzip-compressed SVG ────────────────────────────────────
+	// == Parsing: gzip-compressed SVG ====================================
 
 	it('should parse gzip-compressed SVG documents from EmojiOneColor.otf', () => {
 		const { svg } = loadSVG('EmojiOneColor.otf');
@@ -84,7 +84,7 @@ describe('SVG table', () => {
 		expect(svg._raw).toBeUndefined();
 	});
 
-	// ── Round-trip ──────────────────────────────────────────────────────
+	// == Round-trip ======================================================
 
 	it('should round-trip SVG from Reinebow-SVGinOT.ttf', () => {
 		const buf = fs.readFileSync(path.join(SAMPLES, 'Reinebow-SVGinOT.ttf'));
@@ -92,10 +92,10 @@ describe('SVG table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab);
+		const font = importFont(ab).raw;
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported);
+		const reimported = importFont(exported).raw;
 		const orig = font.tables['SVG '];
 		const rt = reimported.tables['SVG '];
 
@@ -118,10 +118,10 @@ describe('SVG table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab);
+		const font = importFont(ab).raw;
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported);
+		const reimported = importFont(exported).raw;
 		const orig = font.tables['SVG '];
 		const rt = reimported.tables['SVG '];
 
@@ -137,10 +137,10 @@ describe('SVG table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab);
+		const font = importFont(ab).raw;
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported);
+		const reimported = importFont(exported).raw;
 		const orig = font.tables['SVG '];
 		const rt = reimported.tables['SVG '];
 
@@ -153,7 +153,7 @@ describe('SVG table', () => {
 		}
 	});
 
-	// ── Synthetic ───────────────────────────────────────────────────────
+	// == Synthetic =======================================================
 
 	it('should handle a synthetic SVG table with two documents', () => {
 		const original = {

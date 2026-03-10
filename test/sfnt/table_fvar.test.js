@@ -101,7 +101,7 @@ describe('fvar table', () => {
 		expect(parsed.instances[1].postScriptNameID).toBe(260);
 	});
 
-	it('should be stable across parse → write → parse', () => {
+	it('should be stable across parse -> write -> parse', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 0,

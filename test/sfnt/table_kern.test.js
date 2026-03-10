@@ -81,7 +81,7 @@ describe('kern table', () => {
 		expect(parsed.subtables[0]._raw).toEqual([0x01, 0x02, 0x03]);
 	});
 
-	it('should be stable across parse → write → parse', () => {
+	it('should be stable across parse -> write -> parse', () => {
 		const source = {
 			formatVariant: 'opentype',
 			version: 0,

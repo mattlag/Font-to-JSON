@@ -13,7 +13,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('cmap table parsing', () => {
 	it('should parse the cmap table from an OTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cmap = font.tables['cmap'];
 
 		expect(cmap.version).toBe(0);
@@ -23,7 +23,7 @@ describe('cmap table parsing', () => {
 
 	it('should have valid encoding records', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cmap = font.tables['cmap'];
 
 		for (const record of cmap.encodingRecords) {
@@ -36,7 +36,7 @@ describe('cmap table parsing', () => {
 
 	it('should not have _raw on parsed cmap table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cmap = font.tables['cmap'];
 
 		// Parsed tables should not have _raw at the table level
@@ -47,7 +47,7 @@ describe('cmap table parsing', () => {
 
 	it('should parse subtable formats as structured data', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cmap = font.tables['cmap'];
 
 		for (const subtable of cmap.subtables) {
@@ -62,9 +62,9 @@ describe('cmap table parsing', () => {
 });
 
 describe('cmap table round-trip', () => {
-	it('should produce identical data after parse → write → re-parse (OTF)', async () => {
+	it('should produce identical data after parse â†’ write â†’ re-parse (OTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...cmapData } = font.tables['cmap'];
 
 		const writtenBytes = writeCmap(cmapData);
@@ -73,9 +73,9 @@ describe('cmap table round-trip', () => {
 		expect(reparsed).toEqual(cmapData);
 	});
 
-	it('should produce identical data after parse → write → re-parse (TTF)', async () => {
+	it('should produce identical data after parse â†’ write â†’ re-parse (TTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...cmapData } = font.tables['cmap'];
 
 		const writtenBytes = writeCmap(cmapData);
@@ -88,7 +88,7 @@ describe('cmap table round-trip', () => {
 describe('cmap Format 4 specifics', () => {
 	it('should have the final segment ending at 0xFFFF', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cmap = font.tables['cmap'];
 
 		const fmt4 = cmap.subtables.find((s) => s.format === 4);

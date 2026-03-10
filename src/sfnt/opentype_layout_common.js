@@ -9,21 +9,21 @@
  *   - Coverage tables (format 1 & 2)
  *   - ClassDef tables (format 1 & 2)
  *   - Device / VariationIndex tables
- *   - ScriptList → Script → LangSys
- *   - FeatureList → Feature
- *   - LookupList → Lookup (with pluggable subtable callback)
+ *   - ScriptList -> Script -> LangSys
+ *   - FeatureList -> Feature
+ *   - LookupList -> Lookup (with pluggable subtable callback)
  *   - SequenceLookup record
  *   - SequenceContext (format 1, 2, 3)
  *   - ChainedSequenceContext (format 1, 2, 3)
- *   - FeatureVariations → ConditionSet → FeatureTableSubstitution
+ *   - FeatureVariations -> ConditionSet -> FeatureTableSubstitution
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  COVERAGE TABLE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a Coverage table at the given absolute offset.
@@ -84,9 +84,9 @@ export function writeCoverage(cov) {
 	throw new Error(`Unknown Coverage format: ${cov.format}`);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  CLASS DEFINITION TABLE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a ClassDef table at the given absolute offset.
@@ -149,9 +149,9 @@ export function writeClassDef(cd) {
 	throw new Error(`Unknown ClassDef format: ${cd.format}`);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  DEVICE / VARIATIONINDEX TABLE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a Device or VariationIndex table at the given absolute offset.
@@ -281,9 +281,9 @@ export function deviceSize(dev) {
 	return 6 + wordCount * 2;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  SCRIPTLIST → SCRIPT → LANGSYS
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  SCRIPTLIST -> SCRIPT -> LANGSYS
+// ===========================================================================
 
 /**
  * Parse a ScriptList table.
@@ -431,9 +431,9 @@ function writeLangSys(langSys) {
 	return w.toArray();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  FEATURELIST → FEATURE
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  FEATURELIST -> FEATURE
+// ===========================================================================
 
 /**
  * Parse a FeatureList table.
@@ -510,16 +510,16 @@ function writeFeature(feature) {
 	return w.toArray();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  LOOKUPLIST → LOOKUP
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  LOOKUPLIST -> LOOKUP
+// ===========================================================================
 
 /**
  * Parse a LookupList table.
  *
  * @param {DataReader} reader
  * @param {number} offset - absolute offset of the LookupList
- * @param {Function} parseSubtable - (reader, offset, lookupType) → object
+ * @param {Function} parseSubtable - (reader, offset, lookupType) -> object
  *   Callback to parse lookup-type-specific subtable data.
  * @param {number} [extensionLookupType] - lookup type that signals Extension
  *   (7 for GSUB, 9 for GPOS). When provided, Extension lookups are
@@ -591,7 +591,7 @@ function parseLookup(reader, offset, parseSubtable, extensionLookupType) {
  * this auto-wrapping is invisible to consumers.
  *
  * @param {object} lookupList
- * @param {Function} writeSubtable - (subtable, lookupType) → number[]
+ * @param {Function} writeSubtable - (subtable, lookupType) -> number[]
  * @param {number} [extensionLookupType] - lookup type for Extension (7/9)
  * @returns {number[]}
  */
@@ -603,7 +603,7 @@ export function writeLookupList(
 	const { lookups } = lookupList;
 	const EXT_HEADER_SIZE = 8; // format(2) + extensionLookupType(2) + extensionOffset(4)
 
-	// ── Step 1: serialize all subtables ──────────────────────────────
+	// -- Step 1: serialize all subtables ------------------------------
 
 	const lookupData = lookups.map((lk) => {
 		const subtableBytes = lk.subtables.map((st) =>
@@ -612,7 +612,7 @@ export function writeLookupList(
 		return { ...lk, subtableBytes };
 	});
 
-	// ── Step 2: build self-contained Lookup blocks ───────────────────
+	// -- Step 2: build self-contained Lookup blocks -------------------
 
 	const buildLookupBlock = (ld) => {
 		const { lookupType, lookupFlag, subtableBytes, markFilteringSet } = ld;
@@ -642,7 +642,7 @@ export function writeLookupList(
 
 	let lookupBlocks = lookupData.map(buildLookupBlock);
 
-	// ── Step 3: check for Offset16 overflow ──────────────────────────
+	// -- Step 3: check for Offset16 overflow --------------------------
 
 	const llHeaderSize = 2 + lookups.length * 2;
 	const checkOverflow = (blocks) => {
@@ -655,7 +655,7 @@ export function writeLookupList(
 	};
 
 	if (checkOverflow(lookupBlocks) && extensionLookupType !== undefined) {
-		// ── Step 4: auto-wrap non-Extension Lookups ──────────────────
+		// -- Step 4: auto-wrap non-Extension Lookups ------------------
 
 		// Build wrapped lookup blocks with deferred inner data
 		const wrappedData = lookupData.map((ld) => {
@@ -745,7 +745,7 @@ export function writeLookupList(
 		return w.toArray();
 	}
 
-	// ── Step 5: simple path — everything fits ────────────────────────
+	// -- Step 5: simple path — everything fits ------------------------
 
 	let cursor = llHeaderSize;
 	const lookupOffsets = lookupBlocks.map((block) => {
@@ -764,9 +764,9 @@ export function writeLookupList(
 	return w.toArray();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  SEQUENCE CONTEXT (used by GPOS type 7, GSUB type 5)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a SequenceContext subtable (formats 1, 2, 3).
@@ -1016,9 +1016,9 @@ function writeSeqLookupRecords(w, records) {
 	}
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  CHAINED SEQUENCE CONTEXT (used by GPOS type 8, GSUB type 6)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a ChainedSequenceContext subtable (formats 1, 2, 3).
@@ -1371,9 +1371,9 @@ function writeChainedSeqRule(rule) {
 	return w.toArray();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  FEATURE VARIATIONS (version 1.1 tables)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 /**
  * Parse a FeatureVariations table.

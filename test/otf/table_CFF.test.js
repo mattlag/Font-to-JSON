@@ -18,12 +18,12 @@ import { parseCFF, writeCFF } from '../../src/otf/table_CFF.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  CFF common utilities
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('CFF number encoding/decoding', () => {
-	it('should round-trip 1-byte integers (−107 to 107)', () => {
+	it('should round-trip 1-byte integers (âˆ’107 to 107)', () => {
 		for (const val of [-107, -1, 0, 1, 107]) {
 			const encoded = encodeNumber(val);
 			const decoded = decodeNumber(encoded, 0);
@@ -41,7 +41,7 @@ describe('CFF number encoding/decoding', () => {
 		}
 	});
 
-	it('should round-trip 2-byte negative integers (−1131 to −108)', () => {
+	it('should round-trip 2-byte negative integers (âˆ’1131 to âˆ’108)', () => {
 		for (const val of [-108, -500, -1131]) {
 			const encoded = encodeNumber(val);
 			const decoded = decodeNumber(encoded, 0);
@@ -50,7 +50,7 @@ describe('CFF number encoding/decoding', () => {
 		}
 	});
 
-	it('should round-trip 3-byte int16 (−32768 to 32767)', () => {
+	it('should round-trip 3-byte int16 (âˆ’32768 to 32767)', () => {
 		for (const val of [-32768, -2000, 2000, 32767]) {
 			const encoded = encodeNumber(val);
 			const decoded = decodeNumber(encoded, 0);
@@ -72,7 +72,7 @@ describe('CFF number encoding/decoding', () => {
 			const encoded = encodeNumber(val);
 			expect(encoded[0]).toBe(30); // BCD prefix
 			const decoded = decodeNumber(encoded, 0);
-			// Float precision — check within a small epsilon
+			// Float precision â€” check within a small epsilon
 			expect(decoded.value).toBeCloseTo(val, 4);
 		}
 	});
@@ -123,14 +123,14 @@ describe('CFF DICT round-trip', () => {
 	});
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  CFF table parsing from a real font
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('CFF table parsing', () => {
 	it('should parse the CFF table from oblegg.otf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		expect(cff).toBeDefined();
@@ -140,7 +140,7 @@ describe('CFF table parsing', () => {
 
 	it('should not have a _raw property (CFF is fully parsed)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		expect(cff._raw).toBeUndefined();
@@ -148,7 +148,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a non-empty names array', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		expect(cff.names).toBeInstanceOf(Array);
@@ -158,7 +158,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a strings array', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		expect(cff.strings).toBeInstanceOf(Array);
@@ -166,7 +166,7 @@ describe('CFF table parsing', () => {
 
 	it('should have at least one font entry', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		expect(cff.fonts).toBeInstanceOf(Array);
@@ -175,7 +175,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a topDict object for each font', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -185,7 +185,7 @@ describe('CFF table parsing', () => {
 
 	it('should have charStrings as an array of byte arrays', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -197,7 +197,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a privateDict object', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -207,7 +207,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a charset (array or predefined name)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -217,7 +217,7 @@ describe('CFF table parsing', () => {
 
 	it('should have an encoding (string or object)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -225,14 +225,14 @@ describe('CFF table parsing', () => {
 	});
 });
 
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  CFF write / round-trip
-// ════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('CFF table writing', () => {
 	it('should produce valid bytes from a parsed CFF table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		const written = writeCFF(cff);
@@ -240,9 +240,9 @@ describe('CFF table writing', () => {
 		expect(written.length).toBeGreaterThan(0);
 	});
 
-	it('should round-trip: parse → write → re-parse yields equivalent data', async () => {
+	it('should round-trip: parse â†’ write â†’ re-parse yields equivalent data', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		// Write then re-parse
@@ -280,7 +280,7 @@ describe('CFF table from EmojiOneColor.otf', () => {
 	it('should parse the CFF table from EmojiOneColor.otf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'EmojiOneColor.otf')))
 			.buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const cff = font.tables['CFF '];
 
 		// EmojiOneColor.otf is an OTF (OTTO) so should have a CFF table

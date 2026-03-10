@@ -52,7 +52,7 @@ describe('BASE table', () => {
 		expect(parsed.itemVariationStore._raw).toEqual([0xaa, 0xbb, 0xcc]);
 	});
 
-	it('should be stable across parse → write → parse', () => {
+	it('should be stable across parse -> write -> parse', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 1,

@@ -15,12 +15,12 @@ const SAMPLES = path.resolve('test/sample fonts');
 function loadCPAL(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-	const font = importFont(ab);
+	const font = importFont(ab).raw;
 	return { font, cpal: font.tables.CPAL };
 }
 
 describe('CPAL table', () => {
-	// ── Parsing ─────────────────────────────────────────────────────────
+	// == Parsing =========================================================
 
 	it('should parse the CPAL table from BungeeTint-Regular.ttf', () => {
 		const { cpal } = loadCPAL('BungeeTint-Regular.ttf');
@@ -72,7 +72,7 @@ describe('CPAL table', () => {
 		expect(cpal._raw).toBeUndefined();
 	});
 
-	// ── Round-trip ──────────────────────────────────────────────────────
+	// == Round-trip ======================================================
 
 	it('should round-trip CPAL from BungeeTint-Regular.ttf', () => {
 		const buf = fs.readFileSync(path.join(SAMPLES, 'BungeeTint-Regular.ttf'));
@@ -80,10 +80,10 @@ describe('CPAL table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab);
+		const font = importFont(ab).raw;
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported);
+		const reimported = importFont(exported).raw;
 
 		expect(reimported.tables.CPAL.version).toBe(font.tables.CPAL.version);
 		expect(reimported.tables.CPAL.numPaletteEntries).toBe(
@@ -92,7 +92,7 @@ describe('CPAL table', () => {
 		expect(reimported.tables.CPAL.palettes).toEqual(font.tables.CPAL.palettes);
 	});
 
-	// ── Synthetic ───────────────────────────────────────────────────────
+	// == Synthetic =======================================================
 
 	it('should handle a synthetic v0 CPAL with 1 palette, 3 entries', () => {
 		const original = {

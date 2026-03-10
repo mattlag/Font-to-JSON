@@ -16,7 +16,7 @@ describe('sfnt header parsing', () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		expect(font.header).toBeDefined();
 		expect(font.header.numTables).toBeGreaterThan(0);
@@ -26,7 +26,7 @@ describe('sfnt header parsing', () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		// 'OTTO' = 0x4F54544F
 		expect(font.header.sfVersion).toBe(0x4f54544f);
@@ -36,7 +36,7 @@ describe('sfnt header parsing', () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { numTables, searchRange, entrySelector, rangeShift } = font.header;
 
 		// Verify computed values per the spec:
@@ -58,7 +58,7 @@ describe('sfnt table directory', () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const tableCount = Object.keys(font.tables).length;
 
 		expect(tableCount).toBe(font.header.numTables);
@@ -68,7 +68,7 @@ describe('sfnt table directory', () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const tags = Object.keys(font.tables);
 
 		// The 8 required tables per the OpenType spec
@@ -91,7 +91,7 @@ describe('sfnt table directory', () => {
 		const filePath = resolve(SAMPLES_DIR, 'oblegg.otf');
 		const buffer = (await readFile(filePath)).buffer;
 
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 
 		for (const [tag, data] of Object.entries(font.tables)) {
 			// Every table must have a checksum

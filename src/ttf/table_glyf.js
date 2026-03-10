@@ -17,9 +17,9 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 //  Flag constants
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
 
 // Simple glyph point flags
 const ON_CURVE_POINT = 0x01;
@@ -44,9 +44,9 @@ const OVERLAP_COMPOUND = 0x0400;
 const SCALED_COMPONENT_OFFSET = 0x0800;
 const UNSCALED_COMPONENT_OFFSET = 0x1000;
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  PARSING  (binary → JSON)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  PARSING  (binary -> JSON)
+// ===========================================================================
 
 /**
  * Parse the glyf table.
@@ -90,7 +90,7 @@ export function parseGlyf(rawBytes, tables) {
 	return { glyphs };
 }
 
-// ─── Simple glyph ────────────────────────────────────────────────────────
+// --- Simple glyph --------------------------------------------------------
 
 /**
  * Parse a simple glyph (numberOfContours ≥ 0).
@@ -187,7 +187,7 @@ function parseSimpleGlyph(reader, numberOfContours, xMin, yMin, xMax, yMax) {
 	};
 }
 
-// ─── Composite glyph ────────────────────────────────────────────────────
+// --- Composite glyph ----------------------------------------------------
 
 /**
  * Parse a composite glyph.
@@ -296,9 +296,9 @@ function buildComponentFlagObject(flags) {
 	return obj;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  WRITING  (JSON → binary)
-// ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+//  WRITING  (JSON -> binary)
+// ===========================================================================
 
 /**
  * Write the glyf table and compute the byte offset of every glyph.
@@ -363,7 +363,7 @@ export function writeGlyf(glyf) {
 	return writeGlyfComputeOffsets(glyf).bytes;
 }
 
-// ─── Simple glyph writer ────────────────────────────────────────────────
+// --- Simple glyph writer ------------------------------------------------
 
 function writeSimpleGlyph(g) {
 	const { contours, instructions, xMin, yMin, xMax, yMax, overlapSimple } = g;
@@ -517,7 +517,7 @@ function packFlags(flags) {
 	return result;
 }
 
-// ─── Composite glyph writer ─────────────────────────────────────────────
+// --- Composite glyph writer ---------------------------------------------
 
 function writeCompositeGlyph(g) {
 	const { components, instructions, xMin, yMin, xMax, yMax } = g;

@@ -63,7 +63,7 @@ describe('MVAR table', () => {
 		expect(parsed.itemVariationStore).toBeNull();
 	});
 
-	it('should be stable across parse → write → parse', () => {
+	it('should be stable across parse -> write -> parse', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 0,

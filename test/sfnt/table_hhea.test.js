@@ -13,7 +13,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('hhea table parsing', () => {
 	it('should parse the hhea table from an OTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const hhea = font.tables['hhea'];
 
 		expect(hhea.majorVersion).toBe(1);
@@ -22,7 +22,7 @@ describe('hhea table parsing', () => {
 
 	it('should have valid metric fields', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const hhea = font.tables['hhea'];
 
 		expect(hhea.ascender).toBeTypeOf('number');
@@ -33,7 +33,7 @@ describe('hhea table parsing', () => {
 
 	it('should have numberOfHMetrics > 0', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const hhea = font.tables['hhea'];
 
 		expect(hhea.numberOfHMetrics).toBeGreaterThan(0);
@@ -41,7 +41,7 @@ describe('hhea table parsing', () => {
 
 	it('should have reserved fields set to 0', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const hhea = font.tables['hhea'];
 
 		expect(hhea.reserved1).toBe(0);
@@ -52,7 +52,7 @@ describe('hhea table parsing', () => {
 
 	it('should have metricDataFormat of 0', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const hhea = font.tables['hhea'];
 
 		expect(hhea.metricDataFormat).toBe(0);
@@ -60,7 +60,7 @@ describe('hhea table parsing', () => {
 
 	it('should not have _raw on parsed hhea table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const hhea = font.tables['hhea'];
 
 		expect(hhea._raw).toBeUndefined();
@@ -69,9 +69,9 @@ describe('hhea table parsing', () => {
 });
 
 describe('hhea table round-trip', () => {
-	it('should produce identical data after parse → write → re-parse (OTF)', async () => {
+	it('should produce identical data after parse â†’ write â†’ re-parse (OTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...hheaData } = font.tables['hhea'];
 
 		const writtenBytes = writeHhea(hheaData);
@@ -80,9 +80,9 @@ describe('hhea table round-trip', () => {
 		expect(reparsed).toEqual(hheaData);
 	});
 
-	it('should produce identical data after parse → write → re-parse (TTF)', async () => {
+	it('should produce identical data after parse â†’ write â†’ re-parse (TTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...hheaData } = font.tables['hhea'];
 
 		const writtenBytes = writeHhea(hheaData);
@@ -93,7 +93,7 @@ describe('hhea table round-trip', () => {
 
 	it('should write exactly 36 bytes', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer);
+		const font = importFont(buffer).raw;
 		const { _checksum, ...hheaData } = font.tables['hhea'];
 
 		const writtenBytes = writeHhea(hheaData);
