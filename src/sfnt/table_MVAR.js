@@ -3,13 +3,14 @@
  * Metrics Variations Table
  *
  * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/mvar
- *
- * Parses/writes MVAR header and ValueRecords. ItemVariationStore is preserved
- * as raw bytes.
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
+import {
+	parseItemVariationStore,
+	writeItemVariationStore,
+} from './item_variation_store.js';
 
 const MVAR_HEADER_SIZE = 12;
 const VALUE_RECORD_BASE_SIZE = 8;
@@ -63,7 +64,7 @@ export function parseMVAR(rawBytes) {
 
 	const itemVariationStore =
 		itemVariationStoreOffset > 0 && itemVariationStoreOffset < rawBytes.length
-			? { _raw: Array.from(rawBytes.slice(itemVariationStoreOffset)) }
+			? parseItemVariationStore(rawBytes.slice(itemVariationStoreOffset))
 			: null;
 
 	return {
@@ -106,7 +107,9 @@ export function writeMVAR(mvar) {
 	);
 	const valueRecordCount = valueRecords.length;
 
-	const itemVariationStoreBytes = extractRawBytes(mvar.itemVariationStore);
+	const itemVariationStoreBytes = mvar.itemVariationStore
+		? writeItemVariationStore(mvar.itemVariationStore)
+		: [];
 	const itemVariationStoreOffset =
 		itemVariationStoreBytes.length > 0 || valueRecordCount > 0
 			? MVAR_HEADER_SIZE + valueRecordCount * valueRecordSize
@@ -152,14 +155,4 @@ function compareTags(a, b) {
 		}
 	}
 	return 0;
-}
-
-function extractRawBytes(value) {
-	if (!value) {
-		return [];
-	}
-	if (Array.isArray(value)) {
-		return value;
-	}
-	return value._raw ?? [];
 }

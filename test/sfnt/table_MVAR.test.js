@@ -5,6 +5,27 @@
 import { describe, expect, it } from 'vitest';
 import { parseMVAR, writeMVAR } from '../../src/sfnt/table_MVAR.js';
 
+/** Minimal valid IVS structure for testing. */
+function minimalIVS() {
+	return {
+		format: 1,
+		variationRegionList: {
+			axisCount: 1,
+			regions: [
+				{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] },
+			],
+		},
+		itemVariationData: [
+			{
+				itemCount: 1,
+				wordDeltaCount: 1,
+				regionIndexes: [0],
+				deltaSets: [[50]],
+			},
+		],
+	};
+}
+
 function normalizeMVAR(mvar) {
 	return {
 		majorVersion: mvar.majorVersion,
@@ -12,7 +33,7 @@ function normalizeMVAR(mvar) {
 		reserved: mvar.reserved,
 		valueRecordSize: mvar.valueRecordSize,
 		valueRecords: mvar.valueRecords,
-		itemVariationStoreRaw: mvar.itemVariationStore?._raw ?? null,
+		itemVariationStore: mvar.itemVariationStore,
 	};
 }
 
@@ -35,7 +56,7 @@ describe('MVAR table', () => {
 					_extra: [0xde, 0xad],
 				},
 			],
-			itemVariationStore: { _raw: [0x00, 0x01, 0x02, 0x03] },
+			itemVariationStore: minimalIVS(),
 		};
 
 		const parsed = parseMVAR(writeMVAR(original));
@@ -46,7 +67,8 @@ describe('MVAR table', () => {
 		// Writer sorts by valueTag binary order.
 		expect(parsed.valueRecords[0].valueTag).toBe('hasc');
 		expect(parsed.valueRecords[1].valueTag).toBe('vlgp');
-		expect(parsed.itemVariationStore._raw).toEqual([0x00, 0x01, 0x02, 0x03]);
+		expect(parsed.itemVariationStore.format).toBe(1);
+		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual([50]);
 	});
 
 	it('should support empty value record array', () => {
@@ -75,7 +97,7 @@ describe('MVAR table', () => {
 					deltaSetInnerIndex: 2,
 				},
 			],
-			itemVariationStore: { _raw: [0xaa, 0xbb] },
+			itemVariationStore: minimalIVS(),
 		};
 
 		const once = parseMVAR(writeMVAR(source));

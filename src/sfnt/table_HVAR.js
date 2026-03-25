@@ -3,13 +3,14 @@
  * Horizontal Metrics Variations Table
  *
  * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/hvar
- *
- * This implementation parses/writes HVAR container data and DeltaSetIndexMap
- * subtables. ItemVariationStore is preserved as raw bytes.
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
+import {
+	parseItemVariationStore,
+	writeItemVariationStore,
+} from './item_variation_store.js';
 
 const HVAR_HEADER_SIZE = 20;
 
@@ -39,11 +40,18 @@ export function parseHVAR(rawBytes) {
 	return {
 		majorVersion,
 		minorVersion,
-		itemVariationStore: extractSubtable(rawBytes, itemVariationStoreOffset, [
-			advanceWidthMappingOffset,
-			lsbMappingOffset,
-			rsbMappingOffset,
-		]),
+		itemVariationStore: itemVariationStoreOffset
+			? parseItemVariationStore(
+					rawBytes.slice(
+						itemVariationStoreOffset,
+						findSubtableEnd(rawBytes.length, itemVariationStoreOffset, [
+							advanceWidthMappingOffset,
+							lsbMappingOffset,
+							rsbMappingOffset,
+						]),
+					),
+				)
+			: null,
 		advanceWidthMapping: parseOptionalDeltaSetIndexMap(
 			rawBytes,
 			advanceWidthMappingOffset,
@@ -59,21 +67,6 @@ export function parseHVAR(rawBytes) {
 			advanceWidthMappingOffset,
 			lsbMappingOffset,
 		]),
-	};
-}
-
-function extractSubtable(rawBytes, offset, siblingOffsets) {
-	if (!offset) {
-		return null;
-	}
-
-	const end = findSubtableEnd(rawBytes.length, offset, siblingOffsets);
-	if (end <= offset || offset >= rawBytes.length) {
-		return { _raw: [] };
-	}
-
-	return {
-		_raw: Array.from(rawBytes.slice(offset, end)),
 	};
 }
 
@@ -136,7 +129,9 @@ export function writeHVAR(hvar) {
 	const majorVersion = hvar.majorVersion ?? 1;
 	const minorVersion = hvar.minorVersion ?? 0;
 
-	const itemVariationStoreBytes = extractRawBytes(hvar.itemVariationStore);
+	const itemVariationStoreBytes = hvar.itemVariationStore
+		? writeItemVariationStore(hvar.itemVariationStore)
+		: [];
 	const advanceWidthMappingBytes = encodeOptionalDeltaSetIndexMap(
 		hvar.advanceWidthMapping,
 	);
@@ -216,16 +211,6 @@ function writeDeltaSetIndexMap(mapping) {
 	}
 
 	return w.toArray();
-}
-
-function extractRawBytes(value) {
-	if (!value) {
-		return [];
-	}
-	if (Array.isArray(value)) {
-		return value;
-	}
-	return value._raw ?? [];
 }
 
 function packDeltaSetIndex(entry, innerBitCount) {

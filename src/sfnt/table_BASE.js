@@ -4,12 +4,17 @@
  *
  * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/base
  *
- * This implementation parses/writes BASE container-level fields and preserves
- * referenced subtables as raw bytes.
+ * This implementation parses/writes BASE container-level fields.
+ * horizAxis and vertAxis subtables are preserved as raw bytes.
+ * ItemVariationStore (v1.1) is fully parsed.
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
+import {
+	parseItemVariationStore,
+	writeItemVariationStore,
+} from './item_variation_store.js';
 
 const BASE_HEADER_V10_SIZE = 8;
 const BASE_HEADER_V11_SIZE = 12;
@@ -44,8 +49,22 @@ export function parseBASE(rawBytes) {
 		minorVersion,
 		horizAxis: extractSubtable(rawBytes, horizAxisOffset, offsets),
 		vertAxis: extractSubtable(rawBytes, vertAxisOffset, offsets),
-		itemVariationStore: extractSubtable(rawBytes, itemVarStoreOffset, offsets),
+		itemVariationStore: itemVarStoreOffset
+			? parseItemVariationStore(
+					rawBytes.slice(
+						itemVarStoreOffset,
+						findSubtableEnd(rawBytes.length, itemVarStoreOffset, offsets),
+					),
+				)
+			: null,
 	};
+}
+
+function findSubtableEnd(totalLength, startOffset, allOffsets) {
+	const next = allOffsets
+		.filter((o) => o > startOffset)
+		.sort((a, b) => a - b)[0];
+	return next ?? totalLength;
 }
 
 function extractSubtable(rawBytes, offset, allOffsets) {
@@ -78,9 +97,10 @@ export function writeBASE(base) {
 
 	const horizBytes = extractRaw(base.horizAxis);
 	const vertBytes = extractRaw(base.vertAxis);
-	const itemVarStoreBytes = includeItemVariationStore
-		? extractRaw(base.itemVariationStore)
-		: [];
+	const itemVarStoreBytes =
+		includeItemVariationStore && base.itemVariationStore
+			? writeItemVariationStore(base.itemVariationStore)
+			: [];
 
 	const headerSize = includeItemVariationStore
 		? BASE_HEADER_V11_SIZE

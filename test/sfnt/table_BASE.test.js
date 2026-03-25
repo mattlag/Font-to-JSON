@@ -5,6 +5,27 @@
 import { describe, expect, it } from 'vitest';
 import { parseBASE, writeBASE } from '../../src/sfnt/table_BASE.js';
 
+/** Minimal valid IVS structure for testing. */
+function minimalIVS() {
+	return {
+		format: 1,
+		variationRegionList: {
+			axisCount: 1,
+			regions: [
+				{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] },
+			],
+		},
+		itemVariationData: [
+			{
+				itemCount: 1,
+				wordDeltaCount: 1,
+				regionIndexes: [0],
+				deltaSets: [[25]],
+			},
+		],
+	};
+}
+
 function normalizeBASE(base) {
 	return {
 		majorVersion: base.majorVersion,
@@ -40,7 +61,7 @@ describe('BASE table', () => {
 			minorVersion: 1,
 			horizAxis: { _raw: [0x21, 0x22] },
 			vertAxis: null,
-			itemVariationStore: { _raw: [0xaa, 0xbb, 0xcc] },
+			itemVariationStore: minimalIVS(),
 		};
 
 		const parsed = parseBASE(writeBASE(original));
@@ -49,7 +70,8 @@ describe('BASE table', () => {
 		expect(parsed.minorVersion).toBe(1);
 		expect(parsed.horizAxis._raw).toEqual([0x21, 0x22]);
 		expect(parsed.vertAxis).toBeNull();
-		expect(parsed.itemVariationStore._raw).toEqual([0xaa, 0xbb, 0xcc]);
+		expect(parsed.itemVariationStore.format).toBe(1);
+		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual([25]);
 	});
 
 	it('should be stable across parse -> write -> parse', () => {
@@ -58,7 +80,7 @@ describe('BASE table', () => {
 			minorVersion: 1,
 			horizAxis: { _raw: [1, 2, 3] },
 			vertAxis: { _raw: [4, 5] },
-			itemVariationStore: { _raw: [6, 7, 8, 9] },
+			itemVariationStore: minimalIVS(),
 		};
 
 		const once = parseBASE(writeBASE(source));

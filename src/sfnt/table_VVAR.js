@@ -3,13 +3,14 @@
  * Vertical Metrics Variations Table
  *
  * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/vvar
- *
- * This implementation parses/writes VVAR container data and DeltaSetIndexMap
- * subtables. ItemVariationStore is preserved as raw bytes.
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
+import {
+	parseItemVariationStore,
+	writeItemVariationStore,
+} from './item_variation_store.js';
 
 const VVAR_HEADER_SIZE = 24;
 
@@ -48,11 +49,18 @@ export function parseVVAR(rawBytes) {
 	return {
 		majorVersion,
 		minorVersion,
-		itemVariationStore: extractSubtable(
-			rawBytes,
-			itemVariationStoreOffset,
-			allOffsets,
-		),
+		itemVariationStore: itemVariationStoreOffset
+			? parseItemVariationStore(
+					rawBytes.slice(
+						itemVariationStoreOffset,
+						findSubtableEnd(
+							rawBytes.length,
+							itemVariationStoreOffset,
+							allOffsets,
+						),
+					),
+				)
+			: null,
 		advanceHeightMapping: parseOptionalDeltaSetIndexMap(
 			rawBytes,
 			advanceHeightMappingOffset,
@@ -73,21 +81,6 @@ export function parseVVAR(rawBytes) {
 			vOrgMappingOffset,
 			allOffsets,
 		),
-	};
-}
-
-function extractSubtable(rawBytes, offset, allOffsets) {
-	if (!offset) {
-		return null;
-	}
-
-	const end = findSubtableEnd(rawBytes.length, offset, allOffsets);
-	if (end <= offset || offset >= rawBytes.length) {
-		return { _raw: [] };
-	}
-
-	return {
-		_raw: Array.from(rawBytes.slice(offset, end)),
 	};
 }
 
@@ -150,7 +143,9 @@ export function writeVVAR(vvar) {
 	const majorVersion = vvar.majorVersion ?? 1;
 	const minorVersion = vvar.minorVersion ?? 0;
 
-	const itemVariationStoreBytes = extractRawBytes(vvar.itemVariationStore);
+	const itemVariationStoreBytes = vvar.itemVariationStore
+		? writeItemVariationStore(vvar.itemVariationStore)
+		: [];
 	const advanceHeightMappingBytes = encodeOptionalDeltaSetIndexMap(
 		vvar.advanceHeightMapping,
 	);
@@ -236,16 +231,6 @@ function writeDeltaSetIndexMap(mapping) {
 	}
 
 	return w.toArray();
-}
-
-function extractRawBytes(value) {
-	if (!value) {
-		return [];
-	}
-	if (Array.isArray(value)) {
-		return value;
-	}
-	return value._raw ?? [];
 }
 
 function packDeltaSetIndex(entry, innerBitCount) {

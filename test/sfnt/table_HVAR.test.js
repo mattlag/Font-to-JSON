@@ -5,11 +5,32 @@
 import { describe, expect, it } from 'vitest';
 import { parseHVAR, writeHVAR } from '../../src/sfnt/table_HVAR.js';
 
+/** Minimal valid IVS structure for testing. */
+function minimalIVS() {
+	return {
+		format: 1,
+		variationRegionList: {
+			axisCount: 1,
+			regions: [
+				{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] },
+			],
+		},
+		itemVariationData: [
+			{
+				itemCount: 1,
+				wordDeltaCount: 1,
+				regionIndexes: [0],
+				deltaSets: [[100]],
+			},
+		],
+	};
+}
+
 function normalizeHVAR(hvar) {
 	return {
 		majorVersion: hvar.majorVersion,
 		minorVersion: hvar.minorVersion,
-		itemVariationStoreRaw: hvar.itemVariationStore?._raw ?? null,
+		itemVariationStore: hvar.itemVariationStore,
 		advanceWidthMappingEntries: hvar.advanceWidthMapping?.entries ?? null,
 		lsbMappingEntries: hvar.lsbMapping?.entries ?? null,
 		rsbMappingEntries: hvar.rsbMapping?.entries ?? null,
@@ -21,7 +42,7 @@ describe('HVAR table', () => {
 		const original = {
 			majorVersion: 1,
 			minorVersion: 0,
-			itemVariationStore: { _raw: [0x00, 0x01, 0x00, 0x00] },
+			itemVariationStore: minimalIVS(),
 			advanceWidthMapping: {
 				entries: [
 					{ outerIndex: 0, innerIndex: 3 },
@@ -49,14 +70,15 @@ describe('HVAR table', () => {
 		);
 		expect(parsed.lsbMapping.entries).toEqual(original.lsbMapping.entries);
 		expect(parsed.rsbMapping.entries).toEqual(original.rsbMapping.entries);
-		expect(parsed.itemVariationStore._raw).toEqual([0x00, 0x01, 0x00, 0x00]);
+		expect(parsed.itemVariationStore.format).toBe(1);
+		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual([100]);
 	});
 
 	it('should support null optional mappings', () => {
 		const original = {
 			majorVersion: 1,
 			minorVersion: 0,
-			itemVariationStore: { _raw: [0x00, 0x01] },
+			itemVariationStore: minimalIVS(),
 			advanceWidthMapping: null,
 			lsbMapping: null,
 			rsbMapping: null,
@@ -72,7 +94,7 @@ describe('HVAR table', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 0,
-			itemVariationStore: { _raw: [0xaa, 0xbb, 0xcc] },
+			itemVariationStore: minimalIVS(),
 			advanceWidthMapping: {
 				entries: [
 					{ outerIndex: 0, innerIndex: 0 },

@@ -5,11 +5,32 @@
 import { describe, expect, it } from 'vitest';
 import { parseVVAR, writeVVAR } from '../../src/sfnt/table_VVAR.js';
 
+/** Minimal valid IVS structure for testing. */
+function minimalIVS() {
+	return {
+		format: 1,
+		variationRegionList: {
+			axisCount: 1,
+			regions: [
+				{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] },
+			],
+		},
+		itemVariationData: [
+			{
+				itemCount: 1,
+				wordDeltaCount: 1,
+				regionIndexes: [0],
+				deltaSets: [[75]],
+			},
+		],
+	};
+}
+
 function normalizeVVAR(vvar) {
 	return {
 		majorVersion: vvar.majorVersion,
 		minorVersion: vvar.minorVersion,
-		itemVariationStoreRaw: vvar.itemVariationStore?._raw ?? null,
+		itemVariationStore: vvar.itemVariationStore,
 		advanceHeightMappingEntries: vvar.advanceHeightMapping?.entries ?? null,
 		tsbMappingEntries: vvar.tsbMapping?.entries ?? null,
 		bsbMappingEntries: vvar.bsbMapping?.entries ?? null,
@@ -22,7 +43,7 @@ describe('VVAR table', () => {
 		const original = {
 			majorVersion: 1,
 			minorVersion: 0,
-			itemVariationStore: { _raw: [0x00, 0x01, 0x00, 0x00] },
+			itemVariationStore: minimalIVS(),
 			advanceHeightMapping: {
 				entries: [
 					{ outerIndex: 0, innerIndex: 3 },
@@ -44,13 +65,14 @@ describe('VVAR table', () => {
 		expect(parsed.tsbMapping.entries).toEqual(original.tsbMapping.entries);
 		expect(parsed.bsbMapping.entries).toEqual(original.bsbMapping.entries);
 		expect(parsed.vOrgMapping.entries).toEqual(original.vOrgMapping.entries);
+		expect(parsed.itemVariationStore.format).toBe(1);
 	});
 
 	it('should support null optional mappings', () => {
 		const original = {
 			majorVersion: 1,
 			minorVersion: 0,
-			itemVariationStore: { _raw: [0x11, 0x22] },
+			itemVariationStore: minimalIVS(),
 			advanceHeightMapping: null,
 			tsbMapping: null,
 			bsbMapping: null,
@@ -68,7 +90,7 @@ describe('VVAR table', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 0,
-			itemVariationStore: { _raw: [0xaa, 0xbb, 0xcc] },
+			itemVariationStore: minimalIVS(),
 			advanceHeightMapping: { entries: [{ outerIndex: 0, innerIndex: 1 }] },
 			tsbMapping: null,
 			bsbMapping: null,
