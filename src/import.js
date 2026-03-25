@@ -423,5 +423,40 @@ function extractTableData(buffer, tableDirectory) {
 		delete tables.loca.offsets;
 	}
 
+	// CBLC binary-layout offsets (imageDataOffset, sbitOffsets, glyphArray)
+	// are artifacts that describe positions inside the CBDT binary encoding.
+	// After CBDT has been fully parsed into bitmapData, these offsets are
+	// stale and would break round-trip equality.
+	if (tables.CBLC && tables.CBDT?.bitmapData) {
+		for (const size of tables.CBLC.sizes) {
+			for (const sub of size.indexSubTables ?? []) {
+				delete sub.imageDataOffset;
+				delete sub.sbitOffsets;
+				// Format 4: extract glyph IDs, remove offset-bearing array
+				if (sub.glyphArray) {
+					sub.glyphIdArray = sub.glyphArray
+						.slice(0, -1)
+						.map((g) => g.glyphID);
+					delete sub.glyphArray;
+				}
+			}
+		}
+	}
+	// Same cleanup for EBLC/EBDT (identical structures)
+	if (tables.EBLC && tables.EBDT?.bitmapData) {
+		for (const size of tables.EBLC.sizes) {
+			for (const sub of size.indexSubTables ?? []) {
+				delete sub.imageDataOffset;
+				delete sub.sbitOffsets;
+				if (sub.glyphArray) {
+					sub.glyphIdArray = sub.glyphArray
+						.slice(0, -1)
+						.map((g) => g.glyphID);
+					delete sub.glyphArray;
+				}
+			}
+		}
+	}
+
 	return tables;
 }

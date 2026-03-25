@@ -65,6 +65,8 @@ We will start with OTF fonts, importing and exporting general file header data, 
 3. add any updates to `src\main.js` or any other JS files in src that may need to handle this new table.
 4. create a file in `test\sfnt` (or `test\ttf`/`test\otf`) called `table_OS-2.test.js` for any table specific tests.
 
+After each phase of work, give me a one-sentence summary of what was done that can be used as a Git commit message.
+
 # Short term strategy
 
 This section will be updated based on what phase of support we are working on.

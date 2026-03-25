@@ -598,7 +598,7 @@ Vertical Metrics tables complete: **vhea**, **vmtx**.
 Color Font tables complete: **COLR**, **CPAL**, **SVG**.
 Variation tables complete: **fvar**, **avar**, **STAT**, **gvar**, **HVAR**, **MVAR**, **VVAR**, **cvar**.
 Additional OpenType tables complete: **kern**, **BASE**.
-Bitmap glyph tables complete: **EBLC**, **EBDT**, **EBSC**, **CBLC**, **CBDT**, **sbix**.
+Bitmap glyph tables fully structured: **EBLC**, **EBDT**, **EBSC**, **CBLC**, **CBDT**, **sbix** — with shared **bitmap_common.js** metrics helpers.
 Additional shared tables complete: **DSIG**, **hdmx**, **LTSH**.
 Additional shared tables complete: **MERG**, **meta**.
 Additional shared tables complete: **PCLT**, **VDMX**.
@@ -625,7 +625,7 @@ Possible future work:
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
 - **Table-specific tests** use `importFontTables()` (not `importFont()`) to access the internal `{ header, tables }` shape directly
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 314 tests total, all passing
+- Currently 338 tests total, all passing
 
 ## Gotchas & Lessons Learned
 
@@ -665,16 +665,17 @@ Possible future work:
 34. **COLR v1 not fully parsed**: v1 has 32 Paint formats forming a complex DAG. We store the entire table as `_v1RawBytes` for round-trip fidelity rather than attempting full parsing. v0 is fully parsed.
 35. **SVG documents can be gzip-compressed**: Check for gzip magic bytes (0x1F, 0x8B, 0x08) at start of document data. Compressed docs stored as byte arrays; plain text as strings via TextDecoder/TextEncoder.
 36. **DataWriter method is `toArray()`, not `finish()`**: Easy to confuse. Always use `w.toArray()` to get the final byte array.
-37. **Bitmap table scope (block 4)**: `CBLC/CBDT/EBLC/EBDT/EBSC/sbix` are currently implemented as container-level parse/write with raw payload preservation for complex internals. This keeps round-trip stable while deferring deeper format-specific decoding.
-38. **No bitmap fixtures in sample fonts**: Current repository sample fonts did not expose these bitmap tags, so block-4 tests are synthetic round-trip tests focused on parser/writer fidelity and registry wiring.
-39. **JSTF implementation scope**: `JSTF` is implemented at container level (version + JstfScript records with preserved raw script subtables). This keeps offsets stable and enables lossless round-trip without full Justification structure decoding yet.
-40. **MATH implementation scope**: `MATH` is implemented at container level (version + offsets to MathConstants/MathGlyphInfo/MathVariants, each preserved as raw bytes). This provides safe round-trip while deferring deep parsing of math constants and glyph assemblies.
-41. **DSIG implementation scope**: `DSIG` parses header/signature records (`format`, `length`, `offset`) and preserves each signature block as `_raw` bytes. Writer rebuilds offsets from serialized block lengths.
-42. **hdmx implementation scope**: `hdmx` parses per-device records (`pixelSize`, `maxWidth`, width array) and preserves record padding. If `maxp.numGlyphs` is available it is used to split widths vs padding; otherwise payload bytes are treated as widths.
-43. **LTSH implementation scope**: `LTSH` is fully parsed (`version`, `numGlyphs`, `yPels[]`) and written directly with truncation/padding safeguards when explicit `numGlyphs` and `yPels.length` differ.
-44. **MERG implementation scope**: `MERG` currently exposes a leading `version` field plus raw payload bytes (`data`) to keep round-trip fidelity while deferring deeper format semantics.
-45. **meta implementation scope**: `meta` parses header fields and `DataMap` records (`tag`, `dataOffset`, `dataLength`) and preserves each metadata payload as byte arrays in `dataMaps[].data`; writer recomputes offsets from serialized payload order.
-46. **PCLT implementation scope**: `PCLT` is implemented as a fixed-size structured table (54 bytes) with explicit numeric fields and fixed-length ASCII strings (`typeface`, `characterComplement`, `fileName`). Non-ASCII characters are replaced with `?` during write.
-47. **VDMX implementation scope**: `VDMX` parses ratio records and deduplicated VDMX groups, mapping each ratio to a `groupIndex`. Writer serializes group blocks, computes offsets, and emits ratio-to-group mapping through the offset array.
-48. **VORG implementation scope**: `VORG` is fully parsed/written as structured data (`majorVersion`, `minorVersion`, `defaultVertOriginY`, and per-glyph `vertOriginYMetrics`). Writer supports explicit `numVertOriginYMetrics` with safe truncation/padding behavior.
-49. **GPOS PairPos fmt1 Device offset base nuance**: Some real fonts (e.g., `SegUIVar`) encode ValueRecord Device/VariationIndex offsets in PairPos format 1 relative to the **PairSet** start, not the parent PairPos subtable. Parsing uses the PairSet base for `parseValueRecord` in this path, and restores reader position after offset-jump parses to avoid corrupting sequential reads.
+37. **Bitmap table scope (block 4)**: `CBLC/CBDT/EBLC/EBDT/EBSC/sbix` fully parse structured internals. CBLC/EBLC parse IndexSubTable formats 1-5; CBDT/EBDT parse glyph bitmap record formats 1/2/5/6/7/8/9/17/18/19; sbix parses per-glyph records (originOffsetX/Y, graphicType, imageData). Coordinated writes via `writeCBDTComputeOffsets` → offset info → `writeCBLC`. Shared metrics helpers in `src/sfnt/bitmap_common.js`.
+38. **Bitmap table performance**: DataReader constructor converts number[] → Uint8Array. For large tables (megabytes), creating DataReader per-glyph or per-subtable causes massive allocations. ALWAYS create ONE DataReader per table and reuse via seek(). Also use rawBytes.slice() instead of reader.bytes() for bulk image data.
+39. **No bitmap fixtures in sample fonts**: WRONG — we have bitmap fixtures: `NotoColorEmoji-online-test.ttf` (10.2MB CBLC/CBDT, 3985 glyphs), `noto-sbix-online-test.ttf` (8.9MB sbix), `msgothic-test.ttc` (8.6MB EBLC/EBDT, 146K glyph records across 3125 subtables), `cour-test.ttf` (EBLC/EBDT), `cambria-test.ttc` (EBLC/EBDT).
+40. **JSTF implementation scope**: `JSTF` is implemented at container level (version + JstfScript records with preserved raw script subtables). This keeps offsets stable and enables lossless round-trip without full Justification structure decoding yet.
+41. **MATH implementation scope**: `MATH` is implemented at container level (version + offsets to MathConstants/MathGlyphInfo/MathVariants, each preserved as raw bytes). This provides safe round-trip while deferring deep parsing of math constants and glyph assemblies.
+42. **DSIG implementation scope**: `DSIG` parses header/signature records (`format`, `length`, `offset`) and preserves each signature block as `_raw` bytes. Writer rebuilds offsets from serialized block lengths.
+43. **hdmx implementation scope**: `hdmx` parses per-device records (`pixelSize`, `maxWidth`, width array) and preserves record padding. If `maxp.numGlyphs` is available it is used to split widths vs padding; otherwise payload bytes are treated as widths.
+44. **LTSH implementation scope**: `LTSH` is fully parsed (`version`, `numGlyphs`, `yPels[]`) and written directly with truncation/padding safeguards when explicit `numGlyphs` and `yPels.length` differ.
+45. **MERG implementation scope**: `MERG` currently exposes a leading `version` field plus raw payload bytes (`data`) to keep round-trip fidelity while deferring deeper format semantics.
+46. **meta implementation scope**: `meta` parses header fields and `DataMap` records (`tag`, `dataOffset`, `dataLength`) and preserves each metadata payload as byte arrays in `dataMaps[].data`; writer recomputes offsets from serialized payload order.
+47. **PCLT implementation scope**: `PCLT` is implemented as a fixed-size structured table (54 bytes) with explicit numeric fields and fixed-length ASCII strings (`typeface`, `characterComplement`, `fileName`). Non-ASCII characters are replaced with `?` during write.
+48. **VDMX implementation scope**: `VDMX` parses ratio records and deduplicated VDMX groups, mapping each ratio to a `groupIndex`. Writer serializes group blocks, computes offsets, and emits ratio-to-group mapping through the offset array.
+49. **VORG implementation scope**: `VORG` is fully parsed/written as structured data (`majorVersion`, `minorVersion`, `defaultVertOriginY`, and per-glyph `vertOriginYMetrics`). Writer supports explicit `numVertOriginYMetrics` with safe truncation/padding behavior.
+50. **GPOS PairPos fmt1 Device offset base nuance**: Some real fonts (e.g., `SegUIVar`) encode ValueRecord Device/VariationIndex offsets in PairPos format 1 relative to the **PairSet** start, not the parent PairPos subtable. Parsing uses the PairSet base for `parseValueRecord` in this path, and restores reader position after offset-jump parses to avoid corrupting sequential reads.

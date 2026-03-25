@@ -9,7 +9,7 @@ import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeVORG } from './otf/table_VORG.js';
 import { writeAvar } from './sfnt/table_avar.js';
 import { writeBASE } from './sfnt/table_BASE.js';
-import { writeCBDT } from './sfnt/table_CBDT.js';
+import { writeCBDT, writeCBDTComputeOffsets } from './sfnt/table_CBDT.js';
 import { writeCBLC } from './sfnt/table_CBLC.js';
 import { writeCmap } from './sfnt/table_cmap.js';
 import { writeCOLR } from './sfnt/table_COLR.js';
@@ -369,6 +369,30 @@ function coordinateTableWrites(tables) {
 				);
 			}
 		}
+	}
+
+	// Coordinate CBLC/CBDT: write CBDT first to get offsets, then CBLC
+	const hasCBLC = tables.CBLC && !tables.CBLC._raw && tables.CBLC.sizes;
+	const hasCBDT =
+		tables.CBDT && !tables.CBDT._raw && tables.CBDT.bitmapData;
+	if (hasCBLC && hasCBDT) {
+		const { bytes: cbdtBytes, offsetInfo } = writeCBDTComputeOffsets(
+			tables.CBDT,
+			tables.CBLC,
+		);
+		precomputed.set('CBDT', cbdtBytes);
+		precomputed.set('CBLC', writeCBLC(tables.CBLC, offsetInfo));
+	}
+
+	// Same for EBLC/EBDT (identical structures, same code)
+	const hasEBLC = tables.EBLC && !tables.EBLC._raw && tables.EBLC.sizes;
+	const hasEBDT =
+		tables.EBDT && !tables.EBDT._raw && tables.EBDT.bitmapData;
+	if (hasEBLC && hasEBDT) {
+		const { bytes: ebdtBytes, offsetInfo: ebdtOffsetInfo } =
+			writeCBDTComputeOffsets(tables.EBDT, tables.EBLC);
+		precomputed.set('EBDT', ebdtBytes);
+		precomputed.set('EBLC', writeCBLC(tables.EBLC, ebdtOffsetInfo));
 	}
 
 	return precomputed;
