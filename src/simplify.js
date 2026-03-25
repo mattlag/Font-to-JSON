@@ -12,12 +12,41 @@
 // ===========================================================================
 
 /**
+ * Tables that are fully decomposed into top-level simplified fields.
+ * These are NOT passed through to the `tables` property because their
+ * data is already represented in font info, glyphs, kerning, etc.
+ */
+const DECOMPOSED_TABLES = new Set([
+	'head',
+	'hhea',
+	'hmtx',
+	'vmtx',
+	'name',
+	'OS/2',
+	'post',
+	'maxp',
+	'cmap',
+	'glyf',
+	'loca',
+	'CFF ',
+	'kern',
+	'fvar',
+	'GPOS',
+	'GSUB',
+	'GDEF',
+	'gasp',
+	'cvt ',
+	'fpgm',
+	'prep',
+]);
+
+/**
  * Build a simplified representation from raw parsed font data.
  * @param {{ header: object, tables: object }} raw
  * @returns {object} simplified object
  */
 export function buildSimplified(raw) {
-	const { tables } = raw;
+	const { header, tables } = raw;
 
 	const font = extractFontInfo(tables);
 	const glyphs = buildSimplifiedGlyphs(tables);
@@ -63,6 +92,14 @@ export function buildSimplified(raw) {
 	if (tables.prep && !tables.prep._raw && tables.prep.instructions) {
 		result.prep = tables.prep.instructions;
 	}
+
+	// Store ALL original parsed tables for lossless round-trip export.
+	// The top-level simplified fields (font, glyphs, etc.) are the
+	// editable interface; tables is the authoritative data for export.
+	result.tables = { ...tables };
+
+	// Store the SFNT header (needed for lossless export round-trip)
+	result._header = header;
 
 	return result;
 }

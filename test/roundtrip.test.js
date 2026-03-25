@@ -63,7 +63,9 @@ describe('Round-trip: TTC', () => {
 
 		expect(secondImport.collection.tag).toBe('ttcf');
 		expect(secondImport.fonts.length).toBe(firstImport.fonts.length);
-		expect(secondImport.fonts.every((font) => font.raw.tables.GPOS)).toBe(true);
+		expect(
+			secondImport.fonts.every((font) => font.features && font.features.GPOS),
+		).toBe(true);
 	}, 60000);
 
 	it('should round-trip TTC data for msgothic sample', async () => {
@@ -97,10 +99,10 @@ describe('Collection: OTC (CFF outlines)', () => {
 		expect(collection.collection.tag).toBe('ttcf');
 		expect(collection.fonts.length).toBeGreaterThan(1);
 		expect(
-			collection.fonts.some((f) => f.raw.header.sfVersion === 0x4f54544f),
+			collection.fonts.some((f) => f._header.sfVersion === 0x4f54544f),
 		).toBe(true);
 		expect(
-			collection.fonts.some((f) => f.raw.tables['CFF '] || f.raw.tables.CFF2),
+			collection.fonts.some((f) => f.glyphs.some((g) => g.charString)),
 		).toBe(true);
 	}, 60000);
 
@@ -118,10 +120,10 @@ describe('Collection: OTC (CFF outlines)', () => {
 		expect(secondImport.collection.tag).toBe('ttcf');
 		expect(secondImport.fonts.length).toBe(firstImport.fonts.length);
 		expect(
-			secondImport.fonts.some((f) => f.raw.header.sfVersion === 0x4f54544f),
+			secondImport.fonts.some((f) => f._header.sfVersion === 0x4f54544f),
 		).toBe(true);
 		expect(
-			secondImport.fonts.some((f) => f.raw.tables['CFF '] || f.raw.tables.CFF2),
+			secondImport.fonts.some((f) => f.glyphs.some((g) => g.charString)),
 		).toBe(true);
 	}, 120000);
 });

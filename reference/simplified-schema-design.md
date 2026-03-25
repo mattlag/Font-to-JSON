@@ -1,12 +1,12 @@
 # Simplified Schema Design
 
-> Design document for the `raw` / `simplified` dual-layer JSON structure in Font Flux JS.
+> Design document for the unified simplified JSON structure in Font Flux JS.
 
 ---
 
 ## Overview
 
-Currently, `importFont()` returns a JSON object that mirrors the binary font file table-by-table:
+The internal table-level representation mirrors the binary font file table-by-table:
 
 ```json
 { "header": { ... }, "tables": { "head": { ... }, "cmap": { ... }, ... } }
@@ -14,27 +14,40 @@ Currently, `importFont()` returns a JSON object that mirrors the binary font fil
 
 This is perfect for fidelity but painful for humans. Information about a single glyph is scattered across 4+ tables (`glyf`/`CFF` for outlines, `hmtx` for metrics, `cmap` for unicode mapping, `post` for names). The `name` table encodes simple strings behind platform/encoding/language ID tuples. Metrics that logically belong together are split across `head`, `hhea`, `OS/2`, and `post`.
 
-The new structure wraps the existing output as `raw` and adds a `simplified` view:
+`importFont()` returns a **unified simplified object** — a single flat structure that consolidates human-friendly fields alongside the original parsed tables for lossless round-trip:
 
 ```json
 {
-  "raw": { "header": { ... }, "tables": { ... } },
-  "simplified": { "font": { ... }, "glyphs": [ ... ], ... }
+  "font": { "familyName": "...", "unitsPerEm": 1000, ... },
+  "glyphs": [ { "name": ".notdef", "advanceWidth": 500, ... }, ... ],
+  "kerning": [ ... ],
+  "features": { "GPOS": ..., "GSUB": ..., "GDEF": ... },
+  "axes": [ ... ],
+  "instances": [ ... ],
+  "gasp": [ ... ],
+  "cvt": [ ... ],
+  "fpgm": [ ... ],
+  "prep": [ ... ],
+  "tables": { "head": { ... }, "cmap": { ... }, ... },
+  "_header": { "sfVersion": "OTTO", "numTables": 12, ... }
 }
 ```
 
-**Import**: binary → parse into `raw` → derive `simplified` from `raw`
-**Export**: if `simplified` present → map back to `raw` fields → encode `raw` to binary
-**Human authoring**: write only `simplified` (no `raw` needed) → export fills in `raw` automatically
+- **`tables`**: ALL original parsed tables, stored for lossless export.
+- **`_header`**: Original SFNT header, stored for lossless export.
+- **Top-level fields** (`font`, `glyphs`, `kerning`, etc.): The human-friendly view.
+
+**Import**: binary → parse into `{ header, tables }` internally → `buildSimplified()` produces unified object
+**Export (imported font)**: detects `_header` + `tables` → uses stored tables directly (lossless)
+**Export (hand-authored)**: has `font` + `glyphs` but no `_header` → `buildRawFromSimplified()` generates everything
+**Table-level access**: `importFontTables(buffer)` returns `{ header, tables }` for internal/testing use
 
 ---
 
-## The `simplified` Schema
+## The Simplified Schema
 
 ```jsonc
 {
-  "simplified": {
-
     // ── Font identity and metadata ──────────────────────────────────
     "font": {
       "familyName": "My Font",           // REQUIRED
@@ -372,21 +385,19 @@ new Date(ms).toISOString()
 
 ---
 
-## Export Priority Rules
+## Export Resolution
 
-When exporting, the system resolves data in this priority order:
+When exporting, `resolveExportSource()` detects the input shape and resolves it to a `{ header, tables }` pair:
 
-1. **`raw` tables** — if `raw` is provided and has full table data, use it directly (this is the existing path, unchanged)
-2. **`simplified` overrides** — if `simplified` is present, its data takes priority and is mapped into `raw` before encoding
-3. **Auto-derivation** — fields in the "auto-calculated" table above are always recomputed from the final glyph data
+1. **Legacy `{ header, tables }`** — already the raw format, used as-is (back-compat for internal/testing use via `importFontTables()`).
+2. **Imported simplified** — has `_header` + `tables` properties (produced by `importFont()`). Uses stored tables directly for lossless round-trip.
+3. **Hand-authored simplified** — has `font` + `glyphs` but no `_header`. `buildRawFromSimplified()` generates all required tables from the simplified fields.
 
 This means:
 
-- **Import → re-export**: both `raw` and `simplified` exist. `raw` is used by default (preserves original bytes). The `simplified` data is informational.
-- **Human-authored JSON**: only `simplified` exists. The export pipeline builds `raw` from `simplified`, then encodes.
-- **Hybrid**: if both exist and the user modified `simplified`, the `simplified` data overwrites the corresponding `raw` fields.
-
-A flag (to be designed) could control behavior: `"source": "simplified"` or `"source": "raw"` to explicitly choose. Default: `"simplified"` if present, otherwise `"raw"`.
+- **Import → re-export**: the stored `tables` and `_header` are used directly. The binary output is lossless.
+- **Human-authored JSON**: only `font` + `glyphs` are needed. The export pipeline builds all tables from these fields.
+- **Collections**: each font in `fonts[]` is resolved independently via `resolveExportSource()`.
 
 ---
 
@@ -396,46 +407,44 @@ To create a font from scratch using only `simplified`, a human needs:
 
 ```jsonc
 {
-	"simplified": {
-		"font": {
-			"familyName": "My Font",
-			"styleName": "Regular",
-			"unitsPerEm": 1000,
-			"ascender": 800,
-			"descender": -200,
-		},
-		"glyphs": [
-			{
-				"name": ".notdef",
-				"advanceWidth": 500,
-				"contours": [
-					[
-						{ "x": 50, "y": 0, "onCurve": true },
-						{ "x": 50, "y": 700, "onCurve": true },
-						{ "x": 450, "y": 700, "onCurve": true },
-						{ "x": 450, "y": 0, "onCurve": true },
-					],
-				],
-			},
-			{
-				"name": "space",
-				"unicode": 32,
-				"advanceWidth": 250,
-			},
-			{
-				"name": "A",
-				"unicode": 65,
-				"advanceWidth": 600,
-				"contours": [
-					[
-						{ "x": 0, "y": 0, "onCurve": true },
-						{ "x": 300, "y": 700, "onCurve": true },
-						{ "x": 600, "y": 0, "onCurve": true },
-					],
-				],
-			},
-		],
+	"font": {
+		"familyName": "My Font",
+		"styleName": "Regular",
+		"unitsPerEm": 1000,
+		"ascender": 800,
+		"descender": -200,
 	},
+	"glyphs": [
+		{
+			"name": ".notdef",
+			"advanceWidth": 500,
+			"contours": [
+				[
+					{ "x": 50, "y": 0, "onCurve": true },
+					{ "x": 50, "y": 700, "onCurve": true },
+					{ "x": 450, "y": 700, "onCurve": true },
+					{ "x": 450, "y": 0, "onCurve": true },
+				],
+			],
+		},
+		{
+			"name": "space",
+			"unicode": 32,
+			"advanceWidth": 250,
+		},
+		{
+			"name": "A",
+			"unicode": 65,
+			"advanceWidth": 600,
+			"contours": [
+				[
+					{ "x": 0, "y": 0, "onCurve": true },
+					{ "x": 300, "y": 700, "onCurve": true },
+					{ "x": 600, "y": 0, "onCurve": true },
+				],
+			],
+		},
+	],
 }
 ```
 
@@ -443,27 +452,24 @@ Everything else — `head`, `hhea`, `maxp`, `OS/2`, `name`, `post`, `cmap`, `hmt
 
 ---
 
-## Implementation Plan
+## Implementation Status
 
-### Phase 1: Import — `raw` → `simplified` derivation
+All phases are **complete and tested** (314 tests passing).
 
-New module: `src/simplify.js`
+### `src/simplify.js` — Import: `{ header, tables }` → unified simplified
 
-- `buildSimplified(raw)` → simplified object
-- Functions for each section:
-  - `extractFontIdentity(nameTbl)` — reads name records, picks best platform
-  - `extractFontMetrics(head, hhea, os2, post)` — merges metrics
-  - `buildSimplifiedGlyphs(glyf|CFF, hmtx, cmap, post, vmtx?)` — builds unified glyphs
-  - `extractKerning(kern, GPOS, glyphNames)` — unified kerning
-  - `extractVariationAxes(fvar, nameTbl)` — axes + instances
-  - `longdatetimeToISO(bigint)` — timestamp conversion
+- `buildSimplified(raw)` → unified simplified object
+- Key functions:
+  - `extractFontInfo(tables)` — reads name records, picks best platform, merges metrics from head/hhea/OS-2/post
+  - `buildSimplifiedGlyphs(tables)` — builds unified glyphs from glyf/CFF + hmtx + cmap + post + vmtx
+  - `extractKerning(tables, glyphs)` — unified kerning from kern/GPOS
+  - `extractAxes(tables)` / `extractInstances(tables)` — axes + instances from fvar + name
+- Stores `result.tables = { ...tables }` (all original parsed tables) and `result._header = header`
 
-### Phase 2: Export — `simplified` → `raw` expansion
+### `src/expand.js` — Export: simplified → `{ header, tables }`
 
-New module: `src/expand.js`
-
-- `buildRawFromSimplified(simplified)` → raw object
-- Functions for each section:
+- `buildRawFromSimplified(simplified)` → `{ header, tables }` for hand-authored fonts
+- Key functions:
   - `buildNameTable(font)` — generates multi-platform name records
   - `buildHeadTable(font, glyphMetrics)` — head from metrics
   - `buildHheaTable(font, glyphMetrics)` — hhea from metrics
@@ -473,18 +479,21 @@ New module: `src/expand.js`
   - `buildHmtxTable(glyphs)` — hmtx from glyph metrics
   - `buildCmapTable(glyphs)` — cmap from glyph unicodes
   - `buildMaxpTable(glyphs, isCFF)` — maxp from glyph count
-  - `buildKernTable(kerning, glyphNameToIndex)` — kern from pairs
-  - `isoToLongdatetime(string)` — timestamp conversion
-  - `computeGlyphMetrics(glyphs)` — bbox/bearing aggregates
+  - Passes through `simplified.tables` and `simplified._header` when available
 
-### Phase 3: Integration
+### `src/import.js` — Public API
 
-- Modify `importFont()` to return `{ raw: { header, tables }, simplified: {...} }`
-- Modify `exportFont()` to check for `simplified` and expand it before encoding
-- Update collection (TTC) flow similarly
-- Add tests for the new round-trip: import → simplified → export → reimport
+- `importFont(buffer)` — returns unified simplified object (or collection)
+- `importFontTables(buffer)` — returns `{ header, tables }` for internal/testing use
 
-### Phase 4: Future Enhancements
+### `src/export.js` — Export API
+
+- `exportFont(fontData)` — accepts 3 input shapes via `resolveExportSource()`:
+  1. Legacy `{ header, tables }` — use as-is
+  2. Imported simplified (`_header` + `tables`) — use stored tables directly
+  3. Hand-authored (`font` + `glyphs`, no `_header`) — expand via `buildRawFromSimplified()`
+
+### Future Enhancements
 
 - Simplified CFF path commands (moveTo/lineTo/curveTo instead of raw charstring bytes)
 - Simplified GSUB features (ligature rules as `"f + i → fi"`)

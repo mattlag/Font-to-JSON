@@ -5,16 +5,14 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 import { parsePrep, writePrep } from '../../src/ttf/table_prep.js';
 
 const SAMPLES = 'test/sample fonts';
 
 function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
-	return importFont(
-		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	).raw;
+	return importFontTables(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
 }
 
 describe('prep table', () => {
@@ -56,7 +54,7 @@ describe('prep table', () => {
 	it('should round-trip prep from fira.ttf', () => {
 		const font1 = loadFont('fira.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		expect(font2.tables.prep.instructions).toEqual(
 			font1.tables.prep.instructions,
 		);
@@ -65,7 +63,7 @@ describe('prep table', () => {
 	it('should round-trip prep from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		expect(font2.tables.prep.instructions).toEqual(
 			font1.tables.prep.instructions,
 		);
@@ -74,7 +72,7 @@ describe('prep table', () => {
 	it('should round-trip prep from mtextra.ttf', () => {
 		const font1 = loadFont('mtextra.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		expect(font2.tables.prep.instructions).toEqual(
 			font1.tables.prep.instructions,
 		);

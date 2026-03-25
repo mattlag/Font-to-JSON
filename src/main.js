@@ -5,7 +5,7 @@
 
 import { buildRawFromSimplified } from './expand.js';
 import { exportFont } from './export.js';
-import { importFont } from './import.js';
+import { importFont, importFontTables } from './import.js';
 import { buildSimplified } from './simplify.js';
 import { validateJSON } from './validate/index.js';
 
@@ -14,5 +14,6 @@ export {
 	buildSimplified,
 	exportFont,
 	importFont,
+	importFontTables,
 	validateJSON,
 };

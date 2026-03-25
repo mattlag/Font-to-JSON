@@ -18,15 +18,22 @@
 ```
 Binary font (ArrayBuffer)
   → importFont(buffer)          [src/import.js]
-    → detects `ttcf` and parses TTC collections (`{ collection, fonts[] }`)
-    → readFontHeader(reader)    — 12-byte Offset Table
-    → readTableDirectory(reader, n) — 16 bytes × numTables
-    → extractTableData(buffer, dir) — dispatches to tableParsers or stores _raw
-  → JSON object { header, tables }
+    → detects `ttcf` and parses TTC collections
+    → internally: readFontHeader → readTableDirectory → extractTableData
+    → builds { header, tables }
+    → buildSimplified({ header, tables })   [src/simplify.js]
+  → unified simplified object:
+      { font, glyphs, tables, _header, features?, kerning?, axes?, ... }
 
-JSON object
+  → importFontTables(buffer)    [src/import.js]  (internal/testing only)
+  → { header, tables }
+
+Simplified / JSON object
   → exportFont(fontData)        [src/export.js]
-    → if TTC shape, writes `ttcf` header + face offset table + per-face SFNT
+    → resolveExportSource() detects 3 shapes:
+      1. Legacy { header, tables } — use as-is
+      2. Imported simplified (_header + tables) — use stored tables directly
+      3. Hand-authored (font + glyphs, no _header) — buildRawFromSimplified()
     → for each table: tableWriters[tag](data) or use _raw
     → reconstruct header + directory + table data
   → ArrayBuffer
@@ -87,9 +94,11 @@ The returned object from a parser should NOT include `_checksum` or `_raw` — t
 
 ```
 src/
-  main.js           — entry point, re-exports importFont + exportFont
-  import.js         — importFont(), tableParsers registry, tableParseOrder, dependency-aware extractTableData()
-  export.js         — exportFont(), tableWriters registry, SFNT + TTC (`ttcf`) export paths
+  main.js           — entry point, re-exports importFont, importFontTables, exportFont, buildSimplified, buildRawFromSimplified, validateJSON
+  import.js         — importFont() returns simplified; importFontTables() returns { header, tables }; tableParsers registry, tableParseOrder
+  export.js         — exportFont(), resolveExportSource() (3 input shapes), tableWriters registry, SFNT + TTC (`ttcf`) export paths
+  simplify.js       — buildSimplified() converts { header, tables } → unified simplified object with stored tables + _header
+  expand.js         — buildRawFromSimplified() expands hand-authored simplified → { header, tables }
   reader.js         — DataReader class
   writer.js         — DataWriter class
   otf/
@@ -159,8 +168,9 @@ test/
   ### TTC Collections (`ttcf`) support
 
   - `importFont()` now detects `ttcf` signature and parses TTC header + face offsets + optional DSIG fields for v2+
-  - TTC/OTC JSON shape: `{ collection: { tag, majorVersion, minorVersion, numFonts, ... }, fonts: [{ header, tables }, ...] }`
-  - `exportFont()` now accepts the TTC shape and emits a collection file with per-face SFNTs and adjusted table record offsets
+  - TTC/OTC JSON shape: `{ collection: { tag, majorVersion, minorVersion, numFonts, ... }, fonts: [simplifiedFont, ...] }`
+  - Each font in the collection is a unified simplified object (same shape as single-font import)
+  - `exportFont()` accepts the TTC shape; each font is resolved via `resolveExportSource()` and emits a collection file with per-face SFNTs
   - Added TTC round-trip coverage in `test/roundtrip.test.js` (full round-trip on `msgothic-test.ttc`)
 
 ## Test policy (do not sidestep behavior gaps)
@@ -554,6 +564,22 @@ test/
 - Writers do NOT need cross-table deps — they only serialize their own data
 - **Exception**: glyf ↔ loca coordination. Writing glyf may change glyph byte positions, so loca offsets must be recomputed. `coordinateTableWrites()` in export.js handles this: writes glyf first (via `writeGlyfComputeOffsets`), rebuilds loca from new offsets, and updates head.indexToLocFormat if needed. Pre-computed bytes are cached and used directly by the export loop.
 
+### Unified Simplified Output (Architecture Refactor)
+
+- **Previous architecture**: `importFont()` returned `{ raw: { header, tables }, simplified: { font, glyphs, ... } }` — dual-layer with sync concerns
+- **New architecture**: `importFont()` returns a **unified simplified object** directly:
+  - Top-level: `{ font, glyphs, tables, _header, features?, kerning?, axes?, instances?, gasp?, cvt?, fpgm?, prep? }`
+  - `tables` contains ALL original parsed tables (not just non-decomposed) for lossless round-trip export
+  - `_header` stores the original SFNT header
+- **`importFontTables(buffer)`**: New internal/testing export returning `{ header, tables }` — used by table-level unit tests
+- **Export resolution**: `resolveExportSource()` in export.js handles 3 input shapes:
+  1. Legacy `{ header, tables }` (from `importFontTables()`)
+  2. Imported simplified (has `_header` + `tables`) — uses stored tables directly
+  3. Hand-authored (`font` + `glyphs`, no `_header`) — calls `buildRawFromSimplified()`
+- **Test migration**: 25+ table test files changed from `importFont(buffer).raw` → `importFontTables(buffer)`
+- **Roundtrip tests updated**: `font.raw.tables.GPOS` → `font.features.GPOS`, `f.raw.header.sfVersion` → `f._header.sfVersion`, CFF detection via `f.glyphs.some(g => g.charString)`
+- **Key insight**: `buildRawFromSimplified` is designed for NEW hand-authored fonts, not for reconstructing imported font data. Imported fonts preserve their original tables for lossless export.
+
 ### DataReader / DataWriter Refactor
 
 - `import.js` fully uses DataReader
@@ -597,9 +623,9 @@ Possible future work:
 ## Testing Strategy
 
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
-- **Table-specific tests** validate parsing details (field values, structure)
+- **Table-specific tests** use `importFontTables()` (not `importFont()`) to access the internal `{ header, tables }` shape directly
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 235 tests total, all passing
+- Currently 314 tests total, all passing
 
 ## Gotchas & Lessons Learned
 

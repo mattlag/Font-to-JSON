@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
@@ -34,7 +34,7 @@ function readDirectoryEntries(buffer) {
 describe('SFNT container common functionality', () => {
 	it('should parse header search values consistent with numTables', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { numTables, searchRange, entrySelector, rangeShift } = font.header;
 
 		const expectedEntrySelector = Math.floor(Math.log2(numTables));

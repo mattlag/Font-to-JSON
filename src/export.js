@@ -121,7 +121,7 @@ const TABLE_RECORD_SIZE = 16;
 
 /**
  * Export a font JSON object back to binary data (ArrayBuffer).
- * @param {object} fontData - Parsed font data object (as produced by importFont).
+ * @param {object} fontData - Font data object (simplified, legacy, or collection).
  * @returns {ArrayBuffer} Binary font file bytes.
  */
 export function exportFont(fontData) {
@@ -133,11 +133,6 @@ export function exportFont(fontData) {
 		return exportCollection(fontData);
 	}
 
-	// Resolve the raw data to export.
-	// If the input has the new { raw, simplified } shape, determine which
-	// source to use.  When a simplified object is present it takes priority
-	// (covers both imported-then-edited and human-authored cases).  If only
-	// raw is present, use it directly (backwards-compatible path).
 	const resolved = resolveExportSource(fontData);
 
 	return exportSFNT(resolved, 0);
@@ -145,24 +140,19 @@ export function exportFont(fontData) {
 
 function isCollection(fontData) {
 	return (
-		(fontData.collection &&
-			fontData.collection.tag === 'ttcf' &&
-			Array.isArray(fontData.fonts)) ||
-		// New shape: collection may be inside raw
-		(fontData.raw &&
-			fontData.raw.collection &&
-			fontData.raw.collection.tag === 'ttcf' &&
-			Array.isArray(fontData.raw.fonts))
+		fontData.collection &&
+		fontData.collection.tag === 'ttcf' &&
+		Array.isArray(fontData.fonts)
 	);
 }
 
 /**
- * Resolve the raw data to export from the (potentially new-shape) fontData.
+ * Resolve the raw { header, tables } data to export from the input fontData.
  *
- * Priority:
- * 1. If fontData has `header` + `tables` (legacy shape), use it as-is.
- * 2. If fontData has `raw`, use it directly (round-trip / imported font).
- * 3. If fontData has only `simplified` (hand-authored), expand it to raw.
+ * Supported shapes:
+ * 1. Legacy: { header, tables } — already the raw format, use as-is.
+ * 2. Imported simplified: has `_header` + `tables` — use stored tables directly.
+ * 3. Hand-authored simplified: has `font` + `glyphs` but no `_header` — expand.
  */
 function resolveExportSource(fontData) {
 	// Legacy shape: { header, tables } — already the raw format
@@ -170,18 +160,18 @@ function resolveExportSource(fontData) {
 		return fontData;
 	}
 
-	// New shape with raw present — use the original parsed data
-	if (fontData.raw) {
-		return fontData.raw;
+	// Imported simplified: has _header and original tables for lossless round-trip
+	if (fontData._header && fontData.tables) {
+		return { header: fontData._header, tables: fontData.tables };
 	}
 
-	// Simplified-only (hand-authored font) — expand to raw
-	if (fontData.simplified) {
-		return buildRawFromSimplified(fontData.simplified);
+	// Hand-authored simplified — has font + glyphs but no _header
+	if (fontData.font && fontData.glyphs) {
+		return buildRawFromSimplified(fontData);
 	}
 
 	throw new Error(
-		'exportFont: input must have { header, tables }, { raw }, or { simplified }',
+		'exportFont: input must have { header, tables } or { font, glyphs }',
 	);
 }
 
@@ -275,17 +265,12 @@ function exportSFNT(fontData, directoryOffsetBase) {
 }
 
 function exportCollection(collectionData) {
-	// Handle new shape: { raw: { collection, fonts }, simplified... }
-	let source = collectionData;
-	if (collectionData.raw && collectionData.raw.collection) {
-		source = collectionData.raw;
-	}
-	const { collection, fonts } = source;
+	const { collection, fonts } = collectionData;
 	if (!Array.isArray(fonts) || fonts.length === 0) {
 		throw new Error('TTC/OTC export expects a non-empty fonts array');
 	}
 
-	// Each font in the collection may itself have the new { raw, simplified } shape
+	// Each font in the collection is a simplified object
 	const resolvedFonts = fonts.map((f) => resolveExportSource(f));
 
 	const majorVersion = collection.majorVersion ?? 2;

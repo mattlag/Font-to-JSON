@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFont } from '../../src/main.js';
+import { importFontTables } from '../../src/main.js';
 import { parseName, writeName } from '../../src/sfnt/table_name.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
@@ -13,7 +13,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('name table parsing', () => {
 	it('should parse the name table from an OTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const name = font.tables['name'];
 
 		expect(name.version).toBeTypeOf('number');
@@ -23,7 +23,7 @@ describe('name table parsing', () => {
 
 	it('should parse the name table from a TTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const name = font.tables['name'];
 
 		expect(name.version).toBeTypeOf('number');
@@ -33,7 +33,7 @@ describe('name table parsing', () => {
 
 	it('should have valid name record fields', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const name = font.tables['name'];
 
 		for (const rec of name.names) {
@@ -47,7 +47,7 @@ describe('name table parsing', () => {
 
 	it('should contain a font family name (nameID 1)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const name = font.tables['name'];
 
 		const familyNames = name.names.filter((r) => r.nameID === 1);
@@ -57,7 +57,7 @@ describe('name table parsing', () => {
 
 	it('should not have _raw on parsed name table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const name = font.tables['name'];
 
 		expect(name._raw).toBeUndefined();
@@ -68,7 +68,7 @@ describe('name table parsing', () => {
 describe('name table round-trip', () => {
 	it('should produce identical data after parse â†’ write â†’ re-parse (OTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...nameData } = font.tables['name'];
 
 		const writtenBytes = writeName(nameData);
@@ -79,7 +79,7 @@ describe('name table round-trip', () => {
 
 	it('should produce identical data after parse â†’ write â†’ re-parse (TTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...nameData } = font.tables['name'];
 
 		const writtenBytes = writeName(nameData);

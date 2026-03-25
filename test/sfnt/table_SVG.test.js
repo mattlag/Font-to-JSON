@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 import { parseSVG, writeSVG } from '../../src/sfnt/table_SVG.js';
 
 const SAMPLES = path.resolve('test/sample fonts');
@@ -15,7 +15,7 @@ const SAMPLES = path.resolve('test/sample fonts');
 function loadSVG(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-	const font = importFont(ab).raw;
+	const font = importFontTables(ab);
 	return { font, svg: font.tables['SVG '] };
 }
 
@@ -92,10 +92,10 @@ describe('SVG table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab).raw;
+		const font = importFontTables(ab);
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported).raw;
+		const reimported = importFontTables(exported);
 		const orig = font.tables['SVG '];
 		const rt = reimported.tables['SVG '];
 
@@ -118,10 +118,10 @@ describe('SVG table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab).raw;
+		const font = importFontTables(ab);
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported).raw;
+		const reimported = importFontTables(exported);
 		const orig = font.tables['SVG '];
 		const rt = reimported.tables['SVG '];
 
@@ -137,10 +137,10 @@ describe('SVG table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab).raw;
+		const font = importFontTables(ab);
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported).raw;
+		const reimported = importFontTables(exported);
 		const orig = font.tables['SVG '];
 		const rt = reimported.tables['SVG '];
 

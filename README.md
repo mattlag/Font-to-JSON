@@ -40,9 +40,8 @@ Use the built library file from `dist/font-flux-js.js`.
 
 ## Font formats covered
 
-- OTF (`.otf`) — supported
-- TTF (`.ttf`) — supported
-- TTC / OTC collections (`.ttc`) — supported (collection container with per-face OTF/TTF parsing/writing)
+- OTF (`.otf`, `.otc`) — supported
+- TTF (`.ttf`, `.ttc`) — supported
 
 ## Supported tables by format
 

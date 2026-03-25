@@ -165,9 +165,12 @@ const tableParseOrder = [
 ];
 
 /**
- * Import a font from binary data (ArrayBuffer) and return a JSON-friendly object.
+ * Import a font from binary data (ArrayBuffer) and return a simplified
+ * JSON-friendly object.  This is the primary public API — it returns one
+ * unified structure that serves as the single source of truth.
+ *
  * @param {ArrayBuffer} buffer - Raw font file bytes.
- * @returns {object} Parsed font data.
+ * @returns {object} Simplified font data.
  */
 export function importFont(buffer) {
 	if (!(buffer instanceof ArrayBuffer)) {
@@ -187,15 +190,31 @@ export function importFont(buffer) {
 		}
 	}
 
+	const raw = importFontTables(buffer);
+	return buildSimplified(raw);
+}
+
+/**
+ * Import a font from binary data and return the internal table-level
+ * representation: `{ header, tables }`.
+ *
+ * This is NOT the public API — it exists for table-level unit tests and
+ * internal use by the export pipeline.
+ *
+ * @param {ArrayBuffer} buffer - Raw font file bytes.
+ * @returns {{ header: object, tables: object }}
+ */
+export function importFontTables(buffer) {
+	if (!(buffer instanceof ArrayBuffer)) {
+		throw new TypeError('importFontTables expects an ArrayBuffer');
+	}
+
 	const reader = new DataReader(new Uint8Array(buffer));
 	const header = readFontHeader(reader);
 	const tableDirectory = readTableDirectory(reader, header.numTables);
 	const tables = extractTableData(buffer, tableDirectory);
 
-	const raw = { header, tables };
-	const simplified = buildSimplified(raw);
-
-	return { raw, simplified };
+	return { header, tables };
 }
 
 function importCollection(buffer) {
@@ -230,8 +249,7 @@ function importCollection(buffer) {
 		);
 		const tables = extractTableData(buffer, normalizedTableDirectory);
 		const raw = { header, tables };
-		const simplified = buildSimplified(raw);
-		return { raw, simplified };
+		return buildSimplified(raw);
 	});
 
 	const collection = {

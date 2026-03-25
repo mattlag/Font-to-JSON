@@ -5,16 +5,14 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 import { parseVhea, writeVhea } from '../../src/sfnt/table_vhea.js';
 
 const SAMPLES = 'test/sample fonts';
 
 function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
-	return importFont(
-		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	).raw;
+	return importFontTables(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
 }
 
 describe('vhea table', () => {
@@ -73,7 +71,7 @@ describe('vhea table', () => {
 	it('should round-trip vhea from BungeeTint-Regular.ttf', () => {
 		const font1 = loadFont('BungeeTint-Regular.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		const { _checksum: _a, ...vhea1 } = font1.tables.vhea;
 		const { _checksum: _b, ...vhea2 } = font2.tables.vhea;
 		expect(vhea2).toEqual(vhea1);
@@ -82,7 +80,7 @@ describe('vhea table', () => {
 	it('should round-trip vhea from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		const { _checksum: _a, ...vhea1 } = font1.tables.vhea;
 		const { _checksum: _b, ...vhea2 } = font2.tables.vhea;
 		expect(vhea2).toEqual(vhea1);

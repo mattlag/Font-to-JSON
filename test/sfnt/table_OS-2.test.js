@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFont } from '../../src/main.js';
+import { importFontTables } from '../../src/main.js';
 import { parseOS2, writeOS2 } from '../../src/sfnt/table_OS-2.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
@@ -13,7 +13,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('OS/2 table parsing', () => {
 	it('should parse the OS/2 table from an OTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const os2 = font.tables['OS/2'];
 
 		expect(os2.version).toBeTypeOf('number');
@@ -24,7 +24,7 @@ describe('OS/2 table parsing', () => {
 
 	it('should parse the OS/2 table from a TTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const os2 = font.tables['OS/2'];
 
 		expect(os2.version).toBeTypeOf('number');
@@ -35,7 +35,7 @@ describe('OS/2 table parsing', () => {
 
 	it('should have a 4-character vendor ID', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const os2 = font.tables['OS/2'];
 
 		expect(os2.achVendID).toBeTypeOf('string');
@@ -44,7 +44,7 @@ describe('OS/2 table parsing', () => {
 
 	it('should have valid weight and width classes', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const os2 = font.tables['OS/2'];
 
 		expect(os2.usWeightClass).toBeGreaterThanOrEqual(1);
@@ -55,7 +55,7 @@ describe('OS/2 table parsing', () => {
 
 	it('should include version-appropriate fields', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const os2 = font.tables['OS/2'];
 
 		// All versions should have these base fields
@@ -88,7 +88,7 @@ describe('OS/2 table parsing', () => {
 
 	it('should not have _raw on parsed OS/2 table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const os2 = font.tables['OS/2'];
 
 		expect(os2._raw).toBeUndefined();
@@ -99,7 +99,7 @@ describe('OS/2 table parsing', () => {
 describe('OS/2 table round-trip', () => {
 	it('should produce identical data after parse â†’ write â†’ re-parse (OTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...os2Data } = font.tables['OS/2'];
 
 		const writtenBytes = writeOS2(os2Data);
@@ -110,7 +110,7 @@ describe('OS/2 table round-trip', () => {
 
 	it('should produce identical data after parse â†’ write â†’ re-parse (TTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...os2Data } = font.tables['OS/2'];
 
 		const writtenBytes = writeOS2(os2Data);

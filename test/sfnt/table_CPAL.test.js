@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 import { parseCPAL, writeCPAL } from '../../src/sfnt/table_CPAL.js';
 
 const SAMPLES = path.resolve('test/sample fonts');
@@ -15,7 +15,7 @@ const SAMPLES = path.resolve('test/sample fonts');
 function loadCPAL(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-	const font = importFont(ab).raw;
+	const font = importFontTables(ab);
 	return { font, cpal: font.tables.CPAL };
 }
 
@@ -80,10 +80,10 @@ describe('CPAL table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab).raw;
+		const font = importFontTables(ab);
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported).raw;
+		const reimported = importFontTables(exported);
 
 		expect(reimported.tables.CPAL.version).toBe(font.tables.CPAL.version);
 		expect(reimported.tables.CPAL.numPaletteEntries).toBe(

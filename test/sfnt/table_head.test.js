@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFont } from '../../src/main.js';
+import { importFontTables } from '../../src/main.js';
 import { parseHead, writeHead } from '../../src/sfnt/table_head.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
@@ -13,7 +13,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('head table parsing', () => {
 	it('should parse the head table from an OTF file', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const head = font.tables['head'];
 
 		expect(head.majorVersion).toBe(1);
@@ -23,7 +23,7 @@ describe('head table parsing', () => {
 
 	it('should have a valid unitsPerEm value', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const head = font.tables['head'];
 
 		expect(head.unitsPerEm).toBeGreaterThanOrEqual(16);
@@ -32,7 +32,7 @@ describe('head table parsing', () => {
 
 	it('should have LONGDATETIME fields as BigInt', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const head = font.tables['head'];
 
 		expect(typeof head.created).toBe('bigint');
@@ -41,7 +41,7 @@ describe('head table parsing', () => {
 
 	it('should have a bounding box with xMin <= xMax and yMin <= yMax', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const head = font.tables['head'];
 
 		expect(head.xMin).toBeLessThanOrEqual(head.xMax);
@@ -50,7 +50,7 @@ describe('head table parsing', () => {
 
 	it('should have indexToLocFormat of 0 or 1', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const head = font.tables['head'];
 
 		expect([0, 1]).toContain(head.indexToLocFormat);
@@ -58,7 +58,7 @@ describe('head table parsing', () => {
 
 	it('should not have _raw on parsed head table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const head = font.tables['head'];
 
 		expect(head._raw).toBeUndefined();
@@ -69,7 +69,7 @@ describe('head table parsing', () => {
 describe('head table round-trip', () => {
 	it('should produce identical data after parse â†’ write â†’ re-parse (OTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...headData } = font.tables['head'];
 
 		const writtenBytes = writeHead(headData);
@@ -80,7 +80,7 @@ describe('head table round-trip', () => {
 
 	it('should produce identical data after parse â†’ write â†’ re-parse (TTF)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...headData } = font.tables['head'];
 
 		const writtenBytes = writeHead(headData);
@@ -91,7 +91,7 @@ describe('head table round-trip', () => {
 
 	it('should write exactly 54 bytes', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...headData } = font.tables['head'];
 
 		const writtenBytes = writeHead(headData);

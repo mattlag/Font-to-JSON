@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFont } from '../../src/main.js';
+import { importFontTables } from '../../src/main.js';
 import { parseMaxp, writeMaxp } from '../../src/sfnt/table_maxp.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
@@ -13,7 +13,7 @@ const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 describe('maxp table parsing', () => {
 	it('should parse the maxp table from an OTF file (version 0.5)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const maxp = font.tables['maxp'];
 
 		// CFF-based OTF uses version 0.5
@@ -23,7 +23,7 @@ describe('maxp table parsing', () => {
 
 	it('should parse the maxp table from a TTF file (version 1.0)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const maxp = font.tables['maxp'];
 
 		// TrueType-based TTF uses version 1.0
@@ -37,7 +37,7 @@ describe('maxp table parsing', () => {
 
 	it('should not have _raw on parsed maxp table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const maxp = font.tables['maxp'];
 
 		expect(maxp._raw).toBeUndefined();
@@ -48,7 +48,7 @@ describe('maxp table parsing', () => {
 describe('maxp table round-trip', () => {
 	it('should produce identical data after parse â†’ write â†’ re-parse (OTF v0.5)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...maxpData } = font.tables['maxp'];
 
 		const writtenBytes = writeMaxp(maxpData);
@@ -59,7 +59,7 @@ describe('maxp table round-trip', () => {
 
 	it('should produce identical data after parse â†’ write â†’ re-parse (TTF v1.0)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const { _checksum, ...maxpData } = font.tables['maxp'];
 
 		const writtenBytes = writeMaxp(maxpData);
@@ -71,13 +71,13 @@ describe('maxp table round-trip', () => {
 	it('should write 6 bytes for v0.5 and 32 bytes for v1.0', async () => {
 		const otfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf')))
 			.buffer;
-		const otfFont = importFont(otfBuffer).raw;
+		const otfFont = importFontTables(otfBuffer);
 		const { _checksum: _c1, ...otfMaxp } = otfFont.tables['maxp'];
 		expect(writeMaxp(otfMaxp).length).toBe(6);
 
 		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf')))
 			.buffer;
-		const ttfFont = importFont(ttfBuffer).raw;
+		const ttfFont = importFontTables(ttfBuffer);
 		const { _checksum: _c2, ...ttfMaxp } = ttfFont.tables['maxp'];
 		expect(writeMaxp(ttfMaxp).length).toBe(32);
 	});

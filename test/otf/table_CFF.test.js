@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFont } from '../../src/main.js';
+import { importFontTables } from '../../src/main.js';
 import {
 	decodeDICT,
 	decodeNumber,
@@ -130,7 +130,7 @@ describe('CFF DICT round-trip', () => {
 describe('CFF table parsing', () => {
 	it('should parse the CFF table from oblegg.otf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		expect(cff).toBeDefined();
@@ -140,7 +140,7 @@ describe('CFF table parsing', () => {
 
 	it('should not have a _raw property (CFF is fully parsed)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		expect(cff._raw).toBeUndefined();
@@ -148,7 +148,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a non-empty names array', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		expect(cff.names).toBeInstanceOf(Array);
@@ -158,7 +158,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a strings array', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		expect(cff.strings).toBeInstanceOf(Array);
@@ -166,7 +166,7 @@ describe('CFF table parsing', () => {
 
 	it('should have at least one font entry', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		expect(cff.fonts).toBeInstanceOf(Array);
@@ -175,7 +175,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a topDict object for each font', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -185,7 +185,7 @@ describe('CFF table parsing', () => {
 
 	it('should have charStrings as an array of byte arrays', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -197,7 +197,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a privateDict object', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -207,7 +207,7 @@ describe('CFF table parsing', () => {
 
 	it('should have a charset (array or predefined name)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -217,7 +217,7 @@ describe('CFF table parsing', () => {
 
 	it('should have an encoding (string or object)', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 		const f = cff.fonts[0];
 
@@ -232,7 +232,7 @@ describe('CFF table parsing', () => {
 describe('CFF table writing', () => {
 	it('should produce valid bytes from a parsed CFF table', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		const written = writeCFF(cff);
@@ -242,7 +242,7 @@ describe('CFF table writing', () => {
 
 	it('should round-trip: parse â†’ write â†’ re-parse yields equivalent data', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		// Write then re-parse
@@ -280,7 +280,7 @@ describe('CFF table from EmojiOneColor.otf', () => {
 	it('should parse the CFF table from EmojiOneColor.otf', async () => {
 		const buffer = (await readFile(resolve(SAMPLES_DIR, 'EmojiOneColor.otf')))
 			.buffer;
-		const font = importFont(buffer).raw;
+		const font = importFontTables(buffer);
 		const cff = font.tables['CFF '];
 
 		// EmojiOneColor.otf is an OTF (OTTO) so should have a CFF table

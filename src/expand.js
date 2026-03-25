@@ -83,19 +83,35 @@ export function buildRawFromSimplified(simplified) {
 		if (simplified.features.GDEF) tables.GDEF = simplified.features.GDEF;
 	}
 
-	// == SFNT header ==================================================
-	const numTables = Object.keys(tables).length;
-	const entrySelector = Math.floor(Math.log2(numTables));
-	const searchRange = Math.pow(2, entrySelector) * 16;
-	const rangeShift = numTables * 16 - searchRange;
+	// -- Passthrough tables (carried from import, not decomposed) -----
+	if (simplified.tables) {
+		for (const [tag, tableData] of Object.entries(simplified.tables)) {
+			if (!tables[tag]) {
+				tables[tag] = tableData;
+			}
+		}
+	}
 
-	const header = {
-		sfVersion: isCFF ? 0x4f54544f : 0x00010000,
-		numTables,
-		searchRange,
-		entrySelector,
-		rangeShift,
-	};
+	// == SFNT header ==================================================
+	// Prefer the original header if available (lossless round-trip),
+	// otherwise compute one.
+	let header;
+	if (simplified._header) {
+		header = { ...simplified._header, numTables: Object.keys(tables).length };
+	} else {
+		const numTables = Object.keys(tables).length;
+		const entrySelector = Math.floor(Math.log2(numTables));
+		const searchRange = Math.pow(2, entrySelector) * 16;
+		const rangeShift = numTables * 16 - searchRange;
+
+		header = {
+			sfVersion: isCFF ? 0x4f54544f : 0x00010000,
+			numTables,
+			searchRange,
+			entrySelector,
+			rangeShift,
+		};
+	}
 
 	return { header, tables };
 }

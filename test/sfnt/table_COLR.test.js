@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 import { parseCOLR, writeCOLR } from '../../src/sfnt/table_COLR.js';
 
 const SAMPLES = path.resolve('test/sample fonts');
@@ -15,7 +15,7 @@ const SAMPLES = path.resolve('test/sample fonts');
 function loadCOLR(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
 	const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-	const font = importFont(ab).raw;
+	const font = importFontTables(ab);
 	return { font, colr: font.tables['COLR'] };
 }
 
@@ -89,10 +89,10 @@ describe('COLR table', () => {
 			buf.byteOffset,
 			buf.byteOffset + buf.byteLength,
 		);
-		const font = importFont(ab).raw;
+		const font = importFontTables(ab);
 
 		const exported = exportFont(font);
-		const reimported = importFont(exported).raw;
+		const reimported = importFontTables(exported);
 		const orig = font.tables['COLR'];
 		const rt = reimported.tables['COLR'];
 

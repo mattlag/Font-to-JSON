@@ -5,16 +5,14 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont, importFontTables } from '../../src/main.js';
 import { parseGasp, writeGasp } from '../../src/ttf/table_gasp.js';
 
 const SAMPLES = 'test/sample fonts';
 
 function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
-	return importFont(
-		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
-	).raw;
+	return importFontTables(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
 }
 
 describe('gasp table', () => {
@@ -55,7 +53,7 @@ describe('gasp table', () => {
 	it('should round-trip gasp from oblegg.ttf', () => {
 		const font1 = loadFont('oblegg.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		expect(font2.tables.gasp.version).toEqual(font1.tables.gasp.version);
 		expect(font2.tables.gasp.gaspRanges).toEqual(font1.tables.gasp.gaspRanges);
 	});
@@ -63,7 +61,7 @@ describe('gasp table', () => {
 	it('should round-trip gasp from fira.ttf', () => {
 		const font1 = loadFont('fira.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		expect(font2.tables.gasp.version).toEqual(font1.tables.gasp.version);
 		expect(font2.tables.gasp.gaspRanges).toEqual(font1.tables.gasp.gaspRanges);
 	});
@@ -71,7 +69,7 @@ describe('gasp table', () => {
 	it('should round-trip gasp from noto.ttf', () => {
 		const font1 = loadFont('noto.ttf');
 		const exported = exportFont(font1);
-		const font2 = importFont(exported).raw;
+		const font2 = importFontTables(exported);
 		expect(font2.tables.gasp.version).toEqual(font1.tables.gasp.version);
 		expect(font2.tables.gasp.gaspRanges).toEqual(font1.tables.gasp.gaspRanges);
 	});

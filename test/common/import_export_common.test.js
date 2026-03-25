@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { exportFont } from '../../src/export.js';
-import { importFont } from '../../src/import.js';
+import { importFont, importFontTables } from '../../src/import.js';
 
 describe('import/export common functionality', () => {
 	it('should reject invalid input types', () => {
@@ -95,7 +95,7 @@ describe('import/export common functionality', () => {
 			},
 		};
 
-		const reparsed = importFont(exportFont(input)).raw;
+		const reparsed = importFontTables(exportFont(input));
 		expect(reparsed.tables.ABCD._raw).toEqual([9, 8, 7, 6, 5]);
 		expect(reparsed.tables.ABCD._checksum).toBe(0x01020304);
 	});
