@@ -9,64 +9,138 @@ function normalizeCvar(cvar) {
 	return {
 		majorVersion: cvar.majorVersion,
 		minorVersion: cvar.minorVersion,
-		tupleVariationCountPacked: cvar.tupleVariationCountPacked,
-		tupleVariationHeadersRaw: cvar.tupleVariationHeadersRaw,
-		serializedData: cvar.serializedData,
+		tupleVariations: cvar.tupleVariations,
 	};
 }
 
 describe('cvar table', () => {
-	it('should round-trip synthetic cvar container bytes', () => {
+	it('should round-trip structured cvar tuple variations', () => {
 		const original = {
 			majorVersion: 1,
 			minorVersion: 0,
-			tupleVariationCountPacked: 0x8001,
-			tupleVariationHeadersRaw: [
-				0x00, 0x03, 0xc0, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
-				0x40, 0x00, 0x40, 0x00,
+			tupleVariations: [
+				{
+					peakTuple: [1, -0.5],
+					intermediateStartTuple: null,
+					intermediateEndTuple: null,
+					pointIndices: [0, 2],
+					deltas: [10, -5],
+				},
 			],
-			serializedData: [0x01, 0x02, 0x03],
 		};
 
-		const parsed = parseCvar(writeCvar(original), {
+		const bytes = writeCvar(original);
+		const parsed = parseCvar(bytes, {
 			fvar: { axes: [{}, {}] },
+			'cvt ': { values: [0, 0, 0] },
 		});
 
 		expect(parsed.majorVersion).toBe(1);
 		expect(parsed.minorVersion).toBe(0);
-		expect(parsed.tupleVariationCountPacked).toBe(0x8001);
-		expect(parsed.tupleVariationCount).toBe(1);
-		expect(parsed.usesSharedPointNumbers).toBe(true);
-		expect(parsed.tupleVariationHeaders.length).toBe(1);
-		expect(parsed.tupleVariationHeaders[0].peakTuple).toEqual([0, 1]);
-		expect(parsed.serializedData).toEqual([0x01, 0x02, 0x03]);
+		expect(parsed.tupleVariations.length).toBe(1);
+
+		const tv = parsed.tupleVariations[0];
+		expect(tv.peakTuple).toEqual([1, -0.5]);
+		expect(tv.pointIndices).toEqual([0, 2]);
+		expect(tv.deltas).toEqual([10, -5]);
+	});
+
+	it('should round-trip all-points cvar variations', () => {
+		const original = {
+			majorVersion: 1,
+			minorVersion: 0,
+			tupleVariations: [
+				{
+					peakTuple: [1],
+					intermediateStartTuple: null,
+					intermediateEndTuple: null,
+					pointIndices: null,
+					deltas: [3, -2, 0],
+				},
+			],
+		};
+
+		const bytes = writeCvar(original);
+		const parsed = parseCvar(bytes, {
+			fvar: { axes: [{}] },
+			'cvt ': { values: [0, 0, 0] },
+		});
+
+		const tv = parsed.tupleVariations[0];
+		expect(tv.pointIndices).toBeNull();
+		expect(tv.deltas).toEqual([3, -2, 0]);
 	});
 
 	it('should support zero tuple variation count', () => {
 		const original = {
 			majorVersion: 1,
 			minorVersion: 0,
-			tupleVariationCountPacked: 0,
-			tupleVariationHeadersRaw: [],
-			serializedData: [],
+			tupleVariations: [],
 		};
 
-		const parsed = parseCvar(writeCvar(original));
-		expect(parsed.tupleVariationCount).toBe(0);
-		expect(parsed.tupleVariationHeaders).toEqual([]);
+		const bytes = writeCvar(original);
+		const parsed = parseCvar(bytes);
+		expect(parsed.tupleVariations).toEqual([]);
+	});
+
+	it('should handle intermediate regions', () => {
+		const original = {
+			majorVersion: 1,
+			minorVersion: 0,
+			tupleVariations: [
+				{
+					peakTuple: [0.75],
+					intermediateStartTuple: [0.25],
+					intermediateEndTuple: [1],
+					pointIndices: [1],
+					deltas: [42],
+				},
+			],
+		};
+
+		const bytes = writeCvar(original);
+		const parsed = parseCvar(bytes, {
+			fvar: { axes: [{}] },
+			'cvt ': { values: [0, 0] },
+		});
+
+		const tv = parsed.tupleVariations[0];
+		expect(tv.peakTuple[0]).toBeCloseTo(0.75, 3);
+		expect(tv.intermediateStartTuple[0]).toBeCloseTo(0.25, 3);
+		expect(tv.intermediateEndTuple[0]).toBeCloseTo(1, 3);
+		expect(tv.deltas).toEqual([42]);
 	});
 
 	it('should be stable across parse -> write -> parse', () => {
 		const source = {
 			majorVersion: 1,
 			minorVersion: 0,
-			tupleVariationCountPacked: 0x0001,
-			tupleVariationHeadersRaw: [0x00, 0x02, 0x80, 0x00],
-			serializedData: [0xaa, 0xbb],
+			tupleVariations: [
+				{
+					peakTuple: [1, 0],
+					intermediateStartTuple: null,
+					intermediateEndTuple: null,
+					pointIndices: [0, 1, 3],
+					deltas: [100, -50, 25],
+				},
+				{
+					peakTuple: [0, 1],
+					intermediateStartTuple: null,
+					intermediateEndTuple: null,
+					pointIndices: [0, 1, 3],
+					deltas: [15, -20, 5],
+				},
+			],
 		};
 
-		const once = parseCvar(writeCvar(source));
-		const twice = parseCvar(writeCvar(once));
+		const bytes = writeCvar(source);
+		const tables = {
+			fvar: { axes: [{}, {}] },
+			'cvt ': { values: [0, 0, 0, 0] },
+		};
+
+		const once = parseCvar(bytes, tables);
+		const twice = parseCvar(writeCvar(once), tables);
 
 		expect(normalizeCvar(twice)).toEqual(normalizeCvar(once));
 	});

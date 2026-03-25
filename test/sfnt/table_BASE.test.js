@@ -11,9 +11,7 @@ function minimalIVS() {
 		format: 1,
 		variationRegionList: {
 			axisCount: 1,
-			regions: [
-				{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] },
-			],
+			regions: [{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] }],
 		},
 		itemVariationData: [
 			{
@@ -71,7 +69,9 @@ describe('BASE table', () => {
 		expect(parsed.horizAxis._raw).toEqual([0x21, 0x22]);
 		expect(parsed.vertAxis).toBeNull();
 		expect(parsed.itemVariationStore.format).toBe(1);
-		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual([25]);
+		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual(
+			[25],
+		);
 	});
 
 	it('should be stable across parse -> write -> parse', () => {

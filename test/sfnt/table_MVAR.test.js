@@ -11,9 +11,7 @@ function minimalIVS() {
 		format: 1,
 		variationRegionList: {
 			axisCount: 1,
-			regions: [
-				{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] },
-			],
+			regions: [{ regionAxes: [{ startCoord: 0, peakCoord: 1, endCoord: 1 }] }],
 		},
 		itemVariationData: [
 			{
@@ -68,7 +66,9 @@ describe('MVAR table', () => {
 		expect(parsed.valueRecords[0].valueTag).toBe('hasc');
 		expect(parsed.valueRecords[1].valueTag).toBe('vlgp');
 		expect(parsed.itemVariationStore.format).toBe(1);
-		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual([50]);
+		expect(parsed.itemVariationStore.itemVariationData[0].deltaSets[0]).toEqual(
+			[50],
+		);
 	});
 
 	it('should support empty value record array', () => {

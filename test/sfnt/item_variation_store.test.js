@@ -34,7 +34,9 @@ describe('ItemVariationStore', () => {
 		expect(parsed.format).toBe(1);
 		expect(parsed.variationRegionList.axisCount).toBe(1);
 		expect(parsed.variationRegionList.regions).toHaveLength(1);
-		expect(parsed.variationRegionList.regions[0].regionAxes[0].peakCoord).toBeCloseTo(1, 3);
+		expect(
+			parsed.variationRegionList.regions[0].regionAxes[0].peakCoord,
+		).toBeCloseTo(1, 3);
 		expect(parsed.itemVariationData).toHaveLength(1);
 		expect(parsed.itemVariationData[0].itemCount).toBe(2);
 		expect(parsed.itemVariationData[0].deltaSets).toEqual([[100], [-50]]);

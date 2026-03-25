@@ -4,12 +4,15 @@
  *
  * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/gvar
  *
- * This implementation parses/writes the gvar container structure:
- * header, shared tuples, glyph data offsets, and per-glyph variation data
- * blobs. Per-glyph variation tuple decoding is intentionally left raw.
+ * Per-glyph variation data is fully parsed into structured tuple variation
+ * objects with resolved peak tuples, point indices, and X/Y deltas.
  */
 
 import { DataReader } from '../reader.js';
+import {
+	parseGlyphVariationData,
+	writeGlyphVariationData,
+} from '../sfnt/tuple_variation_common.js';
 import { DataWriter } from '../writer.js';
 
 const GVAR_HEADER_SIZE = 20;
@@ -22,26 +25,11 @@ const GVAR_LONG_OFFSETS_FLAG = 0x0001;
 /**
  * Parse a gvar table from raw bytes.
  *
- * Header:
- *   uint16   majorVersion
- *   uint16   minorVersion
- *   uint16   axisCount
- *   uint16   sharedTupleCount
- *   Offset32 sharedTuplesOffset
- *   uint16   glyphCount
- *   uint16   flags
- *   Offset32 glyphVariationDataArrayOffset
- *
- * Followed by glyphVariationDataOffsets[glyphCount + 1], stored as:
- *   - uint16 values (actual offset = value * 2), if flags bit0 == 0
- *   - uint32 values, if flags bit0 == 1
- *
- * Shared tuple entries are arrays of axisCount F2DOT14 values.
- *
  * @param {number[]} rawBytes
+ * @param {object} [tables] - Parsed tables map (for glyf point counts)
  * @returns {object}
  */
-export function parseGvar(rawBytes) {
+export function parseGvar(rawBytes, tables = {}) {
 	const reader = new DataReader(rawBytes);
 
 	const majorVersion = reader.uint16();
@@ -89,8 +77,10 @@ export function parseGvar(rawBytes) {
 		}
 
 		const absoluteStart = glyphVariationDataArrayOffset + start;
+		const glyphBytes = rawBytes.slice(absoluteStart, absoluteStart + length);
+		const numPoints = getGlyphPointCount(tables, g);
 		glyphVariationData.push(
-			Array.from(rawBytes.slice(absoluteStart, absoluteStart + length)),
+			parseGlyphVariationData(glyphBytes, axisCount, sharedTuples, numPoints),
 		);
 	}
 
@@ -102,6 +92,29 @@ export function parseGvar(rawBytes) {
 		sharedTuples,
 		glyphVariationData,
 	};
+}
+
+/**
+ * Get the total point count (contour points + 4 phantoms) for a glyph.
+ * Falls back to 0 if glyf data is unavailable.
+ */
+function getGlyphPointCount(tables, glyphIndex) {
+	const glyph = tables.glyf?.glyphs?.[glyphIndex];
+	if (!glyph) return 0;
+
+	if (glyph.type === 'simple' && glyph.contours) {
+		let count = 0;
+		for (const contour of glyph.contours) {
+			count += contour.length;
+		}
+		return count + 4; // + 4 phantom points
+	}
+
+	if (glyph.type === 'composite' && glyph.components) {
+		return glyph.components.length + 4;
+	}
+
+	return 0;
 }
 
 // ===========================================================================
@@ -118,16 +131,34 @@ export function writeGvar(gvar) {
 	const majorVersion = gvar.majorVersion ?? 1;
 	const minorVersion = gvar.minorVersion ?? 0;
 	const axisCount = gvar.axisCount ?? 0;
-	const sharedTuples = gvar.sharedTuples ?? [];
 	const glyphVariationData = gvar.glyphVariationData ?? [];
 	const glyphCount = glyphVariationData.length;
-	const sharedTupleCount = sharedTuples.length;
 
+	// Encode each glyph's variation data to bytes
+	const encodedGlyphs = glyphVariationData.map((entry) => {
+		// Already raw bytes (backward compat)
+		if (
+			Array.isArray(entry) &&
+			(entry.length === 0 || typeof entry[0] === 'number')
+		) {
+			return entry;
+		}
+		// Structured tuple variations array
+		if (Array.isArray(entry)) {
+			return writeGlyphVariationData(entry, axisCount);
+		}
+		return [];
+	});
+
+	// Collect unique shared tuples from parsed data
+	const sharedTuples =
+		gvar.sharedTuples ?? collectSharedTuples(glyphVariationData, axisCount);
+	const sharedTupleCount = sharedTuples.length;
 	const sharedTuplesSize = sharedTupleCount * axisCount * 2;
 
 	const offsets = [0];
 	let current = 0;
-	for (const entry of glyphVariationData) {
+	for (const entry of encodedGlyphs) {
 		current += entry.length;
 		offsets.push(current);
 	}
@@ -141,8 +172,7 @@ export function writeGvar(gvar) {
 		GVAR_HEADER_SIZE + glyphVariationDataOffsetsSize;
 	const adjustedGlyphVariationDataArrayOffset =
 		adjustedSharedTuplesOffset + sharedTuplesSize;
-	const adjustedGlyphDataStartOffset = adjustedGlyphVariationDataArrayOffset;
-	const totalSize = adjustedGlyphDataStartOffset + current;
+	const totalSize = adjustedGlyphVariationDataArrayOffset + current;
 
 	const existingFlags = gvar.flags ?? 0;
 	const flags = canUseShortOffsets
@@ -174,9 +204,36 @@ export function writeGvar(gvar) {
 		}
 	}
 
-	for (const entry of glyphVariationData) {
+	for (const entry of encodedGlyphs) {
 		w.rawBytes(entry);
 	}
 
 	return w.toArray();
+}
+
+/**
+ * Collect unique peak tuples across all glyphs for the shared tuples array.
+ * Only used when sharedTuples aren't already provided.
+ */
+function collectSharedTuples(glyphVariationData, axisCount) {
+	if (axisCount === 0) return [];
+
+	const seen = new Set();
+	const tuples = [];
+
+	for (const entry of glyphVariationData) {
+		if (!Array.isArray(entry)) continue;
+		for (const tv of entry) {
+			if (!tv || !tv.peakTuple) continue;
+			const key = tv.peakTuple
+				.map((v) => Math.round((v ?? 0) * 16384))
+				.join(',');
+			if (!seen.has(key)) {
+				seen.add(key);
+				tuples.push(tv.peakTuple);
+			}
+		}
+	}
+
+	return tuples;
 }
