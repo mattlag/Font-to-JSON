@@ -9,9 +9,9 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 import {
+	BIG_GLYPH_METRICS_SIZE,
 	parseBigGlyphMetrics,
 	writeBigGlyphMetrics,
-	BIG_GLYPH_METRICS_SIZE,
 } from './bitmap_common.js';
 
 const BITMAP_SIZE_TABLE_SIZE = 48;

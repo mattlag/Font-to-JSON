@@ -434,9 +434,7 @@ function extractTableData(buffer, tableDirectory) {
 				delete sub.sbitOffsets;
 				// Format 4: extract glyph IDs, remove offset-bearing array
 				if (sub.glyphArray) {
-					sub.glyphIdArray = sub.glyphArray
-						.slice(0, -1)
-						.map((g) => g.glyphID);
+					sub.glyphIdArray = sub.glyphArray.slice(0, -1).map((g) => g.glyphID);
 					delete sub.glyphArray;
 				}
 			}
@@ -449,9 +447,7 @@ function extractTableData(buffer, tableDirectory) {
 				delete sub.imageDataOffset;
 				delete sub.sbitOffsets;
 				if (sub.glyphArray) {
-					sub.glyphIdArray = sub.glyphArray
-						.slice(0, -1)
-						.map((g) => g.glyphID);
+					sub.glyphIdArray = sub.glyphArray.slice(0, -1).map((g) => g.glyphID);
 					delete sub.glyphArray;
 				}
 			}

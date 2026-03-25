@@ -373,8 +373,7 @@ function coordinateTableWrites(tables) {
 
 	// Coordinate CBLC/CBDT: write CBDT first to get offsets, then CBLC
 	const hasCBLC = tables.CBLC && !tables.CBLC._raw && tables.CBLC.sizes;
-	const hasCBDT =
-		tables.CBDT && !tables.CBDT._raw && tables.CBDT.bitmapData;
+	const hasCBDT = tables.CBDT && !tables.CBDT._raw && tables.CBDT.bitmapData;
 	if (hasCBLC && hasCBDT) {
 		const { bytes: cbdtBytes, offsetInfo } = writeCBDTComputeOffsets(
 			tables.CBDT,
@@ -386,8 +385,7 @@ function coordinateTableWrites(tables) {
 
 	// Same for EBLC/EBDT (identical structures, same code)
 	const hasEBLC = tables.EBLC && !tables.EBLC._raw && tables.EBLC.sizes;
-	const hasEBDT =
-		tables.EBDT && !tables.EBDT._raw && tables.EBDT.bitmapData;
+	const hasEBDT = tables.EBDT && !tables.EBDT._raw && tables.EBDT.bitmapData;
 	if (hasEBLC && hasEBDT) {
 		const { bytes: ebdtBytes, offsetInfo: ebdtOffsetInfo } =
 			writeCBDTComputeOffsets(tables.EBDT, tables.EBLC);

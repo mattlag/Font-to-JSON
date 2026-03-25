@@ -71,24 +71,42 @@ describe('CBLC table', () => {
 
 	it('should parse index subtable format 2 (constant metrics)', () => {
 		const w = new DataWriter(256);
-		w.uint16(2); w.uint16(0); w.uint32(1);
+		w.uint16(2);
+		w.uint16(0);
+		w.uint32(1);
 
 		const indexListOffset = 8 + 48;
-		w.uint32(indexListOffset); w.uint32(50); w.uint32(1); w.uint32(0);
+		w.uint32(indexListOffset);
+		w.uint32(50);
+		w.uint32(1);
+		w.uint32(0);
 		for (let i = 0; i < 24; i++) w.int8(0); // hori + vert
-		w.uint16(10); w.uint16(12); // glyph range 10-12
-		w.uint8(16); w.uint8(16); w.uint8(1); w.int8(1);
+		w.uint16(10);
+		w.uint16(12); // glyph range 10-12
+		w.uint8(16);
+		w.uint8(16);
+		w.uint8(1);
+		w.int8(1);
 
 		// IndexSubtableRecord
-		w.uint16(10); w.uint16(12); w.uint32(8);
+		w.uint16(10);
+		w.uint16(12);
+		w.uint32(8);
 
 		// IndexSubtable format 2: header(8) + imageSize(4) + BigGlyphMetrics(8)
-		w.uint16(2); w.uint16(5); w.uint32(100); // header
+		w.uint16(2);
+		w.uint16(5);
+		w.uint32(100); // header
 		w.uint32(64); // imageSize
 		// BigGlyphMetrics
-		w.uint8(16); w.uint8(16); // height, width
-		w.int8(0); w.int8(16); w.uint8(16); // horiBearingX/Y, horiAdvance
-		w.int8(-8); w.int8(0); w.uint8(16); // vertBearingX/Y, vertAdvance
+		w.uint8(16);
+		w.uint8(16); // height, width
+		w.int8(0);
+		w.int8(16);
+		w.uint8(16); // horiBearingX/Y, horiAdvance
+		w.int8(-8);
+		w.int8(0);
+		w.uint8(16); // vertBearingX/Y, vertAdvance
 
 		const parsed = parseCBLC(w.toArray());
 		const sub = parsed.sizes[0].indexSubTables[0];
@@ -102,19 +120,34 @@ describe('CBLC table', () => {
 
 	it('should parse index subtable format 3 (uint16 offsets)', () => {
 		const w = new DataWriter(256);
-		w.uint16(2); w.uint16(0); w.uint32(1);
+		w.uint16(2);
+		w.uint16(0);
+		w.uint32(1);
 
 		const indexListOffset = 8 + 48;
-		w.uint32(indexListOffset); w.uint32(50); w.uint32(1); w.uint32(0);
+		w.uint32(indexListOffset);
+		w.uint32(50);
+		w.uint32(1);
+		w.uint32(0);
 		for (let i = 0; i < 24; i++) w.int8(0);
-		w.uint16(0); w.uint16(1); // 2 glyphs
-		w.uint8(12); w.uint8(12); w.uint8(8); w.int8(1);
+		w.uint16(0);
+		w.uint16(1); // 2 glyphs
+		w.uint8(12);
+		w.uint8(12);
+		w.uint8(8);
+		w.int8(1);
 
-		w.uint16(0); w.uint16(1); w.uint32(8);
+		w.uint16(0);
+		w.uint16(1);
+		w.uint32(8);
 
 		// Format 3: header(8) + 3 uint16 offsets (2 glyphs + sentinel)
-		w.uint16(3); w.uint16(1); w.uint32(200);
-		w.uint16(0); w.uint16(50); w.uint16(120);
+		w.uint16(3);
+		w.uint16(1);
+		w.uint32(200);
+		w.uint16(0);
+		w.uint16(50);
+		w.uint16(120);
 
 		const parsed = parseCBLC(w.toArray());
 		const sub = parsed.sizes[0].indexSubTables[0];
@@ -125,26 +158,48 @@ describe('CBLC table', () => {
 	it('should round-trip structured CBLC via coordinated write', () => {
 		// Build a CBLC with 1 size, 1 format-1 subtable
 		const w = new DataWriter(256);
-		w.uint16(3); w.uint16(0); w.uint32(1);
+		w.uint16(3);
+		w.uint16(0);
+		w.uint32(1);
 		const indexListOffset = 8 + 48;
-		w.uint32(indexListOffset); w.uint32(50); w.uint32(1); w.uint32(0);
-		w.int8(8); w.int8(-2); w.uint8(10); // hori: ascender, descender, widthMax
+		w.uint32(indexListOffset);
+		w.uint32(50);
+		w.uint32(1);
+		w.uint32(0);
+		w.int8(8);
+		w.int8(-2);
+		w.uint8(10); // hori: ascender, descender, widthMax
 		for (let i = 0; i < 9; i++) w.int8(0);
 		for (let i = 0; i < 12; i++) w.int8(0); // vert
-		w.uint16(1); w.uint16(3); // glyph range
-		w.uint8(16); w.uint8(16); w.uint8(32); w.int8(1);
+		w.uint16(1);
+		w.uint16(3); // glyph range
+		w.uint8(16);
+		w.uint8(16);
+		w.uint8(32);
+		w.int8(1);
 
-		w.uint16(1); w.uint16(3); w.uint32(8);
-		w.uint16(1); w.uint16(17); w.uint32(4);
-		w.uint32(0); w.uint32(50); w.uint32(110); w.uint32(180);
+		w.uint16(1);
+		w.uint16(3);
+		w.uint32(8);
+		w.uint16(1);
+		w.uint16(17);
+		w.uint32(4);
+		w.uint32(0);
+		w.uint32(50);
+		w.uint32(110);
+		w.uint32(180);
 
 		const parsed = parseCBLC(w.toArray());
 
 		// Provide offsetInfo for the writer
-		const offsetInfo = [[{
-			imageDataOffset: 4,
-			sbitOffsets: [0, 50, 110, 180],
-		}]];
+		const offsetInfo = [
+			[
+				{
+					imageDataOffset: 4,
+					sbitOffsets: [0, 50, 110, 180],
+				},
+			],
+		];
 
 		const written = writeCBLC(parsed, offsetInfo);
 		const reparsed = parseCBLC(written);
@@ -152,6 +207,8 @@ describe('CBLC table', () => {
 		expect(reparsed.majorVersion).toBe(3);
 		expect(reparsed.sizes[0].hori.ascender).toBe(8);
 		expect(reparsed.sizes[0].indexSubTables[0].indexFormat).toBe(1);
-		expect(reparsed.sizes[0].indexSubTables[0].sbitOffsets).toEqual([0, 50, 110, 180]);
+		expect(reparsed.sizes[0].indexSubTables[0].sbitOffsets).toEqual([
+			0, 50, 110, 180,
+		]);
 	});
 });

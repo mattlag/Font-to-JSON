@@ -9,12 +9,12 @@
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
 import {
-	parseSmallGlyphMetrics,
-	parseBigGlyphMetrics,
-	writeSmallGlyphMetrics,
-	writeBigGlyphMetrics,
-	SMALL_GLYPH_METRICS_SIZE,
 	BIG_GLYPH_METRICS_SIZE,
+	parseBigGlyphMetrics,
+	parseSmallGlyphMetrics,
+	SMALL_GLYPH_METRICS_SIZE,
+	writeBigGlyphMetrics,
+	writeSmallGlyphMetrics,
 } from './bitmap_common.js';
 
 export function parseCBDT(rawBytes, tables) {
@@ -32,9 +32,7 @@ export function parseCBDT(rawBytes, tables) {
 	for (const size of cblc.sizes) {
 		const sizeGlyphs = [];
 		for (const sub of size.indexSubTables ?? []) {
-			sizeGlyphs.push(
-				parseSubtableGlyphs(rawBytes, reader, sub),
-			);
+			sizeGlyphs.push(parseSubtableGlyphs(rawBytes, reader, sub));
 		}
 		bitmapData.push(sizeGlyphs);
 	}
@@ -125,7 +123,13 @@ function parseSubtableGlyphs(rawBytes, reader, sub) {
 					glyphs.push(null);
 				} else {
 					glyphs.push(
-						parseGlyphBitmapRecord(rawBytes, reader, start, imageFormat, dataSize),
+						parseGlyphBitmapRecord(
+							rawBytes,
+							reader,
+							start,
+							imageFormat,
+							dataSize,
+						),
 					);
 				}
 			}
@@ -137,7 +141,13 @@ function parseSubtableGlyphs(rawBytes, reader, sub) {
 			for (let i = 0; i < numGlyphs; i++) {
 				const start = imageDataOffset + i * imageSize;
 				glyphs.push(
-					parseGlyphBitmapRecord(rawBytes, reader, start, imageFormat, imageSize),
+					parseGlyphBitmapRecord(
+						rawBytes,
+						reader,
+						start,
+						imageFormat,
+						imageSize,
+					),
 				);
 			}
 			break;
@@ -152,7 +162,13 @@ function parseSubtableGlyphs(rawBytes, reader, sub) {
 					glyphs.push(null);
 				} else {
 					glyphs.push(
-						parseGlyphBitmapRecord(rawBytes, reader, start, imageFormat, dataSize),
+						parseGlyphBitmapRecord(
+							rawBytes,
+							reader,
+							start,
+							imageFormat,
+							dataSize,
+						),
 					);
 				}
 			}
@@ -164,7 +180,13 @@ function parseSubtableGlyphs(rawBytes, reader, sub) {
 			for (let i = 0; i < numGlyphs; i++) {
 				const start = imageDataOffset + i * imageSize;
 				glyphs.push(
-					parseGlyphBitmapRecord(rawBytes, reader, start, imageFormat, imageSize),
+					parseGlyphBitmapRecord(
+						rawBytes,
+						reader,
+						start,
+						imageFormat,
+						imageSize,
+					),
 				);
 			}
 			break;
@@ -174,7 +196,13 @@ function parseSubtableGlyphs(rawBytes, reader, sub) {
 	return glyphs;
 }
 
-function parseGlyphBitmapRecord(rawBytes, reader, offset, imageFormat, dataSize) {
+function parseGlyphBitmapRecord(
+	rawBytes,
+	reader,
+	offset,
+	imageFormat,
+	dataSize,
+) {
 	if (dataSize <= 0) return null;
 	reader.seek(offset);
 
@@ -184,12 +212,18 @@ function parseGlyphBitmapRecord(rawBytes, reader, offset, imageFormat, dataSize)
 	switch (imageFormat) {
 		case 1: {
 			const smallMetrics = parseSmallGlyphMetrics(reader);
-			const imageData = sliceFrom(reader.position, dataSize - SMALL_GLYPH_METRICS_SIZE);
+			const imageData = sliceFrom(
+				reader.position,
+				dataSize - SMALL_GLYPH_METRICS_SIZE,
+			);
 			return { smallMetrics, imageData };
 		}
 		case 2: {
 			const smallMetrics = parseSmallGlyphMetrics(reader);
-			const imageData = sliceFrom(reader.position, dataSize - SMALL_GLYPH_METRICS_SIZE);
+			const imageData = sliceFrom(
+				reader.position,
+				dataSize - SMALL_GLYPH_METRICS_SIZE,
+			);
 			return { smallMetrics, imageData };
 		}
 		case 5: {
@@ -197,12 +231,18 @@ function parseGlyphBitmapRecord(rawBytes, reader, offset, imageFormat, dataSize)
 		}
 		case 6: {
 			const bigMetrics = parseBigGlyphMetrics(reader);
-			const imageData = sliceFrom(reader.position, dataSize - BIG_GLYPH_METRICS_SIZE);
+			const imageData = sliceFrom(
+				reader.position,
+				dataSize - BIG_GLYPH_METRICS_SIZE,
+			);
 			return { bigMetrics, imageData };
 		}
 		case 7: {
 			const bigMetrics = parseBigGlyphMetrics(reader);
-			const imageData = sliceFrom(reader.position, dataSize - BIG_GLYPH_METRICS_SIZE);
+			const imageData = sliceFrom(
+				reader.position,
+				dataSize - BIG_GLYPH_METRICS_SIZE,
+			);
 			return { bigMetrics, imageData };
 		}
 		case 8: {
@@ -283,7 +323,8 @@ function serializeSubtableGlyphs(glyphs, sub, baseOffset) {
 		}
 		case 2:
 		case 5: {
-			info.imageSize = sub.imageSize ?? (glyphBlobs.length > 0 ? glyphBlobs[0].length : 0);
+			info.imageSize =
+				sub.imageSize ?? (glyphBlobs.length > 0 ? glyphBlobs[0].length : 0);
 			break;
 		}
 		case 4: {
@@ -367,9 +408,7 @@ function serializeGlyphBitmapRecord(glyph, imageFormat) {
 		}
 		case 17: {
 			const imageData = glyph.imageData ?? [];
-			const w = new DataWriter(
-				SMALL_GLYPH_METRICS_SIZE + 4 + imageData.length,
-			);
+			const w = new DataWriter(SMALL_GLYPH_METRICS_SIZE + 4 + imageData.length);
 			writeSmallGlyphMetrics(w, glyph.smallMetrics ?? {});
 			w.uint32(imageData.length);
 			w.rawBytes(imageData);
@@ -377,9 +416,7 @@ function serializeGlyphBitmapRecord(glyph, imageFormat) {
 		}
 		case 18: {
 			const imageData = glyph.imageData ?? [];
-			const w = new DataWriter(
-				BIG_GLYPH_METRICS_SIZE + 4 + imageData.length,
-			);
+			const w = new DataWriter(BIG_GLYPH_METRICS_SIZE + 4 + imageData.length);
 			writeBigGlyphMetrics(w, glyph.bigMetrics ?? {});
 			w.uint32(imageData.length);
 			w.rawBytes(imageData);

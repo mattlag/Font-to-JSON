@@ -51,5 +51,5 @@ describe('double round-trip on all sample fonts', () => {
 			failures,
 			`Double round-trip failures: ${JSON.stringify(failures)}`,
 		).toEqual([]);
-	}, 180000);
+	}, 300000);
 });

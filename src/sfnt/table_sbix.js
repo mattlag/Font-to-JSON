@@ -59,9 +59,8 @@ export function parseSbix(rawBytes, tables) {
 			const originOffsetX = reader.int16();
 			const originOffsetY = reader.int16();
 			const graphicType = reader.tag();
-			const imageData = glyphSize > 8
-				? rawBytes.slice(glyphStart + 8, glyphEnd)
-				: [];
+			const imageData =
+				glyphSize > 8 ? rawBytes.slice(glyphStart + 8, glyphEnd) : [];
 
 			glyphs.push({ originOffsetX, originOffsetY, graphicType, imageData });
 		}

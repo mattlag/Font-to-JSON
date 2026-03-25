@@ -10,7 +10,12 @@ describe('sbix table', () => {
 	it('should parse per-glyph records from a strike', () => {
 		// Build sbix with 1 strike, 2 glyphs
 		const strike = buildStrike(20, 72, [
-			{ originOffsetX: 0, originOffsetY: -10, graphicType: 'png ', imageData: [0x89, 0x50] },
+			{
+				originOffsetX: 0,
+				originOffsetY: -10,
+				graphicType: 'png ',
+				imageData: [0x89, 0x50],
+			},
 			null, // glyph 1 has no data
 		]);
 
@@ -47,8 +52,18 @@ describe('sbix table', () => {
 					ppem: 96,
 					ppi: 72,
 					glyphs: [
-						{ originOffsetX: 10, originOffsetY: -5, graphicType: 'png ', imageData: [1, 2, 3, 4] },
-						{ originOffsetX: 0, originOffsetY: 0, graphicType: 'jpg ', imageData: [5, 6] },
+						{
+							originOffsetX: 10,
+							originOffsetY: -5,
+							graphicType: 'png ',
+							imageData: [1, 2, 3, 4],
+						},
+						{
+							originOffsetX: 0,
+							originOffsetY: 0,
+							graphicType: 'jpg ',
+							imageData: [5, 6],
+						},
 						null,
 					],
 				},
@@ -80,13 +95,20 @@ describe('sbix table', () => {
 		const original = {
 			version: 1,
 			flags: 1,
-			strikes: [{
-				ppem: 48,
-				ppi: 96,
-				glyphs: [
-					{ originOffsetX: 0, originOffsetY: 0, graphicType: 'dupe', imageData: [0x00, 0x05] },
-				],
-			}],
+			strikes: [
+				{
+					ppem: 48,
+					ppi: 96,
+					glyphs: [
+						{
+							originOffsetX: 0,
+							originOffsetY: 0,
+							graphicType: 'dupe',
+							imageData: [0x00, 0x05],
+						},
+					],
+				},
+			],
 		};
 		const written = writeSbix(original);
 		const parsed = parseSbix(written, { maxp: { numGlyphs: 1 } });
@@ -97,17 +119,24 @@ describe('sbix table', () => {
 	it('should infer numGlyphs from strike data when maxp not available', () => {
 		// Build sbix without providing maxp
 		const strike = buildStrike(24, 72, [
-			{ originOffsetX: 0, originOffsetY: 0, graphicType: 'png ', imageData: [0xAA] },
+			{
+				originOffsetX: 0,
+				originOffsetY: 0,
+				graphicType: 'png ',
+				imageData: [0xaa],
+			},
 		]);
 
 		const w = new DataWriter(256);
-		w.uint16(1); w.uint16(1); w.uint32(1);
+		w.uint16(1);
+		w.uint16(1);
+		w.uint32(1);
 		w.uint32(12); // strike starts right after header
 		w.rawBytes(strike);
 
 		const parsed = parseSbix(w.toArray());
 		expect(parsed.strikes[0].glyphs.length).toBe(1);
-		expect(parsed.strikes[0].glyphs[0].imageData).toEqual([0xAA]);
+		expect(parsed.strikes[0].glyphs[0].imageData).toEqual([0xaa]);
 	});
 });
 

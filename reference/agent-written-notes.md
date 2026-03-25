@@ -127,7 +127,8 @@ src/
     table_post.js   — parsePost(), writePost() — version-dependent (v1/v2/v2.5/v3, 32+ bytes)
     table_vhea.js   — parseVhea(), writeVhea() — Vertical header (36 bytes, v1.0/1.1)
     table_vmtx.js   — parseVmtx(), writeVmtx() — Vertical metrics (cross-table: vhea, maxp)
-    table_COLR.js   — parseCOLR(), writeCOLR() — Color table (v0 full, v1 raw bytes fallback)
+    table_COLR.js   — parseCOLR(), writeCOLR() — Color table (v0 + v1 fully parsed via colr_paint.js)
+    colr_paint.js   — COLR v1 Paint DAG: parseV1Data(), writeV1Data() — all 32 Paint formats
     table_CPAL.js   — parseCPAL(), writeCPAL() — Color palette (v0/v1 full)
     table_SVG.js    — parseSVG(), writeSVG() — SVG glyph descriptions (plain text + gzip)
 
@@ -161,7 +162,7 @@ test/
     table_post.test.js     — post parsing, version checking, round-trip, synthetic v1/v2/v3
     table_vhea.test.js     — vhea parsing, v1.0/v1.1, round-trip, size check (8 tests)
     table_vmtx.test.js     — vmtx parsing, cross-table validation, round-trip (7 tests)
-    table_COLR.test.js     — COLR parsing, v0 structure, round-trip, synthetic (8 tests)
+    table_COLR.test.js     — COLR parsing, v0 structure, v1 Paint DAG (32 formats), round-trip, synthetic (19 tests)
     table_CPAL.test.js     — CPAL parsing, BGRA colors, round-trip, synthetic v0/v1 (8 tests)
     table_SVG.test.js      — SVG parsing, plain text/gzip, round-trip 3 fonts, synthetic (10 tests)
 
@@ -544,15 +545,25 @@ test/
 - **No cross-table deps**: Parser uses standard `(rawBytes)` signature
 - Tests: 10 in table_SVG.test.js
 
-### COLR Table (`src/sfnt/table_COLR.js`)
+### COLR Table (`src/sfnt/table_COLR.js` + `src/sfnt/colr_paint.js`)
 
 - **Color glyph definitions**: Maps base glyphs to layered color glyph compositions
 - **v0 fully parsed**: BaseGlyphRecord (glyphID, firstLayerIndex, numLayers) + LayerRecord (glyphID, paletteIndex)
-- **v1 raw bytes fallback**: v1 header fields parsed into `v1Header` object, entire table stored as `_v1RawBytes` for round-trip fidelity (v1 has 32 Paint formats with complex DAG — not fully parsed)
-- **JSON shape (v0)**: `{ version, baseGlyphRecords: Array<{glyphID, firstLayerIndex, numLayers}>, layerRecords: Array<{glyphID, paletteIndex}> }`
+- **v1 fully parsed**: All 32 Paint formats via `colr_paint.js` module
+  - `parseV1Data(reader, v1Header)` — entry point; returns `{ baseGlyphPaintRecords, layerPaints, clipList, varIndexMap, itemVariationStore }`
+  - `writeV1Data(v1)` — returns `{ bodyBytes, offsets }` for assembly by table_COLR writer
+  - **Parse cache**: Map<absoluteOffset, paintNode> ensures DAG sharing (multiple parents → same child object)
+  - **Topological sort**: Kahn's algorithm with index-based queue for O(n) writer layout (parents before children for forward offsets)
+  - **32 Paint formats**: PaintColrLayers(1), PaintSolid(2/3), PaintLinearGradient(4/5), PaintRadialGradient(6/7), PaintSweepGradient(8/9), PaintGlyph(10), PaintColrGlyph(11), PaintTransform(12/13), PaintTranslate(14/15), PaintScale(16-23), PaintRotate(24-27), PaintSkew(28-31), PaintComposite(32)
+  - **Inline subtables**: ColorLine/VarColorLine written immediately after gradient headers; Affine2x3/VarAffine2x3 written immediately after transform headers
+  - **ClipList**: Parsed in two passes (read all clip records first, then resolve clip box data) to avoid seek-away-mid-iteration bug
+  - **DeltaSetIndexMap**: Local implementation (same format as HVAR/VVAR)
+  - **ItemVariationStore**: Delegates to `src/sfnt/item_variation_store.js`
 - **v0 header**: 14 bytes (version u16, numBaseGlyphRecords u16, baseGlyphRecordsOffset u32, layerRecordsOffset u32, numLayerRecords u16)
+- **v1 header**: 5 Offset32 fields after v0 header (baseGlyphListOffset, layerListOffset, clipListOffset, varIndexMapOffset, itemVariationStoreOffset)
 - **No cross-table deps**: Parser uses standard `(rawBytes)` signature
-- Tests: 8 in table_COLR.test.js
+- **PERF NOTE**: Original topological sort used `queue.shift()` O(n²) + `sorted.includes()` O(n²). Fixed with index-based queue + Set for O(n).
+- Tests: 19 in table_COLR.test.js (8 v0 + 11 v1)
 
 ### Cross-Table Dependency System
 
