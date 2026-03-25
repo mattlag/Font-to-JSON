@@ -192,11 +192,15 @@ test/
 
 ### cmap Table (`src/sfnt/table_cmap.js`)
 
-- **Parsed formats**: 0 (byte encoding), 4 (segment mapping), 6 (trimmed table), 12 (segmented coverage), 13 (many-to-one), 14 (Unicode variation sequences)
-- **Raw fallback formats**: 2, 8, 10 — stored as `{ format, _raw }` and passed through on write
+- **Parsed formats**: 0 (byte encoding), 2 (high-byte mapping), 4 (segment mapping), 6 (trimmed table), 8 (mixed 16/32-bit), 10 (trimmed array 32-bit), 12 (segmented coverage), 13 (many-to-one), 14 (Unicode variation sequences)
+- **All formats fully parsed** — no `_raw` fallback for any known format
+- **Format 2**: subHeaderKeys[256] + SubHeader records (firstCode, entryCount, idDelta, idRangeOffset) + glyphIdArray. Used for CJK double-byte encodings. Number of subHeaders derived from max(subHeaderKeys)/8+1.
+- **Format 8**: 8192-byte is32 bitfield + SequentialMapGroup records. Mixed 16/32-bit coverage (effectively obsolete).
+- **Format 10**: startCharCode + glyphIdArray[numChars]. 32-bit trimmed array (effectively obsolete).
 - **Subtable dedup**: Multiple encoding records can reference the same subtable offset; parseCmap deduplicates via `subtableIndex`
 - **Format 14 complexity**: Has nested sub-structures (DefaultUVS, NonDefaultUVS) at offsets relative to the format 14 subtable start. Uses reader.seek/save pattern for random-access parsing.
-- Tests: 7 in table_cmap.test.js
+- **No sample fonts with formats 2/8/10**: Tests are synthetic (build binary, parse, verify, round-trip)
+- Tests: 13 in table_cmap.test.js (7 existing + 6 new for formats 2, 8, 10)
 
 ### head Table (`src/sfnt/table_head.js`)
 

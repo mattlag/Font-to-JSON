@@ -4,8 +4,7 @@
  *
  * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/cmap
  *
- * Supported subtable formats: 0, 4, 6, 12, 13, 14
- * Unsupported formats (stored as raw bytes): 2, 8, 10
+ * Supported subtable formats: 0, 2, 4, 6, 8, 10, 12, 13, 14
  */
 
 import { DataReader } from '../reader.js';
@@ -74,10 +73,16 @@ function parseSubtable(reader, offset) {
 	switch (format) {
 		case 0:
 			return parseFormat0(reader);
+		case 2:
+			return parseFormat2(reader, offset);
 		case 4:
 			return parseFormat4(reader, offset);
 		case 6:
 			return parseFormat6(reader);
+		case 8:
+			return parseFormat8(reader);
+		case 10:
+			return parseFormat10(reader);
 		case 12:
 			return parseFormat12(reader);
 		case 13:
@@ -97,6 +102,40 @@ function parseFormat0(reader) {
 	const language = reader.uint16();
 	const glyphIdArray = reader.array('uint8', 256);
 	return { format: 0, language, glyphIdArray };
+}
+
+// --- Format 2 : High byte mapping through table ----------------------------
+
+function parseFormat2(reader, subtableOffset) {
+	// format already read
+	const length = reader.uint16();
+	const language = reader.uint16();
+	const subHeaderKeys = reader.array('uint16', 256);
+
+	// Determine number of SubHeaders: max(subHeaderKeys)/8 + 1
+	let maxKey = 0;
+	for (let i = 0; i < 256; i++) {
+		if (subHeaderKeys[i] > maxKey) maxKey = subHeaderKeys[i];
+	}
+	const numSubHeaders = maxKey / 8 + 1;
+
+	const subHeaders = [];
+	for (let i = 0; i < numSubHeaders; i++) {
+		subHeaders.push({
+			firstCode: reader.uint16(),
+			entryCount: reader.uint16(),
+			idDelta: reader.int16(),
+			idRangeOffset: reader.uint16(),
+		});
+	}
+
+	// Remaining bytes are the glyphIdArray
+	const glyphIdArrayStart = reader.position;
+	const glyphIdArrayEnd = subtableOffset + length;
+	const glyphIdCount = (glyphIdArrayEnd - glyphIdArrayStart) / 2;
+	const glyphIdArray = reader.array('uint16', glyphIdCount);
+
+	return { format: 2, language, subHeaderKeys, subHeaders, glyphIdArray };
 }
 
 // --- Format 4 : Segment mapping to delta values ----------------------------
@@ -244,16 +283,49 @@ function parseNonDefaultUVS(reader, offset) {
 	return mappings;
 }
 
+// --- Format 8 : Mixed 16-bit and 32-bit coverage ---------------------------
+
+function parseFormat8(reader) {
+	// format already read
+	reader.skip(2); // reserved
+	reader.skip(4); // length
+	const language = reader.uint32();
+	const is32 = reader.bytes(8192);
+	const numGroups = reader.uint32();
+	const groups = [];
+	for (let i = 0; i < numGroups; i++) {
+		groups.push({
+			startCharCode: reader.uint32(),
+			endCharCode: reader.uint32(),
+			startGlyphID: reader.uint32(),
+		});
+	}
+	return { format: 8, language, is32, groups };
+}
+
+// --- Format 10 : Trimmed array ----------------------------------------------
+
+function parseFormat10(reader) {
+	// format already read
+	reader.skip(2); // reserved
+	reader.skip(4); // length
+	const language = reader.uint32();
+	const startCharCode = reader.uint32();
+	const numChars = reader.uint32();
+	const glyphIdArray = reader.array('uint16', numChars);
+	return { format: 10, language, startCharCode, glyphIdArray };
+}
+
 // --- Raw fallback for unsupported formats -----------------------------------
 
 function parseFormatRaw(reader, subtableOffset, format) {
 	let length;
-	if (format === 8 || format === 10) {
-		// uint16 reserved + uint32 length
+	if (format >= 8) {
+		// 32-bit formats: uint16 reserved + uint32 length
 		reader.skip(2);
 		length = reader.uint32();
 	} else {
-		// uint16 length (e.g. format 2)
+		// 16-bit formats: uint16 length
 		length = reader.uint16();
 	}
 
@@ -319,10 +391,16 @@ function writeSubtable(subtable) {
 	switch (subtable.format) {
 		case 0:
 			return writeFormat0(subtable);
+		case 2:
+			return writeFormat2(subtable);
 		case 4:
 			return writeFormat4(subtable);
 		case 6:
 			return writeFormat6(subtable);
+		case 8:
+			return writeFormat8(subtable);
+		case 10:
+			return writeFormat10(subtable);
 		case 12:
 			return writeFormat12(subtable);
 		case 13:
@@ -344,6 +422,30 @@ function writeFormat0(subtable) {
 	w.uint16(totalLen);
 	w.uint16(subtable.language);
 	w.array('uint8', subtable.glyphIdArray);
+	return w.toArray();
+}
+
+// --- Format 2 ---------------------------------------------------------------
+
+function writeFormat2(subtable) {
+	const { language, subHeaderKeys, subHeaders, glyphIdArray } = subtable;
+	// format(2) + length(2) + language(2) + subHeaderKeys(512) + subHeaders(n*8) + glyphIdArray(n*2)
+	const totalLen = 6 + 512 + subHeaders.length * 8 + glyphIdArray.length * 2;
+	const w = new DataWriter(totalLen);
+
+	w.uint16(2); // format
+	w.uint16(totalLen);
+	w.uint16(language);
+	w.array('uint16', subHeaderKeys);
+
+	for (const sh of subHeaders) {
+		w.uint16(sh.firstCode);
+		w.uint16(sh.entryCount);
+		w.int16(sh.idDelta);
+		w.uint16(sh.idRangeOffset);
+	}
+
+	w.array('uint16', glyphIdArray);
 	return w.toArray();
 }
 
@@ -398,6 +500,49 @@ function writeFormat6(subtable) {
 	w.uint16(language);
 	w.uint16(firstCode);
 	w.uint16(entryCount);
+	w.array('uint16', glyphIdArray);
+
+	return w.toArray();
+}
+
+// --- Format 8 ---------------------------------------------------------------
+
+function writeFormat8(subtable) {
+	const { language, is32, groups } = subtable;
+	// format(2) + reserved(2) + length(4) + language(4) + is32(8192) + numGroups(4) + groups(n*12)
+	const totalLen = 8204 + 4 + groups.length * 12;
+	const w = new DataWriter(totalLen);
+
+	w.uint16(8); // format
+	w.uint16(0); // reserved
+	w.uint32(totalLen);
+	w.uint32(language);
+	w.rawBytes(is32);
+	w.uint32(groups.length);
+
+	for (const g of groups) {
+		w.uint32(g.startCharCode);
+		w.uint32(g.endCharCode);
+		w.uint32(g.startGlyphID);
+	}
+
+	return w.toArray();
+}
+
+// --- Format 10 --------------------------------------------------------------
+
+function writeFormat10(subtable) {
+	const { language, startCharCode, glyphIdArray } = subtable;
+	// format(2) + reserved(2) + length(4) + language(4) + startCharCode(4) + numChars(4) + glyphIdArray(n*2)
+	const totalLen = 20 + glyphIdArray.length * 2;
+	const w = new DataWriter(totalLen);
+
+	w.uint16(10); // format
+	w.uint16(0);  // reserved
+	w.uint32(totalLen);
+	w.uint32(language);
+	w.uint32(startCharCode);
+	w.uint32(glyphIdArray.length);
 	w.array('uint16', glyphIdArray);
 
 	return w.toArray();
