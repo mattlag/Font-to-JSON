@@ -126,21 +126,58 @@ const HEADER_SIZE = 12;
 /** Size of a single Table Record in the table directory, in bytes. */
 const TABLE_RECORD_SIZE = 16;
 
+const SUPPORTED_FORMATS = new Set(['sfnt', 'woff']);
+
+/**
+ * Determine the default export format from the font data's origin.
+ * If the font was imported from a WOFF container, default to that format;
+ * otherwise default to raw SFNT.
+ */
+function defaultFormatFrom(fontData) {
+	const version = fontData._woff?.version;
+	if (version === 2) return 'woff2';
+	if (version === 1) return 'woff';
+	return 'sfnt';
+}
+
 /**
  * Export a font JSON object back to binary data (ArrayBuffer).
+ *
+ * The output format defaults to the original import format: WOFF imports
+ * re-export as WOFF, SFNT imports as SFNT. Override with `options.format`.
+ *
  * @param {object} fontData - Font data object (simplified, legacy, or collection).
  * @param {object} [options] - Export options.
- * @param {string} [options.format='sfnt'] - Output format: 'sfnt' (default), 'woff'.
- * @returns {ArrayBuffer} Binary font file bytes.
+ * @param {string} [options.format] - Output format: 'sfnt', 'woff' (or 'woff2'
+ *   once supported). Defaults to the original import format.
+ * @param {boolean} [options.split] - Collections only: when true, return an
+ *   array of individual ArrayBuffers (one per face) instead of a single file.
+ * @returns {ArrayBuffer|ArrayBuffer[]} Binary font file bytes.
  */
 export function exportFont(fontData, options = {}) {
 	if (!fontData || typeof fontData !== 'object') {
 		throw new TypeError('exportFont expects a font data object');
 	}
 
-	const format = (options.format || 'sfnt').toLowerCase();
+	const format = options.format
+		? options.format.toLowerCase()
+		: defaultFormatFrom(fontData);
+
+	if (format === 'woff2') {
+		throw new Error(
+			'WOFF2 export is not yet supported. Use "sfnt" or "woff".',
+		);
+	}
+	if (!SUPPORTED_FORMATS.has(format)) {
+		throw new Error(
+			`Unknown export format "${format}". Supported: sfnt, woff.`,
+		);
+	}
 
 	if (isCollection(fontData)) {
+		if (options.split) {
+			return exportCollectionSplit(fontData, format);
+		}
 		const sfnt = exportCollection(fontData);
 		if (format === 'woff') {
 			return wrapWOFF1(sfnt, fontData._woff?.metadata, fontData._woff?.privateData);
@@ -158,6 +195,28 @@ export function exportFont(fontData, options = {}) {
 	}
 
 	return sfnt;
+}
+
+/**
+ * Export each face of a collection as an individual buffer in the target format.
+ * @param {object} collectionData
+ * @param {string} format - 'sfnt' or 'woff'
+ * @returns {ArrayBuffer[]}
+ */
+function exportCollectionSplit(collectionData, format) {
+	const { fonts } = collectionData;
+	if (!Array.isArray(fonts) || fonts.length === 0) {
+		throw new Error('Collection split expects a non-empty fonts array');
+	}
+
+	return fonts.map((face) => {
+		const resolved = resolveExportSource(face);
+		const sfnt = exportSFNT(resolved, 0);
+		if (format === 'woff') {
+			return wrapWOFF1(sfnt);
+		}
+		return sfnt;
+	});
 }
 
 function isCollection(fontData) {
