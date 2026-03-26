@@ -42,10 +42,12 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `platformID`
 - `encodingID`
 - `subtableIndex`
-- `endCode`
-- `startCode`
+- `firstCode`
+- `entryCount`
 - `idDelta`
 - `idRangeOffset`
+- `endCode`
+- `startCode`
 - `startCharCode`
 - `endCharCode`
 - `startGlyphID`

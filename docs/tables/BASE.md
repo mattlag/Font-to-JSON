@@ -46,6 +46,22 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `horizAxis`
 - `vertAxis`
 - `itemVariationStore`
+- `tag`
+- `baseValues`
+- `defaultMinMax`
+- `langSystems`
+- `minMax`
+- `baseCoords`
+- `minOff`
+- `maxOff`
+- `minCoord`
+- `maxCoord`
+- `featMinMax`
+- `referenceGlyph`
+- `baseCoordPoint`
+- `device`
+- `min`
+- `max`
 
 ## Notes
 

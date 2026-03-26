@@ -21,8 +21,8 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
       "majorVersion": 0,
       "minorVersion": 0,
       "axisCount": 0,
-      "sharedTuples": null,
       "glyphVariationData": null,
+      "sharedTuples": null,
       "flags": 0,
       "_checksum": 0
     }
@@ -32,12 +32,12 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ## Top-level Fields
 
-- `majorVersion` - number (0..65535) [spec type: `uint16`]
-- `minorVersion` - number (0..65535) [spec type: `uint16`]
-- `axisCount` - number (0..65535) [spec type: `uint16`]
-- `sharedTuples` - implementation-defined
+- `majorVersion` - number (0..65535)
+- `minorVersion` - number (0..65535)
+- `axisCount` - number (0..65535)
 - `glyphVariationData` - implementation-defined
-- `flags` - number (0..65535) [spec type: `uint16`]
+- `sharedTuples` - implementation-defined
+- `flags` - number (0..65535)
 
 
 ## Nested JSON Structure

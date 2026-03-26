@@ -17,27 +17,51 @@ This site is for humans writing or editing font JSON by hand.
 - [Creating a TTC / OTC Collection](./creating-ttc-otc.md)
 - [Table references](./tables/index.md)
 
+## API
+
+| Function                             | Description                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object.                       |
+| `exportFont(fontData)`               | Convert a font object back to binary. Returns an `ArrayBuffer`.             |
+| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, issues[] }`.   |
+| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure.             |
+| `buildRawFromSimplified(simplified)` | Convert simplified back to `{ header, tables }`.                            |
+| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification. |
+
+See the [README](https://github.com/mattlag/Font-Flux-JS#readme) for installation and usage examples.
+
 ## Top-level JSON shape
+
+`importFont` returns a **simplified** structure:
 
 ```json
 {
-	"header": {
-		"sfVersion": 65536,
-		"numTables": 9,
-		"searchRange": 128,
-		"entrySelector": 3,
-		"rangeShift": 16
+	"font": {
+		"familyName": "MyFont",
+		"styleName": "Regular",
+		"unitsPerEm": 1000,
+		"ascender": 800,
+		"descender": -200
 	},
+	"glyphs": [
+		{ "name": ".notdef", "advanceWidth": 500 },
+		{ "name": "A", "unicode": 65, "advanceWidth": 600, "contours": ["..."] }
+	],
+	"kerning": [{ "left": "A", "right": "V", "value": -80 }],
 	"tables": {
-		"head": { "_raw": [0, 1, 2] },
-		"cmap": { "_raw": [0, 1, 2] }
-	}
+		"head": { "unitsPerEm": 1000, "...": "..." },
+		"cmap": { "...": "..." }
+	},
+	"_header": { "sfVersion": 65536 }
 }
 ```
+
+The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editing interface. The `tables` object preserves every parsed table for lossless binary round-trip.
 
 ## Workflow recommendation
 
 1. Start from `importFont` output when possible.
-2. Modify one table at a time.
-3. Run `validateJSON`.
-4. Only call `exportFont` when `report.valid === true`.
+2. Edit the simplified fields (`font`, `glyphs`, `kerning`) for common changes.
+3. Edit `tables` directly for low-level or table-specific changes.
+4. Run `validateJSON` to check for structural issues.
+5. Only call `exportFont` when `report.valid === true`.

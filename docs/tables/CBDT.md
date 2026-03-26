@@ -37,7 +37,10 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ## Additional Nested Keys Seen In Implementation
 
-- `data`
+- `glyphID`
+- `xOffset`
+- `yOffset`
+- `sbitOffset`
 
 ## Notes
 

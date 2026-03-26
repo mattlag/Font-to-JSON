@@ -18,7 +18,7 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 {
   "tables": {
     "CBLC": {
-      "indexSubTableArrayOffset": 0,
+      "firstGlyphIndex": 0,
       "_checksum": 0
     }
   }
@@ -27,7 +27,7 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ## Top-level Fields
 
-- `indexSubTableArrayOffset` - number
+- `firstGlyphIndex` - number (0..65535)
 
 
 
@@ -35,19 +35,12 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ## Additional Nested Keys Seen In Implementation
 
-- `indexSubTableArrayOffset`
-- `indexTablesSize`
-- `numberOfIndexSubTables`
-- `colorRef`
-- `hori`
-- `vert`
-- `startGlyphIndex`
-- `endGlyphIndex`
-- `ppemX`
-- `ppemY`
-- `bitDepth`
-- `flags`
-- `data`
+- `indexSubTables`
+- `firstGlyphIndex`
+- `lastGlyphIndex`
+- `indexSubtableOffset`
+- `glyphID`
+- `sbitOffset`
 - `ascender`
 - `descender`
 - `widthMax`

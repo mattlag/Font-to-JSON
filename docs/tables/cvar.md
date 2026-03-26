@@ -18,14 +18,7 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 {
   "tables": {
     "cvar": {
-      "majorVersion": 0,
-      "minorVersion": 0,
-      "tupleVariationHeadersRaw": null,
-      "tupleVariationHeaders": null,
-      "serializedData": null,
-      "tupleVariationCountPacked": 0,
-      "tupleVariationFlags": null,
-      "tupleVariationCount": null,
+      "tupleVariations": null,
       "_checksum": 0
     }
   }
@@ -34,14 +27,7 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ## Top-level Fields
 
-- `majorVersion` - number (0..65535)
-- `minorVersion` - number (0..65535)
-- `tupleVariationHeadersRaw` - implementation-defined
-- `tupleVariationHeaders` - implementation-defined
-- `serializedData` - implementation-defined
-- `tupleVariationCountPacked` - number (0..65535)
-- `tupleVariationFlags` - implementation-defined
-- `tupleVariationCount` - implementation-defined
+- `tupleVariations` - implementation-defined
 
 
 
@@ -49,8 +35,7 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ## Additional Nested Keys Seen In Implementation
 
-- `usesSharedPointNumbers`
-- `flags`
+- None inferred from source.
 
 ## Notes
 

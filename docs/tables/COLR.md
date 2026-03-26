@@ -21,7 +21,11 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
       "baseGlyphRecords": null,
       "layerRecords": null,
       "version": 0,
-      "_v1RawBytes": null,
+      "baseGlyphPaintRecords": null,
+      "layerPaints": null,
+      "clipList": null,
+      "varIndexMap": null,
+      "itemVariationStore": null,
       "_checksum": 0
     }
   }
@@ -33,7 +37,11 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `baseGlyphRecords` - implementation-defined
 - `layerRecords` - implementation-defined
 - `version` - number (0..65535) [spec type: `uint16`] (0)
-- `_v1RawBytes` - implementation-defined
+- `baseGlyphPaintRecords` - implementation-defined
+- `layerPaints` - implementation-defined
+- `clipList` - implementation-defined
+- `varIndexMap` - implementation-defined
+- `itemVariationStore` - implementation-defined
 
 
 
@@ -73,8 +81,11 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `firstLayerIndex`
 - `numLayers`
 - `paletteIndex`
-- `v1Header`
-- `_v1RawBytes`
+- `baseGlyphPaintRecords`
+- `layerPaints`
+- `clipList`
+- `varIndexMap`
+- `itemVariationStore`
 
 ## Notes
 

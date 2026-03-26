@@ -3,6 +3,7 @@
 Use these pages when hand-authoring table JSON fragments.
 
 ## Shared SFNT tables
+
 - [`fvar`](./fvar.md)
 - [`cmap`](./cmap.md)
 - [`head`](./head.md)
@@ -44,11 +45,13 @@ Use these pages when hand-authoring table JSON fragments.
 - [`HVAR`](./HVAR.md)
 
 ## OTF-specific tables
+
 - [`VORG`](./VORG.md)
 - [`CFF2`](./CFF2.md)
 - [`CFF `](./CFF.md)
 
 ## TTF-specific tables
+
 - [`gvar`](./gvar.md)
 - [`glyf`](./glyf.md)
 - [`prep`](./prep.md)
@@ -57,3 +60,9 @@ Use these pages when hand-authoring table JSON fragments.
 - [`cvar`](./cvar.md)
 - [`gasp`](./gasp.md)
 - [`fpgm`](./fpgm.md)
+
+## Apple AAT tables
+
+- [`bloc`](./bloc.md)
+- [`bdat`](./bdat.md)
+- [`ltag`](./ltag.md)
