@@ -21,15 +21,25 @@ export function createTableTab(tag, tableData) {
 			const header = document.createElement('div');
 			header.className = 'table-detail-header';
 			const description = getTableDescription(tag);
-			header.innerHTML = `<h2>${escapeHTML(tag.trim())}</h2>`
-				+ (description ? `<p class="table-detail-desc">${escapeHTML(description)}</p>` : '');
+			header.innerHTML =
+				`<h2>${escapeHTML(tag.trim())}</h2>` +
+				(description
+					? `<p class="table-detail-desc">${escapeHTML(description)}</p>`
+					: '');
 			wrap.appendChild(header);
 
 			const tree = document.createElement('div');
 			tree.className = 'data-tree';
-			if (tableData && typeof tableData === 'object' && !Array.isArray(tableData) && !ArrayBuffer.isView(tableData)) {
+			if (
+				tableData &&
+				typeof tableData === 'object' &&
+				!Array.isArray(tableData) &&
+				!ArrayBuffer.isView(tableData)
+			) {
 				const keys = Object.keys(tableData).filter((k) => !k.startsWith('_'));
-				const internalKeys = Object.keys(tableData).filter((k) => k.startsWith('_'));
+				const internalKeys = Object.keys(tableData).filter((k) =>
+					k.startsWith('_'),
+				);
 				for (const k of keys) {
 					tree.appendChild(buildNode(tableData[k], k, true));
 				}
@@ -59,7 +69,12 @@ function buildNode(value, key, startOpen = false) {
 	if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
 		const arr = value instanceof ArrayBuffer ? new Uint8Array(value) : value;
 		if (arr.length <= 32) {
-			return makeLeaf(key, `[${arr.join(', ')}]`, 'bytes', `${arr.length} bytes`);
+			return makeLeaf(
+				key,
+				`[${arr.join(', ')}]`,
+				'bytes',
+				`${arr.length} bytes`,
+			);
 		}
 		return makeCollapsible(key, `${arr.length} bytes`, false, () => {
 			const pre = document.createElement('pre');
@@ -83,7 +98,12 @@ function buildNode(value, key, startOpen = false) {
 		// Check if it's a simple number array (like instructions, values)
 		if (value.length > 0 && value.every((v) => typeof v === 'number')) {
 			if (value.length <= 20) {
-				return makeLeaf(key, `[${value.join(', ')}]`, 'array', `${value.length} numbers`);
+				return makeLeaf(
+					key,
+					`[${value.join(', ')}]`,
+					'array',
+					`${value.length} numbers`,
+				);
 			}
 			const open = startOpen && value.length < COLLAPSE_THRESHOLD;
 			return makeCollapsible(key, `${value.length} numbers`, open, () => {
@@ -235,7 +255,9 @@ function formatHexDump(arr) {
 			}
 		}
 		const offset = i.toString(16).padStart(6, '0');
-		rows.push(`${offset}  ${hex.slice(0, 8).join(' ')}  ${hex.slice(8).join(' ')}  |${ascii.join('')}|`);
+		rows.push(
+			`${offset}  ${hex.slice(0, 8).join(' ')}  ${hex.slice(8).join(' ')}  |${ascii.join('')}|`,
+		);
 	}
 	return rows.join('\n');
 }

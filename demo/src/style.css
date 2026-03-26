@@ -1,8 +1,18 @@
 /* ===== Reset ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
 
 html {
-	font-family: 'Inter', system-ui, -apple-system, sans-serif;
+	font-family:
+		'Inter',
+		system-ui,
+		-apple-system,
+		sans-serif;
 	font-size: 16px;
 	line-height: 1.5;
 	color: var(--text);
@@ -23,8 +33,8 @@ html {
 	--border-hover: #ccc;
 	--radius: 8px;
 	--radius-lg: 12px;
-	--shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-	--shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+	--shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08);
 	--transition: 150ms ease;
 	--font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
 }
@@ -74,7 +84,9 @@ body {
 	border-radius: var(--radius);
 	padding: 48px 24px;
 	cursor: pointer;
-	transition: border-color var(--transition), background var(--transition);
+	transition:
+		border-color var(--transition),
+		background var(--transition);
 }
 
 .drop-zone:hover,
@@ -152,7 +164,9 @@ body {
 }
 
 @keyframes spin {
-	to { transform: rotate(360deg); }
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 /* ===== App Shell ===== */
@@ -164,8 +178,14 @@ body {
 }
 
 @keyframes fadeIn {
-	from { opacity: 0; transform: translateY(8px); }
-	to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .app-header {
@@ -199,7 +219,9 @@ body {
 	font-size: 0.8rem;
 	color: var(--text-secondary);
 	cursor: pointer;
-	transition: border-color var(--transition), color var(--transition);
+	transition:
+		border-color var(--transition),
+		color var(--transition);
 }
 
 .app-header .load-another:hover {
@@ -227,7 +249,9 @@ body {
 	color: var(--text-secondary);
 	cursor: pointer;
 	white-space: nowrap;
-	transition: color var(--transition), border-color var(--transition);
+	transition:
+		color var(--transition),
+		border-color var(--transition);
 }
 
 .tab-btn-sm {
@@ -363,7 +387,7 @@ body {
 	white-space: nowrap;
 }
 
-.preview-controls input[type="range"] {
+.preview-controls input[type='range'] {
 	flex: 1;
 	max-width: 200px;
 	accent-color: var(--accent);
@@ -434,7 +458,9 @@ body {
 .table-tag-clickable {
 	cursor: pointer;
 	border: 1px solid transparent;
-	transition: border-color var(--transition), box-shadow var(--transition);
+	transition:
+		border-color var(--transition),
+		box-shadow var(--transition);
 }
 
 .table-tag-clickable:hover {
@@ -635,11 +661,25 @@ pre.data-string-long.data-expanded {
 
 /* ===== Responsive ===== */
 @media (max-width: 640px) {
-	.loading-card { padding: 32px 20px; }
-	.drop-zone { padding: 32px 16px; }
-	.app-header { padding: 10px 16px; }
-	.tab-bar { padding: 0 16px; }
-	.tab-content { padding: 16px; }
-	.meta-grid { grid-template-columns: 1fr; }
-	.stats-row { grid-template-columns: repeat(2, 1fr); }
+	.loading-card {
+		padding: 32px 20px;
+	}
+	.drop-zone {
+		padding: 32px 16px;
+	}
+	.app-header {
+		padding: 10px 16px;
+	}
+	.tab-bar {
+		padding: 0 16px;
+	}
+	.tab-content {
+		padding: 16px;
+	}
+	.meta-grid {
+		grid-template-columns: 1fr;
+	}
+	.stats-row {
+		grid-template-columns: repeat(2, 1fr);
+	}
 }

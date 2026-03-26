@@ -40,11 +40,17 @@ function buildStatsSection(fontData) {
 		{ value: tableCount, label: 'Tables' },
 		{ value: format, label: 'Outline Format' },
 		{ value: axesCount > 0 ? `${axesCount} axes` : 'No', label: 'Variable' },
-		{ value: kerningCount > 0 ? kerningCount.toLocaleString() : 'None', label: 'Kerning Pairs' },
+		{
+			value: kerningCount > 0 ? kerningCount.toLocaleString() : 'None',
+			label: 'Kerning Pairs',
+		},
 	];
 
 	if (fontData._collection) {
-		stats.push({ value: fontData._collection.numFonts, label: 'Fonts in Collection' });
+		stats.push({
+			value: fontData._collection.numFonts,
+			label: 'Fonts in Collection',
+		});
 	}
 
 	const row = document.createElement('div');
@@ -98,18 +104,38 @@ function buildMetricsSection(fontData) {
 	const font = fontData.font || {};
 
 	const weightLabels = {
-		100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular',
-		500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black',
+		100: 'Thin',
+		200: 'ExtraLight',
+		300: 'Light',
+		400: 'Regular',
+		500: 'Medium',
+		600: 'SemiBold',
+		700: 'Bold',
+		800: 'ExtraBold',
+		900: 'Black',
 	};
 	const widthLabels = {
-		1: 'UltraCondensed', 2: 'ExtraCondensed', 3: 'Condensed', 4: 'SemiCondensed',
-		5: 'Normal', 6: 'SemiExpanded', 7: 'Expanded', 8: 'ExtraExpanded', 9: 'UltraExpanded',
+		1: 'UltraCondensed',
+		2: 'ExtraCondensed',
+		3: 'Condensed',
+		4: 'SemiCondensed',
+		5: 'Normal',
+		6: 'SemiExpanded',
+		7: 'Expanded',
+		8: 'ExtraExpanded',
+		9: 'UltraExpanded',
 	};
 
 	const wc = font.weightClass;
-	const weightStr = wc !== undefined ? `${wc}${weightLabels[wc] ? ' (' + weightLabels[wc] + ')' : ''}` : undefined;
+	const weightStr =
+		wc !== undefined
+			? `${wc}${weightLabels[wc] ? ' (' + weightLabels[wc] + ')' : ''}`
+			: undefined;
 	const wid = font.widthClass;
-	const widthStr = wid !== undefined ? `${wid}${widthLabels[wid] ? ' (' + widthLabels[wid] + ')' : ''}` : undefined;
+	const widthStr =
+		wid !== undefined
+			? `${wid}${widthLabels[wid] ? ' (' + widthLabels[wid] + ')' : ''}`
+			: undefined;
 
 	const fields = [
 		['Units per Em', font.unitsPerEm, true],
@@ -118,8 +144,19 @@ function buildMetricsSection(fontData) {
 		['Line Gap', font.lineGap, true],
 		['Weight Class', weightStr, true],
 		['Width Class', widthStr, true],
-		['Italic Angle', font.italicAngle !== undefined ? `${font.italicAngle}°` : undefined, true],
-		['Fixed Pitch', font.isFixedPitch !== undefined ? (font.isFixedPitch ? 'Yes' : 'No') : undefined],
+		[
+			'Italic Angle',
+			font.italicAngle !== undefined ? `${font.italicAngle}°` : undefined,
+			true,
+		],
+		[
+			'Fixed Pitch',
+			font.isFixedPitch !== undefined
+				? font.isFixedPitch
+					? 'Yes'
+					: 'No'
+				: undefined,
+		],
 		['Underline Position', font.underlinePosition, true],
 		['Underline Thickness', font.underlineThickness, true],
 		['Vendor ID', font.achVendID, true],
@@ -161,7 +198,8 @@ function buildPreviewSection(fontData) {
 	const input = document.createElement('input');
 	input.className = 'preview-text-input';
 	input.type = 'text';
-	input.value = fontData.font?.sampleText || 'The quick brown fox jumps over the lazy dog';
+	input.value =
+		fontData.font?.sampleText || 'The quick brown fox jumps over the lazy dog';
 	input.placeholder = 'Type preview text…';
 
 	// Preview output
@@ -200,12 +238,16 @@ function buildGlyphSample(fontData) {
 		drawn.push(glyph);
 	}
 
-	const section = makeSection(`Glyph Outlines (${drawn.length} of ${glyphs.length})`);
+	const section = makeSection(
+		`Glyph Outlines (${drawn.length} of ${glyphs.length})`,
+	);
 
 	if (drawn.length === 0) {
 		const msg = document.createElement('p');
-		msg.style.cssText = 'padding: 16px 20px; color: var(--text-tertiary); font-size: 0.85rem;';
-		msg.textContent = 'No TrueType contour data available (CFF fonts use charString data).';
+		msg.style.cssText =
+			'padding: 16px 20px; color: var(--text-tertiary); font-size: 0.85rem;';
+		msg.textContent =
+			'No TrueType contour data available (CFF fonts use charString data).';
 		section.appendChild(msg);
 		return section;
 	}
@@ -326,10 +368,12 @@ function buildTablesSection(fontData) {
 		`;
 
 		el.addEventListener('click', () => {
-			el.dispatchEvent(new CustomEvent('open-table', {
-				bubbles: true,
-				detail: { tag, tableData: table },
-			}));
+			el.dispatchEvent(
+				new CustomEvent('open-table', {
+					bubbles: true,
+					detail: { tag, tableData: table },
+				}),
+			);
 		});
 
 		grid.appendChild(el);

@@ -86,7 +86,9 @@ export function createLoadingScreen(container, onFontLoaded) {
 		const ext = file.name.split('.').pop().toLowerCase();
 		const valid = ['otf', 'ttf', 'woff', 'ttc', 'otc'];
 		if (!valid.includes(ext)) {
-			showError(`Unsupported file type ".${ext}". Please use OTF, TTF, WOFF, TTC, or OTC.`);
+			showError(
+				`Unsupported file type ".${ext}". Please use OTF, TTF, WOFF, TTC, or OTC.`,
+			);
 			return;
 		}
 

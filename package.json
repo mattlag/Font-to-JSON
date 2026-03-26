@@ -1,17 +1,16 @@
 {
 	"name": "font-flux-js",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Convert a font file to JSON... and back!",
-	"main": "src/main.js",
+	"main": "dist/font-flux-js.js",
 	"type": "module",
 	"exports": {
 		".": {
-			"import": "./src/main.js"
+			"import": "./dist/font-flux-js.js"
 		}
 	},
 	"files": [
 		"dist/",
-		"src/",
 		"README.md",
 		"LICENSE"
 	],
@@ -41,7 +40,7 @@
 		"converter"
 	],
 	"author": "",
-	"license": "ISC",
+	"license": "GPL-3.0-only",
 	"bugs": {
 		"url": "https://github.com/mattlag/Font-Flux-JS/issues"
 	},

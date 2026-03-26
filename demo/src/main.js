@@ -86,10 +86,11 @@ function showApp(fontData) {
 
 	const fontName = document.createElement('span');
 	fontName.className = 'font-name';
-	const displayName = fontData.font?.fullName
-		|| fontData.font?.familyName
-		|| fontData._fileName
-		|| 'Untitled Font';
+	const displayName =
+		fontData.font?.fullName ||
+		fontData.font?.familyName ||
+		fontData._fileName ||
+		'Untitled Font';
 	fontName.textContent = displayName;
 	if (fontData._collection) {
 		fontName.textContent += ` (Collection · ${fontData._collection.numFonts} fonts)`;

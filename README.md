@@ -16,7 +16,7 @@ npm install font-flux-js
 
 ```html
 <script type="module">
-	import { importFont, exportFont } from './dist/font-flux-js.js';
+	import { importFont, exportFont } from 'font-flux-js';
 
 	const response = await fetch('./fonts/MyFont.ttf');
 	const buffer = await response.arrayBuffer();
