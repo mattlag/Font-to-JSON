@@ -139,6 +139,20 @@ This is perfect for fidelity but painful for humans. Information about a single 
         // but requires understanding the CFF charstring format.
         "charString": [139, 234, 117, ...],
 
+        // CFF contours — decoded cubic Bézier commands from charstring interpretation.
+        // Each contour is an array of commands: M (moveTo), L (lineTo), C (curveTo).
+        // Automatically populated by importFont() for CFF/CFF2 glyphs.
+        "contours": [
+          [
+            { "type": "M", "x": 100, "y": 700 },
+            { "type": "L", "x": 400, "y": 700 },
+            { "type": "C", "x1": 400, "y1": 500, "x2": 200, "y2": 300, "x": 100, "y": 300 }
+          ]
+        ],
+
+        // Human-readable charstring disassembly text (e.g., "100 700 rmoveto 300 0 rlineto endchar")
+        "charStringDisassembly": "...",
+
         // ── Vertical metrics (if vhea/vmtx present) ──
         "advanceHeight": 1000,
         "topSideBearing": 800
@@ -301,19 +315,20 @@ The `simplified.glyphs` array is the core of the human-friendly format. Each gly
 
 **On import** (raw → simplified):
 
-| simplified glyph field | Source in raw                                                           |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `name`                 | `post.glyphNames[i]` (v2) or standard name table (v1) or CFF charset    |
-| `unicode`              | First codepoint from `cmap` that maps to this glyph index               |
-| `unicodes`             | All codepoints from `cmap` that map to this glyph index (if >1)         |
-| `advanceWidth`         | `hmtx.hMetrics[i].advanceWidth` (or last hMetric for tail glyphs)       |
-| `leftSideBearing`      | `hmtx.hMetrics[i].lsb` or `hmtx.leftSideBearings[i - numberOfHMetrics]` |
-| `contours`             | `glyf.glyphs[i].contours` (simple glyph, TrueType only)                 |
-| `instructions`         | `glyf.glyphs[i].instructions` (TrueType only)                           |
-| `components`           | `glyf.glyphs[i].components` (composite glyph, TrueType only)            |
-| `charString`           | `CFF.fonts[0].charStrings[i]` (CFF only)                                |
-| `advanceHeight`        | `vmtx.vMetrics[i].advanceHeight` (if vmtx present)                      |
-| `topSideBearing`       | `vmtx.vMetrics[i].tsb` (if vmtx present)                                |
+| simplified glyph field  | Source in raw                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| `name`                  | `post.glyphNames[i]` (v2) or standard name table (v1) or CFF charset                                    |
+| `unicode`               | First codepoint from `cmap` that maps to this glyph index                                               |
+| `unicodes`              | All codepoints from `cmap` that map to this glyph index (if >1)                                         |
+| `advanceWidth`          | `hmtx.hMetrics[i].advanceWidth` (or last hMetric for tail glyphs)                                       |
+| `leftSideBearing`       | `hmtx.hMetrics[i].lsb` or `hmtx.leftSideBearings[i - numberOfHMetrics]`                                 |
+| `contours`              | `glyf.glyphs[i].contours` (simple glyph, TrueType); or decoded via `interpretCharString` for CFF glyphs |
+| `instructions`          | `glyf.glyphs[i].instructions` (TrueType only)                                                           |
+| `components`            | `glyf.glyphs[i].components` (composite glyph, TrueType only)                                            |
+| `charString`            | `CFF.fonts[0].charStrings[i]` (CFF only)                                                                |
+| `charStringDisassembly` | `disassembleCharString(charStrings[i])` (CFF only)                                                      |
+| `advanceHeight`         | `vmtx.vMetrics[i].advanceHeight` (if vmtx present)                                                      |
+| `topSideBearing`        | `vmtx.vMetrics[i].tsb` (if vmtx present)                                                                |
 
 **On export** (simplified → raw):
 

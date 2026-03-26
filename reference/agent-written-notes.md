@@ -94,17 +94,20 @@ The returned object from a parser should NOT include `_checksum` or `_raw` — t
 
 ```
 src/
-  main.js           — entry point, re-exports importFont, importFontTables, exportFont, buildSimplified, buildRawFromSimplified, validateJSON
+  main.js           — entry point, re-exports importFont, importFontTables, exportFont, buildSimplified, buildRawFromSimplified, validateJSON, interpretCharString, disassembleCharString, contoursToSVGPath, svgPathToContours
   import.js         — importFont() returns simplified; importFontTables() returns { header, tables }; tableParsers registry, tableParseOrder
   export.js         — exportFont(), resolveExportSource() (3 input shapes), tableWriters registry, SFNT + TTC (`ttcf`) export paths
-  simplify.js       — buildSimplified() converts { header, tables } → unified simplified object with stored tables + _header
+  simplify.js       — buildSimplified() converts { header, tables } → unified simplified object with stored tables + _header; CFF glyphs get contours + charString + charStringDisassembly
   expand.js         — buildRawFromSimplified() expands hand-authored simplified → { header, tables }
   reader.js         — DataReader class
   writer.js         — DataWriter class
+  svg_path.js       — contoursToSVGPath(), svgPathToContours() — SVG path d-string ↔ font contour conversion (both TTF and CFF)
   otf/
     cff_common.js   — shared CFF/CFF2 utilities: DICT, INDEX, number encoding, charset, FDSelect
     table_CFF.js    — parseCFF(), writeCFF() — CFF v1 parser/writer
     table_CFF2.js   — parseCFF2(), writeCFF2() — CFF2 parser/writer
+    charstring_interpreter.js — interpretCharString(), disassembleCharString(), interpretAllCharStrings() — CFF Type 2 charstring bytecode → cubic Bézier contours
+    table_VORG.js   — parseVORG(), writeVORG() — Vertical Origin table
   ttf/
     table_loca.js   — parseLoca(), writeLoca() — glyph offset index (cross-table: head, maxp)
     table_glyf.js   — parseGlyf(), writeGlyf(), writeGlyfComputeOffsets() — TrueType outlines (cross-table: loca, maxp)
@@ -140,6 +143,7 @@ test/
   otf/
     table_CFF.test.js      — CFF v1 parsing, common utilities, round-trip (23 tests)
     table_CFF2.test.js     — CFF2 INDEX v2, synthetic round-trip (10 tests)
+    charstring_interpreter.test.js — CFF charstring interpreter: synthetic charstrings, hint masking, real font integration (10 tests)
   ttf/
     table_loca.test.js     — loca parsing, writing, round-trip (9 tests)
     table_cvt.test.js      — cvt parsing, round-trip, synthetic FWORD values (8 tests)
@@ -165,6 +169,7 @@ test/
     table_COLR.test.js     — COLR parsing, v0 structure, v1 Paint DAG (32 formats), round-trip, synthetic (19 tests)
     table_CPAL.test.js     — CPAL parsing, BGRA colors, round-trip, synthetic v0/v1 (8 tests)
     table_SVG.test.js      — SVG parsing, plain text/gzip, round-trip 3 fonts, synthetic (10 tests)
+    svg_path.test.js       — SVG path d-string ↔ contour conversion: CFF cubic, TTF quadratic, round-trips, real font integration (19 tests)
 
   ### TTC Collections (`ttcf`) support
 
@@ -626,6 +631,55 @@ Possible future work:
 - Full JSON serialization (BigInt replacer/reviver)
 - export.js refactor to use DataWriter for header/directory
 
+### CFF CharString Interpreter (`src/otf/charstring_interpreter.js`)
+
+- **Purpose**: Decode opaque CFF Type 2 charstring byte arrays into renderable cubic Bézier contour commands
+- **`interpretCharString(bytes, localSubrs, globalSubrs)`**: Main entry point. Takes charstring byte array + subroutines → returns `contour[][]` where each contour is array of `{type: 'M'|'L'|'C', x, y, x1?, y1?, x2?, y2?}` commands
+- **`disassembleCharString(bytes)`**: Returns human-readable text (e.g., `"100 700 rmoveto 300 0 rlineto endchar"`)
+- **`interpretAllCharStrings(charStrings, localSubrs, globalSubrs)`**: Batch convenience — interprets all charstrings in an array
+- **Operators handled**: rmoveto, hmoveto, vmoveto, rlineto, hlineto, vlineto, rrcurveto, hhcurveto, vvcurveto, hvcurveto, vhcurveto, rcurveline, rlinecurve, flex, hflex, hflex1, flex1, endchar
+- **Hint operators**: hstem, vstem, hstemhm, vstemhm handled (increment stem count). hintmask/cntrmask skip `ceil(stemCount/8)` mask bytes.
+- **Subroutine calls**: callsubr/callgsubr with CFF bias calculation (`bias = len<1240 ? 107 : len<33900 ? 1131 : 32768`), return operator support
+- **Width detection**: Handles optional width operand on first drawing/hint operator
+- **Integration**: `simplify.js` calls `interpretAllCharStrings` during `buildSimplified()`, so CFF glyphs in simplified output automatically include:
+  - `contours` — decoded cubic Bézier commands
+  - `charString` — raw byte array (for lossless round-trip)
+  - `charStringDisassembly` — human-readable text
+- **Bug fixes during development**:
+  - hintmask byte count: Was double-incrementing `i` in the mask byte loop. Fixed to use `i + m` offset without also incrementing `i`.
+  - hmoveto/vmoveto width detection: Fixed to use `stack.length > 1` (not odd-count check) for single-argument move operators.
+- Tests: 10 in charstring_interpreter.test.js (synthetic charstrings + real oblegg.otf integration)
+
+### SVG Path Conversion (`src/svg_path.js`)
+
+- **Purpose**: Bidirectional conversion between font glyph contour data and SVG path `d` attribute strings
+- **`contoursToSVGPath(contours)`**: Auto-detects TrueType vs CFF format (checks for `type` property on first point). Returns SVG `d` string.
+  - TrueType → SVG with `Q` (quadratic) commands, handles implied midpoints between consecutive off-curve points
+  - CFF → SVG with `C` (cubic) commands
+  - Coordinates in font-space (Y-up), not flipped to SVG Y-down
+- **`svgPathToContours(pathData, format='cff')`**: Parses SVG path `d` string → contours in target format
+  - `'cff'` → cubic command objects `{type, x, y, ...}`. Q commands promoted to C via degree elevation (lossless).
+  - `'truetype'` → point arrays `{x, y, onCurve}`. C commands approximated as quadratic via recursive de Casteljau subdivision (0.5-unit error threshold, max depth 8).
+- **SVG path parser (`parseSVGPath`)**: Full SVG path spec — M, L, H, V, C, S, Q, T, Z + all lowercase relative variants. Handles smooth curve reflection (S reflects previous CP2, T reflects previous QCP).
+- **Degree elevation (Q→C)**: `CP1 = P0 + 2/3*(QCP-P0)`, `CP2 = P2 + 2/3*(QCP-P2)` — mathematically lossless
+- **Cubic→quadratic approximation**: Tries single-quadratic midpoint approximation first. If error > 0.5 units, subdivides at t=0.5 via de Casteljau and recurses (max depth 8).
+- **Number formatting**: `n(val)` rounds to 2 decimal places, strips trailing zeros for clean SVG output
+- Tests: 19 in svg_path.test.js (unit conversion, round-trips CFF+TTF, relative commands, smooth curves, H/V, real font integration with oblegg.otf and oblegg.ttf)
+
+### Documentation Site
+
+- **VitePress docs**: `docs/` folder, built with `npm run docs:build` (VitePress v1.6.4)
+- **Demo app**: `demo/` folder, vanilla JS + Vite, built with `npm run demo:build`
+- **Combined build**: `npm run site:build` = demo:build + docs:build
+- **NPM published**: v1.0.0 on npm as `font-flux`
+- **Doc coverage for new features**:
+  - `docs/index.md` — API table includes all 10 exported functions; "Working with glyph outlines" section covers TTF format, CFF contour interpretation, and SVG path conversion with code examples
+  - `docs/tables/CFF.md` — "Interpreting charStrings" section with `interpretCharString` and `disassembleCharString` usage; "Converting to/from SVG paths" section
+  - `docs/tables/CFF2.md` — Same CFF2-specific treatment
+  - `docs/tables/glyf.md` — "TrueType contour format" section documenting `{x, y, onCurve}` points, implied midpoints, quadratic curve mechanics, SVG conversion
+  - `docs/creating-otf.md` — "Working with CFF outlines" section: reading contours, charstring disassembly, editing via SVG round-trip
+  - `docs/creating-ttf.md` — "Working with TrueType outlines" section: reading quadratic contours, editing via SVG round-trip
+
 ### Important Notes for Future Tables
 
 - **OS/2 table**: DONE. Referred to as "OS-2" in filenames (`table_OS-2.js`) but the actual table tag in the font binary is `OS/2` — the registry key must be `'OS/2'`
@@ -640,7 +694,7 @@ Possible future work:
 - **Round-trip tests** (`test/roundtrip.test.js`) are the primary correctness check: import → export → reimport must produce identical JSON
 - **Table-specific tests** use `importFontTables()` (not `importFont()`) to access the internal `{ header, tables }` shape directly
 - Primary test fonts: `oblegg.otf` (CFF-based, sfVersion=OTTO) and `oblegg.ttf` (TrueType outlines, sfVersion=0x00010000)
-- Currently 338 tests total, all passing
+- Currently 414 tests total, all passing
 
 ## Gotchas & Lessons Learned
 
