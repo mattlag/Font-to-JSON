@@ -4,6 +4,7 @@
  */
 
 import { buildRawFromSimplified } from './expand.js';
+import { wrapWOFF1 } from './woff/woff1.js';
 import { writeCFF } from './otf/table_CFF.js';
 import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeVORG } from './otf/table_VORG.js';
@@ -128,20 +129,35 @@ const TABLE_RECORD_SIZE = 16;
 /**
  * Export a font JSON object back to binary data (ArrayBuffer).
  * @param {object} fontData - Font data object (simplified, legacy, or collection).
+ * @param {object} [options] - Export options.
+ * @param {string} [options.format='sfnt'] - Output format: 'sfnt' (default), 'woff'.
  * @returns {ArrayBuffer} Binary font file bytes.
  */
-export function exportFont(fontData) {
+export function exportFont(fontData, options = {}) {
 	if (!fontData || typeof fontData !== 'object') {
 		throw new TypeError('exportFont expects a font data object');
 	}
 
+	const format = (options.format || 'sfnt').toLowerCase();
+
 	if (isCollection(fontData)) {
-		return exportCollection(fontData);
+		const sfnt = exportCollection(fontData);
+		if (format === 'woff') {
+			return wrapWOFF1(sfnt, fontData._woff?.metadata, fontData._woff?.privateData);
+		}
+		return sfnt;
 	}
 
 	const resolved = resolveExportSource(fontData);
+	const sfnt = exportSFNT(resolved, 0);
 
-	return exportSFNT(resolved, 0);
+	if (format === 'woff') {
+		const meta = fontData._woff?.metadata ?? null;
+		const priv = fontData._woff?.privateData ?? null;
+		return wrapWOFF1(sfnt, meta, priv);
+	}
+
+	return sfnt;
 }
 
 function isCollection(fontData) {

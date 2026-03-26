@@ -50,6 +50,7 @@ import { parseVhea } from './sfnt/table_vhea.js';
 import { parseVmtx } from './sfnt/table_vmtx.js';
 import { parseVVAR } from './sfnt/table_VVAR.js';
 import { buildSimplified } from './simplify.js';
+import { unwrapWOFF1 } from './woff/woff1.js';
 import { parseCvar } from './ttf/table_cvar.js';
 import { parseCvt } from './ttf/table_cvt.js';
 import { parseFpgm } from './ttf/table_fpgm.js';
@@ -194,6 +195,14 @@ export function importFont(buffer) {
 			bytes[2],
 			bytes[3],
 		);
+		if (signature === 'wOFF') {
+			const { sfnt, metadata, privateData } = unwrapWOFF1(buffer);
+			const result = importFont(sfnt);
+			result._woff = { version: 1 };
+			if (metadata) result._woff.metadata = metadata;
+			if (privateData) result._woff.privateData = privateData;
+			return result;
+		}
 		if (signature === 'ttcf') {
 			return importCollection(buffer);
 		}
