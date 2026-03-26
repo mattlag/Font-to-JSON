@@ -538,7 +538,7 @@ function writeFormat10(subtable) {
 	const w = new DataWriter(totalLen);
 
 	w.uint16(10); // format
-	w.uint16(0);  // reserved
+	w.uint16(0); // reserved
 	w.uint32(totalLen);
 	w.uint32(language);
 	w.uint32(startCharCode);

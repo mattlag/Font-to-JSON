@@ -9,6 +9,8 @@ import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeVORG } from './otf/table_VORG.js';
 import { writeAvar } from './sfnt/table_avar.js';
 import { writeBASE } from './sfnt/table_BASE.js';
+import { writeBdat } from './sfnt/table_bdat.js';
+import { writeBloc } from './sfnt/table_bloc.js';
 import { writeCBDT, writeCBDTComputeOffsets } from './sfnt/table_CBDT.js';
 import { writeCBLC } from './sfnt/table_CBLC.js';
 import { writeCmap } from './sfnt/table_cmap.js';
@@ -29,6 +31,7 @@ import { writeHmtx } from './sfnt/table_hmtx.js';
 import { writeHVAR } from './sfnt/table_HVAR.js';
 import { writeJSTF } from './sfnt/table_JSTF.js';
 import { writeKern } from './sfnt/table_kern.js';
+import { writeLtag } from './sfnt/table_ltag.js';
 import { writeLTSH } from './sfnt/table_LTSH.js';
 import { writeMATH } from './sfnt/table_MATH.js';
 import { writeMaxp } from './sfnt/table_maxp.js';
@@ -109,7 +112,10 @@ const tableWriters = {
 	EBDT: writeEBDT,
 	EBLC: writeEBLC,
 	EBSC: writeEBSC,
+	bloc: writeBloc,
+	bdat: writeBdat,
 	sbix: writeSbix,
+	ltag: writeLtag,
 	'SVG ': writeSVG,
 };
 
@@ -391,6 +397,16 @@ function coordinateTableWrites(tables) {
 			writeCBDTComputeOffsets(tables.EBDT, tables.EBLC);
 		precomputed.set('EBDT', ebdtBytes);
 		precomputed.set('EBLC', writeCBLC(tables.EBLC, ebdtOffsetInfo));
+	}
+
+	// Same for bloc/bdat (Apple bitmap tables, identical structures)
+	const hasBloc = tables.bloc && !tables.bloc._raw && tables.bloc.sizes;
+	const hasBdat = tables.bdat && !tables.bdat._raw && tables.bdat.bitmapData;
+	if (hasBloc && hasBdat) {
+		const { bytes: bdatBytes, offsetInfo: bdatOffsetInfo } =
+			writeCBDTComputeOffsets(tables.bdat, tables.bloc);
+		precomputed.set('bdat', bdatBytes);
+		precomputed.set('bloc', writeCBLC(tables.bloc, bdatOffsetInfo));
 	}
 
 	return precomputed;

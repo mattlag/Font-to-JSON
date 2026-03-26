@@ -9,6 +9,8 @@ import { parseVORG } from './otf/table_VORG.js';
 import { DataReader } from './reader.js';
 import { parseAvar } from './sfnt/table_avar.js';
 import { parseBASE } from './sfnt/table_BASE.js';
+import { parseBdat } from './sfnt/table_bdat.js';
+import { parseBloc } from './sfnt/table_bloc.js';
 import { parseCBDT } from './sfnt/table_CBDT.js';
 import { parseCBLC } from './sfnt/table_CBLC.js';
 import { parseCmap } from './sfnt/table_cmap.js';
@@ -29,6 +31,7 @@ import { parseHmtx } from './sfnt/table_hmtx.js';
 import { parseHVAR } from './sfnt/table_HVAR.js';
 import { parseJSTF } from './sfnt/table_JSTF.js';
 import { parseKern } from './sfnt/table_kern.js';
+import { parseLtag } from './sfnt/table_ltag.js';
 import { parseLTSH } from './sfnt/table_LTSH.js';
 import { parseMATH } from './sfnt/table_MATH.js';
 import { parseMaxp } from './sfnt/table_maxp.js';
@@ -111,7 +114,10 @@ const tableParsers = {
 	EBLC: parseEBLC,
 	EBDT: parseEBDT,
 	EBSC: parseEBSC,
+	bloc: parseBloc,
+	bdat: parseBdat,
 	sbix: parseSbix,
+	ltag: parseLtag,
 	'SVG ': parseSVG,
 };
 
@@ -161,7 +167,10 @@ const tableParseOrder = [
 	'EBLC',
 	'EBDT',
 	'EBSC',
+	'bloc',
+	'bdat',
 	'sbix',
+	'ltag',
 ];
 
 /**
@@ -443,6 +452,19 @@ function extractTableData(buffer, tableDirectory) {
 	// Same cleanup for EBLC/EBDT (identical structures)
 	if (tables.EBLC && tables.EBDT?.bitmapData) {
 		for (const size of tables.EBLC.sizes) {
+			for (const sub of size.indexSubTables ?? []) {
+				delete sub.imageDataOffset;
+				delete sub.sbitOffsets;
+				if (sub.glyphArray) {
+					sub.glyphIdArray = sub.glyphArray.slice(0, -1).map((g) => g.glyphID);
+					delete sub.glyphArray;
+				}
+			}
+		}
+	}
+	// Same cleanup for bloc/bdat (Apple bitmap tables, identical structures)
+	if (tables.bloc && tables.bdat?.bitmapData) {
+		for (const size of tables.bloc.sizes) {
 			for (const sub of size.indexSubTables ?? []) {
 				delete sub.imageDataOffset;
 				delete sub.sbitOffsets;

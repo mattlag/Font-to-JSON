@@ -127,3 +127,23 @@ describe('Collection: OTC (CFF outlines)', () => {
 		).toBe(true);
 	}, 120000);
 });
+
+describe('Round-trip: Apple bitmap tables (bloc/bdat)', () => {
+	it('should round-trip cour-test.ttf with bloc/bdat tables', async () => {
+		const filePath = resolve(SAMPLES_DIR, 'cour-test.ttf');
+		const buffer = (await readFile(filePath)).buffer;
+
+		const firstImport = importFont(buffer);
+
+		// Verify bloc/bdat are fully parsed (not raw)
+		expect(firstImport.tables.bloc).toBeDefined();
+		expect(firstImport.tables.bloc._raw).toBeUndefined();
+		expect(firstImport.tables.bdat).toBeDefined();
+		expect(firstImport.tables.bdat._raw).toBeUndefined();
+
+		const exported = exportFont(firstImport);
+		const secondImport = importFont(exported);
+
+		expect(secondImport).toEqual(firstImport);
+	}, 60000);
+});

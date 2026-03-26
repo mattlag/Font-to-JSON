@@ -163,8 +163,7 @@ describe('cmap Format 2 (High-byte mapping)', () => {
 
 		// Compute total length
 		const numSubHeaders = 2;
-		const totalLen =
-			6 + 512 + numSubHeaders * 8 + glyphIdArray.length * 2;
+		const totalLen = 6 + 512 + numSubHeaders * 8 + glyphIdArray.length * 2;
 
 		const w = new DataWriter(totalLen);
 		w.uint16(2); // format
@@ -295,7 +294,7 @@ describe('cmap Format 10 (Trimmed array)', () => {
 		const w = new DataWriter(totalLen);
 
 		w.uint16(10); // format
-		w.uint16(0);  // reserved
+		w.uint16(0); // reserved
 		w.uint32(totalLen);
 		w.uint32(0); // language
 		w.uint32(0x10000); // startCharCode (supplementary plane)
