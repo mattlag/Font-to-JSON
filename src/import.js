@@ -50,7 +50,6 @@ import { parseVhea } from './sfnt/table_vhea.js';
 import { parseVmtx } from './sfnt/table_vmtx.js';
 import { parseVVAR } from './sfnt/table_VVAR.js';
 import { buildSimplified } from './simplify.js';
-import { unwrapWOFF1 } from './woff/woff1.js';
 import { parseCvar } from './ttf/table_cvar.js';
 import { parseCvt } from './ttf/table_cvt.js';
 import { parseFpgm } from './ttf/table_fpgm.js';
@@ -59,6 +58,7 @@ import { parseGlyf } from './ttf/table_glyf.js';
 import { parseGvar } from './ttf/table_gvar.js';
 import { parseLoca } from './ttf/table_loca.js';
 import { parsePrep } from './ttf/table_prep.js';
+import { unwrapWOFF1 } from './woff/woff1.js';
 
 /**
  * Registry of table parsers.

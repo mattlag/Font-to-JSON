@@ -21,6 +21,7 @@
 		"test:visual": "node test/visual/server.js",
 		"build": "vite build",
 		"docs:tables": "node scripts/generate-table-docs.mjs",
+		"demo:dev": "vite --config demo/vite.config.js",
 		"docs:dev": "vitepress dev docs",
 		"docs:build": "vitepress build docs",
 		"docs:preview": "vitepress preview docs"

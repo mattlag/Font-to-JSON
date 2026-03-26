@@ -9,7 +9,7 @@
  * Spec: https://www.w3.org/TR/WOFF/
  */
 
-import { inflate, deflate } from 'pako';
+import { deflate, inflate } from 'pako';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -261,8 +261,7 @@ export function wrapWOFF1(sfntBuffer, metadata = null, privateData = null) {
 	const totalWoffLength = woffDataOffset;
 
 	// Compute totalSfntSize (the size the decoded SFNT would be)
-	let totalSfntSize =
-		SFNT_HEADER_SIZE + numTables * SFNT_TABLE_RECORD_SIZE;
+	let totalSfntSize = SFNT_HEADER_SIZE + numTables * SFNT_TABLE_RECORD_SIZE;
 	for (const ct of compressedTables) {
 		totalSfntSize += ct.origLength + ((4 - (ct.origLength % 4)) % 4);
 	}

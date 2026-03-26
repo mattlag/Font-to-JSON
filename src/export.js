@@ -4,7 +4,6 @@
  */
 
 import { buildRawFromSimplified } from './expand.js';
-import { wrapWOFF1 } from './woff/woff1.js';
 import { writeCFF } from './otf/table_CFF.js';
 import { writeCFF2 } from './otf/table_CFF2.js';
 import { writeVORG } from './otf/table_VORG.js';
@@ -58,6 +57,7 @@ import { writeGlyf, writeGlyfComputeOffsets } from './ttf/table_glyf.js';
 import { writeGvar } from './ttf/table_gvar.js';
 import { writeLoca } from './ttf/table_loca.js';
 import { writePrep } from './ttf/table_prep.js';
+import { wrapWOFF1 } from './woff/woff1.js';
 
 /**
  * Registry of table writers.
@@ -164,9 +164,7 @@ export function exportFont(fontData, options = {}) {
 		: defaultFormatFrom(fontData);
 
 	if (format === 'woff2') {
-		throw new Error(
-			'WOFF2 export is not yet supported. Use "sfnt" or "woff".',
-		);
+		throw new Error('WOFF2 export is not yet supported. Use "sfnt" or "woff".');
 	}
 	if (!SUPPORTED_FORMATS.has(format)) {
 		throw new Error(
@@ -180,7 +178,11 @@ export function exportFont(fontData, options = {}) {
 		}
 		const sfnt = exportCollection(fontData);
 		if (format === 'woff') {
-			return wrapWOFF1(sfnt, fontData._woff?.metadata, fontData._woff?.privateData);
+			return wrapWOFF1(
+				sfnt,
+				fontData._woff?.metadata,
+				fontData._woff?.privateData,
+			);
 		}
 		return sfnt;
 	}
