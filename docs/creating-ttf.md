@@ -88,3 +88,40 @@ Outline requirement (both required):
 - `loca` must match `glyf` layout and `head.indexToLocFormat`.
 - If you use variable-font tables (`fvar`, `gvar`, `avar`, `HVAR`, `MVAR`, `VVAR`, `cvar`), keep axis and tuple assumptions consistent.
 - Validate early with [`validateJSON`](./guide/validation.md).
+
+## Working with TrueType outlines
+
+TrueType fonts store glyph outlines as quadratic Bézier contours in the `glyf` table. Each contour is an array of points with `x`, `y`, and `onCurve` properties.
+
+### Reading outlines
+
+When you import a TTF with `importFont`, each glyph’s `contours` array contains point arrays:
+
+```js
+const font = importFont(buffer);
+const glyph = font.glyphs.find((g) => g.name === 'A');
+console.log(glyph.contours);
+// [[ { x: 0, y: 0, onCurve: true }, { x: 100, y: 200, onCurve: false }, ... ]]
+```
+
+- `onCurve: true` — on-curve anchor or line endpoint.
+- `onCurve: false` — off-curve quadratic control point.
+- Consecutive off-curve points have an implied on-curve midpoint between them.
+
+See the [`glyf` table docs](./tables/glyf.md#truetype-contour-format) for detailed format documentation.
+
+### Editing outlines via SVG
+
+Convert contours to SVG path strings for visual editing, then convert back:
+
+```js
+import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+
+const svg = contoursToSVGPath(glyph.contours); // "M0 0 Q100 200 200 0 Z"
+// ... edit the SVG path string ...
+const newContours = svgPathToContours(svg, 'truetype');
+```
+
+TrueType outlines produce `Q` (quadratic) SVG commands. The round-trip is lossless for quadratic paths. If the SVG contains cubic `C` commands, they are approximated as quadratic curves (subdivision with 0.5-unit error threshold).
+
+See the [SVG path conversion docs](./index.md#svg-path-conversion) for details on supported SVG commands and coordinate handling.

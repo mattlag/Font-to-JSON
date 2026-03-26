@@ -7,6 +7,11 @@
  * strings, and metrics live in one place.
  */
 
+import {
+	disassembleCharString,
+	interpretCharString,
+} from './otf/charstring_interpreter.js';
+
 // ===========================================================================
 //  MAIN ENTRY
 // ===========================================================================
@@ -418,9 +423,23 @@ function buildSimplifiedGlyphs(tables) {
 
 		// CFF outlines
 		if (isCFF) {
-			const charStrings = tables['CFF '].fonts[0].charStrings;
+			const cffTable = tables['CFF '];
+			const font = cffTable.fonts[0];
+			const charStrings = font.charStrings;
 			if (charStrings[i]) {
 				glyph.charString = charStrings[i];
+				glyph.charStringDisassembly = disassembleCharString(charStrings[i]);
+				// Interpret bytecode into cubic Bézier contours
+				const globalSubrs = cffTable.globalSubrs || [];
+				const localSubrs = font.localSubrs || [];
+				const result = interpretCharString(
+					charStrings[i],
+					globalSubrs,
+					localSubrs,
+				);
+				if (result.contours.length > 0) {
+					glyph.contours = result.contours;
+				}
 			}
 		}
 

@@ -16,19 +16,19 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ```json
 {
-  "tables": {
-    "CFF2": {
-      "majorVersion": null,
-      "minorVersion": null,
-      "topDict": null,
-      "globalSubrs": null,
-      "charStrings": null,
-      "fontDicts": null,
-      "fdSelect": null,
-      "variationStore": null,
-      "_checksum": 0
-    }
-  }
+	"tables": {
+		"CFF2": {
+			"majorVersion": null,
+			"minorVersion": null,
+			"topDict": null,
+			"globalSubrs": null,
+			"charStrings": null,
+			"fontDicts": null,
+			"fdSelect": null,
+			"variationStore": null,
+			"_checksum": 0
+		}
+	}
 }
 ```
 
@@ -42,7 +42,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `fontDicts` - implementation-defined
 - `fdSelect` - implementation-defined
 - `variationStore` - implementation-defined
-
 
 ## Nested JSON Structure
 
@@ -62,7 +61,11 @@ Parsed CFF2 table:
 			"localSubrs": [[11]]
 		}
 	],
-	"fdSelect": { "format": 3, "ranges": [{ "first": 0, "fd": 0 }], "sentinel": 500 },
+	"fdSelect": {
+		"format": 3,
+		"ranges": [{ "first": 0, "fd": 0 }],
+		"sentinel": 500
+	},
 	"variationStore": [0, 20, 0, 1]
 }
 ```
@@ -73,8 +76,37 @@ Notes:
 - `variationStore` is currently stored as raw bytes.
 - Private DICT and local subroutines are represented per entry in `fontDicts[]`.
 
+## Interpreting charStrings
 
+Like CFF v1, CFF2 stores glyph outlines as Type 2 charstring byte arrays. Font Flux interprets these into cubic Bézier contour commands:
 
+```js
+import { interpretCharString } from 'font-flux';
+
+const contours = interpretCharString(
+	cff2.charStrings[glyphIndex],
+	fontDict.localSubrs,
+	cff2.globalSubrs,
+);
+// Returns: [[{ type: 'M', x, y }, { type: 'C', x1, y1, x2, y2, x, y }, ...], ...]
+```
+
+Use `disassembleCharString(bytes)` for a human-readable text representation of the charstring program.
+
+When using `importFont`, CFF2 glyphs in the simplified `glyphs` array automatically include `contours`, `charString`, and `charStringDisassembly`.
+
+## Converting to/from SVG paths
+
+CFF2 contours work identically with the SVG path conversion functions:
+
+```js
+import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+
+const d = contoursToSVGPath(glyph.contours); // CFF2 cubic → SVG
+const contours = svgPathToContours(d, 'cff'); // SVG → CFF cubic
+```
+
+See the [main docs](../index.md#svg-path-conversion) for full SVG path conversion details.
 
 ## Validation Constraints
 
@@ -102,8 +134,6 @@ Notes:
 	}
 }
 ```
-
-
 
 ## Additional Nested Keys Seen In Implementation
 

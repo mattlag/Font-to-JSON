@@ -78,5 +78,41 @@ Outline requirement (choose exactly one):
 ## Notes
 
 - Use [`CFF `](./tables/CFF.md) for CFF v1 workflows and [`CFF2`](./tables/CFF2.md) for modern variable-friendly CFF2 workflows.
+
+## Working with CFF outlines
+
+CFF fonts store glyph outlines as Type 2 charstring byte arrays — an opaque binary program format. Font Flux decodes these into editable cubic Bézier contour data.
+
+### Reading outlines
+
+When you import an OTF with `importFont`, each glyph in the simplified output includes:
+
+- `contours` — decoded cubic Bézier commands: `M` (moveTo), `L` (lineTo), `C` (curveTo)
+- `charString` — the raw charstring bytes (for lossless export)
+- `charStringDisassembly` — human-readable charstring text
+
+```js
+const font = importFont(buffer);
+const glyph = font.glyphs.find((g) => g.name === 'A');
+console.log(glyph.contours); // [[{ type: 'M', x, y }, { type: 'C', ... }, ...]]
+console.log(glyph.charStringDisassembly); // "100 700 rmoveto 300 0 rlineto ..."
+```
+
+For table-level work, use `interpretCharString` and `disassembleCharString` directly on `charStrings` byte arrays. See the [`CFF `](./tables/CFF.md#interpreting-charstrings) or [`CFF2`](./tables/CFF2.md#interpreting-charstrings) table docs.
+
+### Editing outlines via SVG
+
+Convert contours to SVG path strings for visual editing, then convert back:
+
+```js
+import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+
+const svg = contoursToSVGPath(glyph.contours); // "M100 700 C... Z"
+// ... edit the SVG path string ...
+const newContours = svgPathToContours(svg, 'cff');
+```
+
+CFF outlines produce `C` (cubic) SVG commands. The round-trip is lossless for cubic paths. See the [SVG path conversion docs](./index.md#svg-path-conversion) for details on supported SVG commands and coordinate handling.
+
 - Keep required metrics tables (`head`, `hhea`, `hmtx`, `maxp`) consistent with your outline and glyph count.
 - Validate early with [`validateJSON`](./guide/validation.md).

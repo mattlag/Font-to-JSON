@@ -7,41 +7,27 @@ export function createLoadingScreen(container, onFontLoaded) {
 
 	container.innerHTML = `
 		<div class="loading-screen">
-			<div class="loading-card">
-				<h1>Font Flux JS</h1>
-				<p class="tagline">Drop a font file to explore its contents</p>
-				<div class="drop-zone" tabindex="0">
-					<div class="drop-zone-icon">⬇</div>
-					<p class="drop-zone-text"><strong>Drag &amp; drop</strong> a font file here</p>
-					<button class="browse-btn" type="button">Browse Files</button>
-					<input type="file" accept="${ACCEPT}" hidden>
-				</div>
+			<div class="loading-content">
+				<h1>font flux js</h1>
+				<p class="hero-tagline">Convert font files to JSON, make edits, then convert it back!</p>
+				<p class="hero-links">An open source frontend library. Read the <a href="docs/" target="_blank" rel="noopener">Docs</a>, use it with <a href="https://www.npmjs.com/package/font-flux-js" target="_blank" rel="noopener">NPM</a> or <a href="https://github.com/mattlag/Font-Flux-JS" target="_blank" rel="noopener">GitHub</a></p>
+				<p class="tagline">Drop a font file anywhere, or <a href="#" class="browse-link">browse for files</a></p>
 				<p class="supported-formats">Supports OTF, TTF, WOFF, TTC, OTC</p>
+				<input type="file" accept="${ACCEPT}" hidden>
 				<div class="status-area"></div>
 			</div>
 		</div>
 	`;
 
-	const dropZone = container.querySelector('.drop-zone');
+	const screen = container.querySelector('.loading-screen');
 	const fileInput = container.querySelector('input[type="file"]');
-	const browseBtn = container.querySelector('.browse-btn');
+	const browseLink = container.querySelector('.browse-link');
 	const statusArea = container.querySelector('.status-area');
 
-	// Browse button triggers file input
-	browseBtn.addEventListener('click', (e) => {
-		e.stopPropagation();
+	// Browse link triggers file input
+	browseLink.addEventListener('click', (e) => {
+		e.preventDefault();
 		fileInput.click();
-	});
-
-	// Clicking the drop zone also opens the file picker
-	dropZone.addEventListener('click', () => fileInput.click());
-
-	// Keyboard support
-	dropZone.addEventListener('keydown', (e) => {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			fileInput.click();
-		}
 	});
 
 	// File input change
@@ -51,28 +37,28 @@ export function createLoadingScreen(container, onFontLoaded) {
 		}
 	});
 
-	// Drag events
+	// Drag events on the whole screen
 	let dragCounter = 0;
 
-	dropZone.addEventListener('dragenter', (e) => {
+	screen.addEventListener('dragenter', (e) => {
 		e.preventDefault();
 		dragCounter++;
-		dropZone.classList.add('dragover');
+		screen.classList.add('dragover');
 	});
 
-	dropZone.addEventListener('dragleave', () => {
+	screen.addEventListener('dragleave', () => {
 		dragCounter--;
-		if (dragCounter === 0) dropZone.classList.remove('dragover');
+		if (dragCounter === 0) screen.classList.remove('dragover');
 	});
 
-	dropZone.addEventListener('dragover', (e) => {
+	screen.addEventListener('dragover', (e) => {
 		e.preventDefault();
 	});
 
-	dropZone.addEventListener('drop', (e) => {
+	screen.addEventListener('drop', (e) => {
 		e.preventDefault();
 		dragCounter = 0;
-		dropZone.classList.remove('dragover');
+		screen.classList.remove('dragover');
 		if (e.dataTransfer.files.length > 0) {
 			handleFile(e.dataTransfer.files[0]);
 		}

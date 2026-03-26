@@ -23,6 +23,7 @@ export const TABLE_DESCRIPTIONS = {
 	EBDT: 'Stores embedded bitmap glyph image data for screen-optimized rendering at specific sizes.',
 	EBLC: 'Indexes the location and format of embedded bitmap glyphs within the EBDT table.',
 	EBSC: 'Defines scaling rules that map bitmap strikes to other sizes when exact-size bitmaps are unavailable.',
+	FFTM: 'A non-standard table added by FontForge that stores font creation and modification timestamps.',
 	fpgm: 'Contains the TrueType font program - global hinting instructions executed once when the font is loaded.',
 	fvar: 'Defines the variation axes (e.g. weight, width) and their ranges for a variable font.',
 	gasp: 'Controls grid-fitting (hinting) and anti-aliasing behavior at different pixel sizes.',
