@@ -21,8 +21,8 @@ This site is for humans writing or editing font JSON by hand.
 
 | Function                                    | Description                                                                    |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| `importFont(buffer)`                        | Parse an `ArrayBuffer` into a simplified font object (TTF/OTF/TTC/WOFF/WOFF2).|
-| `exportFont(fontData, options?)`             | Convert a font object back to binary. Returns an `ArrayBuffer`.                |
+| `importFont(buffer)`                        | Parse an `ArrayBuffer` into a simplified font object (TTF/OTF/TTC/WOFF/WOFF2). |
+| `exportFont(fontData, options?)`            | Convert a font object back to binary. Returns an `ArrayBuffer`.                |
 | `initWoff2()`                               | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
 | `validateJSON(fontData)`                    | Check a font object for structural issues. Returns `{ valid, issues[] }`.      |
 | `buildSimplified(raw)`                      | Convert raw `{ header, tables }` into the simplified structure.                |
@@ -30,8 +30,8 @@ This site is for humans writing or editing font JSON by hand.
 | `importFontTables(buffer)`                  | Low-level import returning raw `{ header, tables }` without simplification.    |
 | `interpretCharString(bytes, subrs, gsubrs)` | Interpret CFF Type 2 charstring bytes into cubic Bézier contour commands.      |
 | `disassembleCharString(bytes)`              | Disassemble CFF charstring bytes into human-readable text.                     |
-| `contoursToSVGPath(contours)`               | Convert glyph contours (TrueType or CFF) to an SVG path `d` string.           |
-| `svgPathToContours(pathData, format)`       | Parse an SVG path `d` string into `'truetype'` or `'cff'` contours.           |
+| `contoursToSVGPath(contours)`               | Convert glyph contours (TrueType or CFF) to an SVG path `d` string.            |
+| `svgPathToContours(pathData, format)`       | Parse an SVG path `d` string into `'truetype'` or `'cff'` contours.            |
 
 See the [README](https://github.com/mattlag/Font-Flux-JS#readme) for installation and usage examples.
 

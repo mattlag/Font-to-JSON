@@ -6,9 +6,15 @@ Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries
 
 ## Installation
 
+### npm (recommended)
+
 ```bash
 npm install font-flux-js
 ```
+
+### Standalone
+
+You can also use `dist/font-flux-js.js` directly as a single-file ES module — no bundler or npm required. Everything is self-contained except for WOFF2 support, which requires the `brotli-wasm` package in browser environments (Node.js uses its built-in `zlib`). If you don't need WOFF2, the single file works with no other dependencies.
 
 ## Quick start
 
@@ -94,15 +100,15 @@ The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editin
 
 ## API
 
-| Function                             | Description                                                                                         |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Function                             | Description                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object. Handles TTF, OTF, TTC, OTC, WOFF, and WOFF2. |
-| `exportFont(fontData, options?)`     | Convert a font object back to binary. Returns an `ArrayBuffer`.                                     |
-| `initWoff2()`                        | Initialize WOFF2 support (async). Must be awaited once before importing/exporting WOFF2 files.      |
-| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, issues[] }`.                           |
-| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                               |
-| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                                           |
-| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.                         |
+| `exportFont(fontData, options?)`     | Convert a font object back to binary. Returns an `ArrayBuffer`.                                    |
+| `initWoff2()`                        | Initialize WOFF2 support (async). Must be awaited once before importing/exporting WOFF2 files.     |
+| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, issues[] }`.                          |
+| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                              |
+| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                                          |
+| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.                        |
 
 ## Supported formats
 

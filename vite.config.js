@@ -10,6 +10,9 @@ export default defineConfig({
 			formats: ['es'],
 		},
 		outDir: 'dist',
+		rollupOptions: {
+			external: ['brotli-wasm', /^node:/],
+		},
 	},
 	test: {
 		include: ['test/**/*.test.js'],

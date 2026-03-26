@@ -25,7 +25,7 @@ import { initWoff2, exportFont } from 'font-flux-js';
 
 await initWoff2(); // Required once before WOFF2 use
 
-const woff = exportFont(fontData, { format: 'woff' });   // WOFF 1.0 (zlib)
+const woff = exportFont(fontData, { format: 'woff' }); // WOFF 1.0 (zlib)
 const woff2 = exportFont(fontData, { format: 'woff2' }); // WOFF 2.0 (Brotli)
 ```
 
