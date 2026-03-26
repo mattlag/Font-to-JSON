@@ -24,9 +24,14 @@ Tables: https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6.h
 Overview: https://learn.microsoft.com/en-us/typography/opentype/spec/otff#collections
 Overview: https://docs.fileformat.com/font/ttc/
 
-## WOFF
+## WOFF / WOFF2
 
-WOFF and WOFF2 will come later
+WOFF 1.0 spec: https://www.w3.org/TR/WOFF/
+WOFF 2.0 spec: https://www.w3.org/TR/WOFF2/
+
+Both WOFF and WOFF2 are fully supported (import + export). WOFF1 uses zlib (pako) compression per-table. WOFF2 uses Brotli compression for the entire font data stream and supports content-aware transforms for glyf, loca, and hmtx tables.
+
+WOFF2 requires `await initWoff2()` before use to initialize the Brotli compression backend.
 
 # Project organization
 

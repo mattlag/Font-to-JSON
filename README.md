@@ -94,19 +94,36 @@ The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editin
 
 ## API
 
-| Function                             | Description                                                                           |
-| ------------------------------------ | ------------------------------------------------------------------------------------- |
-| `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object. Handles TTF, OTF, TTC, and OTC. |
-| `exportFont(fontData)`               | Convert a font object back to binary. Returns an `ArrayBuffer`.                       |
-| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, issues[] }`.             |
-| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                 |
-| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                             |
-| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.           |
+| Function                             | Description                                                                                         |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object. Handles TTF, OTF, TTC, OTC, WOFF, and WOFF2. |
+| `exportFont(fontData, options?)`     | Convert a font object back to binary. Returns an `ArrayBuffer`.                                     |
+| `initWoff2()`                        | Initialize WOFF2 support (async). Must be awaited once before importing/exporting WOFF2 files.      |
+| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, issues[] }`.                           |
+| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                               |
+| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                                           |
+| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.                         |
 
 ## Supported formats
 
 - **TTF** (`.ttf`) and **OTF** (`.otf`) — single fonts
 - **TTC** (`.ttc`) and **OTC** (`.otc`) — font collections
+- **WOFF** (`.woff`) — Web Open Font Format 1.0 (zlib compression)
+- **WOFF2** (`.woff2`) — Web Open Font Format 2.0 (Brotli compression)
+
+### WOFF2 initialization
+
+WOFF2 support requires a one-time async initialization before use. WOFF1 and SFNT formats work without it.
+
+```js
+import { initWoff2, importFont, exportFont } from 'font-flux-js';
+
+await initWoff2(); // Call once at startup
+
+// Now WOFF2 import and export work
+const fontData = importFont(woff2Buffer);
+const woff2Output = exportFont(fontData, { format: 'woff2' });
+```
 
 ## Supported tables
 

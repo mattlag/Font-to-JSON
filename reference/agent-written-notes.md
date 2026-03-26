@@ -622,14 +622,45 @@ Bitmap glyph tables fully structured: **EBLC**, **EBDT**, **EBSC**, **CBLC**, **
 Additional shared tables complete: **DSIG**, **hdmx**, **LTSH**.
 Additional shared tables complete: **MERG**, **meta**.
 Additional shared tables complete: **PCLT**, **VDMX**.
+Container format support complete: **WOFF** (v1.0), **WOFF2** (v2.0).
 
 Possible future work:
 
 - Additional tables (feat/morx, etc.)
-
-- WOFF/WOFF2 container support
 - Full JSON serialization (BigInt replacer/reviver)
 - export.js refactor to use DataWriter for header/directory
+- WOFF2 forward transforms (glyf/loca/hmtx) for better compression ratios (currently uses null transforms)
+
+### WOFF 2.0 Container Support (`src/woff/woff2.js`)
+
+- **Full WOFF2 import (unwrap) and export (wrap)**: ~1300 LOC in `src/woff/woff2.js`
+- **Brotli compression**: Uses Node.js built-in `zlib.brotliCompressSync/brotliDecompressSync` in Node.js environments; falls back to `brotli-wasm` (WASM) in browsers. Lazy async init via `initWoff2()` / `initBrotli()`.
+- **Dependencies**: `brotli-wasm` added to package.json (browser fallback only; Node.js uses built-in zlib)
+- **Async init pattern**: `initWoff2()` must be awaited once before WOFF2 operations. Keeps `importFont`/`exportFont` synchronous.
+- **Unwrap (WOFF2 → SFNT)**:
+  - Parses 48-byte WOFF2 header + variable-length table directory (with known tag indices 0–62 and UIntBase128 lengths)
+  - Parses optional collection directory for TTC-in-WOFF2
+  - Brotli-decompresses the concatenated table data stream
+  - Applies reverse transforms per WOFF2 spec:
+    - **glyf transform (§5.1)**: Parses 7 substreams (nContour, nPoints, flag, glyph, composite, bbox, instruction), decodes triplet-encoded coordinates via 128-entry lookup table, reconstructs standard TrueType glyf records with flag compression
+    - **loca transform (§5.3)**: Rebuilds loca table from reconstructed glyph offsets
+    - **hmtx transform (§5.4)**: Reconstructs lsb/leftSideBearing values from glyf xMin
+  - Reassembles valid SFNT (or TTC) with correct table directory, offsets, checksums, and head.checksumAdjustment
+- **Wrap (SFNT → WOFF2)**:
+  - Uses **null transforms** (glyf/loca version 3, hmtx version 0) for simplicity — produces valid but less optimally compressed WOFF2
+  - Removes DSIG table per spec requirement
+  - Encodes known table tags as indices, unknown tags as 4-byte literals
+  - Brotli-compresses concatenated table data, optional metadata
+  - Supports optional metadata and private data blocks
+- **Integration**:
+  - `import.js`: `'wOF2'` signature detection → `unwrapWOFF2()` → recurse with `importFont()` on resulting SFNT, sets `_woff.version = 2`
+  - `export.js`: `wrapWOFF2()` calls in single-font, collection, and collection-split export paths; `SUPPORTED_FORMATS` includes `'woff2'`; smart default detects `_woff.version === 2`
+  - `main.js`: exports `initWoff2()` async init function
+- **Variable-length types**: `readUIntBase128()` / `writeUIntBase128()`, `read255UInt16()` / `write255UInt16()`
+- **Known design tradeoffs**:
+  - Null transforms for encoding: Simpler implementation, slightly larger files. Full forward transforms (triplet encoding, glyf stream splitting) would improve compression but add significant complexity.
+  - WOFF2 reassembly recomputes correct SFNT directory checksums; the export pipeline has a pre-existing issue where some table directory checksums are stale. This means WOFF2 roundtrip "corrects" checksums. Tests strip `_checksum` and `checksumAdjustment` for comparisons.
+- **Tests**: 16 in `test/woff/woff2.test.js` (unwrap, wrap, importFont integration, exportFont integration, cross-format WOFF1↔WOFF2). `test/woff/cross-format.test.js` updated to test WOFF2 export success (was previously testing error throw).
 
 ### CFF CharString Interpreter (`src/otf/charstring_interpreter.js`)
 
