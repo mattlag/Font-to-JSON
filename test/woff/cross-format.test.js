@@ -6,18 +6,23 @@
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { exportFont, importFont } from '../../src/main.js';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { exportFont, importFont, initWoff2 } from '../../src/main.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
 // ─── Helper ─────────────────────────────────────────────────────────────────
 
 const WOFF_SIG = 0x774f4646;
+const WOFF2_SIG = 0x774f4632;
 const TTF_SIG = 0x00010000;
 const OTTO_SIG = 0x4f54544f;
 const TTC_SIG = 0x74746366;
 const SFNT_SIGS = [TTF_SIG, OTTO_SIG];
+
+beforeAll(async () => {
+	await initWoff2();
+});
 
 function sig(buf) {
 	return new DataView(buf).getUint32(0);
@@ -170,12 +175,11 @@ describe('Format validation', () => {
 		);
 	});
 
-	it('should throw on WOFF2 format (not yet supported)', async () => {
+	it('should produce valid WOFF2 for format:"woff2"', async () => {
 		const buf = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
 		const imported = importFont(buf);
-		expect(() => exportFont(imported, { format: 'woff2' })).toThrow(
-			'WOFF2 export is not yet supported',
-		);
+		const out = exportFont(imported, { format: 'woff2' });
+		expect(sig(out)).toBe(WOFF2_SIG);
 	});
 });
 

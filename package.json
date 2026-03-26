@@ -53,6 +53,7 @@
 		"vitest": "^4.0.18"
 	},
 	"dependencies": {
+		"brotli-wasm": "^3.0.1",
 		"pako": "^2.1.0"
 	}
 }

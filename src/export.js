@@ -58,6 +58,7 @@ import { writeGvar } from './ttf/table_gvar.js';
 import { writeLoca } from './ttf/table_loca.js';
 import { writePrep } from './ttf/table_prep.js';
 import { wrapWOFF1 } from './woff/woff1.js';
+import { wrapWOFF2 } from './woff/woff2.js';
 
 /**
  * Registry of table writers.
@@ -126,7 +127,7 @@ const HEADER_SIZE = 12;
 /** Size of a single Table Record in the table directory, in bytes. */
 const TABLE_RECORD_SIZE = 16;
 
-const SUPPORTED_FORMATS = new Set(['sfnt', 'woff']);
+const SUPPORTED_FORMATS = new Set(['sfnt', 'woff', 'woff2']);
 
 /**
  * Determine the default export format from the font data's origin.
@@ -163,12 +164,9 @@ export function exportFont(fontData, options = {}) {
 		? options.format.toLowerCase()
 		: defaultFormatFrom(fontData);
 
-	if (format === 'woff2') {
-		throw new Error('WOFF2 export is not yet supported. Use "sfnt" or "woff".');
-	}
 	if (!SUPPORTED_FORMATS.has(format)) {
 		throw new Error(
-			`Unknown export format "${format}". Supported: sfnt, woff.`,
+			`Unknown export format "${format}". Supported: sfnt, woff, woff2.`,
 		);
 	}
 
@@ -184,6 +182,13 @@ export function exportFont(fontData, options = {}) {
 				fontData._woff?.privateData,
 			);
 		}
+		if (format === 'woff2') {
+			return wrapWOFF2(
+				sfnt,
+				fontData._woff?.metadata,
+				fontData._woff?.privateData,
+			);
+		}
 		return sfnt;
 	}
 
@@ -194,6 +199,12 @@ export function exportFont(fontData, options = {}) {
 		const meta = fontData._woff?.metadata ?? null;
 		const priv = fontData._woff?.privateData ?? null;
 		return wrapWOFF1(sfnt, meta, priv);
+	}
+
+	if (format === 'woff2') {
+		const meta = fontData._woff?.metadata ?? null;
+		const priv = fontData._woff?.privateData ?? null;
+		return wrapWOFF2(sfnt, meta, priv);
 	}
 
 	return sfnt;
@@ -214,9 +225,8 @@ function exportCollectionSplit(collectionData, format) {
 	return fonts.map((face) => {
 		const resolved = resolveExportSource(face);
 		const sfnt = exportSFNT(resolved, 0);
-		if (format === 'woff') {
-			return wrapWOFF1(sfnt);
-		}
+		if (format === 'woff') return wrapWOFF1(sfnt);
+		if (format === 'woff2') return wrapWOFF2(sfnt);
 		return sfnt;
 	});
 }

@@ -59,6 +59,7 @@ import { parseGvar } from './ttf/table_gvar.js';
 import { parseLoca } from './ttf/table_loca.js';
 import { parsePrep } from './ttf/table_prep.js';
 import { unwrapWOFF1 } from './woff/woff1.js';
+import { unwrapWOFF2 } from './woff/woff2.js';
 
 /**
  * Registry of table parsers.
@@ -199,6 +200,14 @@ export function importFont(buffer) {
 			const { sfnt, metadata, privateData } = unwrapWOFF1(buffer);
 			const result = importFont(sfnt);
 			result._woff = { version: 1 };
+			if (metadata) result._woff.metadata = metadata;
+			if (privateData) result._woff.privateData = privateData;
+			return result;
+		}
+		if (signature === 'wOF2') {
+			const { sfnt, metadata, privateData } = unwrapWOFF2(buffer);
+			const result = importFont(sfnt);
+			result._woff = { version: 2 };
 			if (metadata) result._woff.metadata = metadata;
 			if (privateData) result._woff.privateData = privateData;
 			return result;
