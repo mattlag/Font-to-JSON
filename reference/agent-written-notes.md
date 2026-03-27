@@ -785,3 +785,33 @@ Possible future work:
 52. **ltag table**: Apple language tag table — maps numeric codes to IETF BCP 47 tags. Simple structure: version(UInt32) + flags(UInt32) + numTags(UInt32) + tagRange[numTags]{offset(UInt16), length(UInt16)} + UTF-8 strings. Standalone parser/writer in `src/sfnt/table_ltag.js`.
 53. **JSON serialization** (`src/json.js`): `fontToJSON(fontData, indent?)` serializes font data to a JSON string, converting BigInt LONGDATETIME values to numbers, converting TypedArrays (e.g. `_raw` Uint8Array) to plain arrays, and stripping known transient top-level keys (`_dirty`, `_fileName`, `_originalBuffer`, `_collection`, `_collectionFonts`, `_woff`). `_header` is preserved because `exportFont` needs it for lossless re-export (without it, the export falls through to `buildRawFromSimplified` which has limitations). Table-level `_raw` and `_checksum` are also preserved. `fontFromJSON(jsonString)` deserializes back. The writer's `longDateTime()` method already accepts both BigInt and number via `BigInt(value)`, so deserialized numbers work without conversion. Both functions are exported from `src/main.js`.
 54. **Validator three-level severity** (`src/validate/validateJSON.js`): The validator now uses three severity levels — `error`, `warning`, and `info`. Auto-fixable issues (missing/wrong header, directory field mismatches, numTables mismatches, collection numFonts mismatches) are corrected in-place on the input object and reported as `info`. The report object includes `infos` array and `summary.infoCount` in addition to errors/warnings. `validateHeader` now receives the full `fontData` (not just `header`) so it can synthesize a header from `_header` or from table data. Unknown tables with `_raw` are reported as `TABLE_UNRECOGNIZED_RAW` (info) rather than being silently ignored. Complete issue reference in `docs/guide/validation.md`.
+
+### Demo App — UI Polish (March 2026)
+
+**Info page card redesign** (`demo/src/tabs/info.js`, CSS lines ~267+):
+- Replaced flat layout with card-based design: hero card (logo + tagline + description + version), three link cards in a responsive grid (Documentation/NPM/GitHub with inline SVG icons), and a family card (Glyphr Studio, GitHub issues, email).
+- npm icon: uses the clean square-with-"n" single-path SVG (`M0 0v24h24V0H0zm19.2 19.2h-2.4V7.2h-4.8v12H4.8V4.8h14.4v14.4z`).
+- Responsive: grid collapses to single column below 520px.
+
+**Subset tab redesign** (`demo/src/tabs/subset.js`, CSS `.subset-*`):
+- **Inverted selection model**: Nothing checked by default. Check ranges to mark for removal. Button says "Remove Checked Ranges" (was "Remove Unchecked Glyphs").
+- **Filter bar**: Moved below the summary bar. Input is ~25% width (max 300px), not full-width.
+- **Toggle button**: Single "Toggle Selection" text button (light gray, swap icon) replaces the two ugly "Check All" / "Uncheck All" buttons.
+- **Count buttons**: Each range's glyph count is a clickable `<button>` that selects that range in the Range Preview dropdown and scrolls to preview. Styled in accent color with border reveal on hover.
+- **Range Preview section**: Below the block list. `<select>` dropdown to pick a populated block → glyph grid showing characters rendered in the loaded font (`DemoLoadedFont` @font-face) + hex code point. Paged at 1000 glyphs/page with Prev/Next controls.
+
+**Collection font chooser** (`demo/src/main.js`):
+- On collection load (TTC/OTC), every font in `_collectionFonts` is tagged with `_collection`, `_collectionFonts`, `_collectionIndex`, `_fileName`, `_originalBuffer`, `_dirty`.
+- A `<select class="font-chooser">` dropdown appears in the header only for multi-font collections.
+- Changing the dropdown calls `showApp(collectionFonts[idx])` — full app re-render. All fonts live in memory by reference, so edits persist across switches.
+- Export/JSON download currently operates on the single displayed font. Full collection re-export (TTC/OTC) not yet supported from the demo UI.
+
+**Preview tab paging** (`demo/src/tabs/preview.js`):
+- Glyph Outlines grid now pages at 100 glyphs per page (was all 1000 at once).
+- Prev/Next paging controls below the grid (`.glyph-paging`, `.glyph-page-btn`, `.glyph-page-info`).
+- Page change scrolls to grid top.
+
+**Branding updates**:
+- Favicon: `font-flux-js-favicon.svg` (112×112, rounded rect with teal 'f') added to `docs/public/` and `demo/src/assets/`. Referenced in VitePress config `head` and `demo/index.html`.
+- Logo in README: centered at 400px width above the title.
+- Tagline: "Convert fonts to JSON, make edits, then convert them back!" (updated in README, package.json, loading.js, info.js).
