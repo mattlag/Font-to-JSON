@@ -1,7 +1,7 @@
 {
 	"name": "font-flux-js",
-	"version": "1.1.0",
-	"description": "Convert a font file to JSON... and back!",
+	"version": "1.2.0",
+	"description": "Convert fonts to JSON, make edits, then convert them back!",
 	"main": "dist/font-flux-js.js",
 	"type": "module",
 	"exports": {
@@ -35,18 +35,22 @@
 		"font",
 		"opentype",
 		"truetype",
+		"woff",
+		"woff2",
 		"ttf",
 		"otf",
+		"ttc",
+		"otc",
 		"json",
 		"parser",
 		"converter"
 	],
-	"author": "",
+	"author": "Matt LaGrandeur",
 	"license": "GPL-3.0-only",
 	"bugs": {
 		"url": "https://github.com/mattlag/Font-Flux-JS/issues"
 	},
-	"homepage": "https://github.com/mattlag/Font-Flux-JS#readme",
+	"homepage": "https://www.glyphrstudio.com/fontfluxjs/",
 	"devDependencies": {
 		"vite": "^7.3.1",
 		"vitepress": "1.6.4",
