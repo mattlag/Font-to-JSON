@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
 	title: 'Font Flux JS Docs',
 	description: 'Reference docs for authoring valid Font Flux JS JSON.',
+	appearance: true,
 	ignoreDeadLinks: true,
 	base: '/fontfluxjs/docs/',
 	outDir: '../demo/dist/docs',
@@ -17,6 +18,7 @@ export default defineConfig({
 		],
 	],
 	themeConfig: {
+		siteTitle: false,
 		logo: { src: '/font-flux-js-logo.svg', style: 'height: 36px' },
 		nav: [
 			{ text: 'Home', link: '/' },

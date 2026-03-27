@@ -1,6 +1,10 @@
 # Font Flux JS Documentation
 
-This site is for humans writing or editing font JSON by hand.
+Convert fonts to JSON, make edits, then convert them back!
+
+Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries into structured JSON, then exporting that JSON back into a valid font binary. Every table is fully parsed into human-readable fields! If you're ambitious, you can also create a font JSON from scratch and turn it into a font.
+
+Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'd love to hear from you: mail@glyphrstudio.com
 
 ## What this docs site covers
 

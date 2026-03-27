@@ -8,7 +8,10 @@ Convert fonts to JSON, make edits, then convert them back!
 
 Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries into structured JSON, then exporting that JSON back into a valid font binary. Every table is fully parsed into human-readable fields! If you're ambitious, you can also create a font JSON from scratch and turn it into a font.
 
+Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'd love to hear from you: mail@glyphrstudio.com
+
 ## Demo
+
 Try out the demo app! You can load a font, edit it's metadata, subset glyphs, and even save as different font file formats.
 
 ### [Font Flux JS Demo App](https://www.glyphrstudio.com/fontfluxjs)
@@ -109,15 +112,21 @@ The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editin
 
 ## API
 
-| Function                             | Description                                                                                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object. Handles TTF, OTF, TTC, OTC, WOFF, and WOFF2. |
-| `exportFont(fontData, options?)`     | Convert a font object back to binary. Returns an `ArrayBuffer`.                                    |
-| `initWoff2()`                        | Initialize WOFF2 support (async). Must be awaited once before importing/exporting WOFF2 files.     |
-| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, issues[] }`.                          |
-| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                              |
-| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                                          |
-| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.                        |
+| Function                             | Description                                                                                           |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object. Handles TTF, OTF, TTC, OTC, WOFF, and WOFF2.   |
+| `exportFont(fontData, options?)`     | Convert a font object back to binary. Returns an `ArrayBuffer`.                                       |
+| `initWoff2()`                        | Initialize WOFF2 support (async). Must be awaited once before importing/exporting WOFF2 files.        |
+| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, errors, warnings, infos, summary }`.     |
+| `fontToJSON(fontData, indent?)`      | Serialize a font object to a JSON string. Handles BigInt, TypedArrays, and strips transient fields.   |
+| `fontFromJSON(jsonString)`           | Deserialize a JSON string back into a font object.                                                    |
+| `contoursToSVGPath(contours)`        | Convert font contours (TrueType or CFF) to an SVG path `d` string.                                   |
+| `svgPathToContours(d)`               | Parse an SVG path `d` string into font contour data.                                                  |
+| `interpretCharString(bytes, ...)`    | Interpret CFF Type 2 charstring bytecode into cubic Bézier contours.                                  |
+| `disassembleCharString(bytes, ...)`  | Disassemble CFF charstring bytecode into a human-readable instruction listing.                        |
+| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                                 |
+| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                                             |
+| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.                           |
 
 ## Supported formats
 
