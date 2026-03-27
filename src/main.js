@@ -6,6 +6,7 @@
 import { buildRawFromSimplified } from './expand.js';
 import { exportFont } from './export.js';
 import { importFont, importFontTables } from './import.js';
+import { fontFromJSON, fontToJSON } from './json.js';
 import {
 	disassembleCharString,
 	interpretCharString,
@@ -32,6 +33,8 @@ export {
 	contoursToSVGPath,
 	disassembleCharString,
 	exportFont,
+	fontFromJSON,
+	fontToJSON,
 	importFont,
 	importFontTables,
 	initWoff2,

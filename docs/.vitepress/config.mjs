@@ -6,7 +6,18 @@ export default defineConfig({
 	ignoreDeadLinks: true,
 	base: '/fontfluxjs/docs/',
 	outDir: '../demo/dist/docs',
+	head: [
+		[
+			'link',
+			{
+				rel: 'icon',
+				type: 'image/svg+xml',
+				href: '/fontfluxjs/docs/font-flux-js-favicon.svg',
+			},
+		],
+	],
 	themeConfig: {
+		logo: { src: '/font-flux-js-logo.svg', style: 'height: 36px' },
 		nav: [
 			{ text: 'Home', link: '/' },
 			{ text: 'Creating Fonts', link: '/creating-fonts' },

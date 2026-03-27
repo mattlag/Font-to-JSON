@@ -23,6 +23,8 @@ This site is for humans writing or editing font JSON by hand.
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | `importFont(buffer)`                        | Parse an `ArrayBuffer` into a simplified font object (TTF/OTF/TTC/WOFF/WOFF2). |
 | `exportFont(fontData, options?)`            | Convert a font object back to binary. Returns an `ArrayBuffer`.                |
+| `fontToJSON(fontData, indent?)`             | Serialize a font object to a JSON string (handles BigInt, strips internals).   |
+| `fontFromJSON(jsonString)`                  | Deserialize a JSON string back into a font object for `exportFont`.            |
 | `initWoff2()`                               | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
 | `validateJSON(fontData)`                    | Check a font object for structural issues. Returns `{ valid, issues[] }`.      |
 | `buildSimplified(raw)`                      | Convert raw `{ header, tables }` into the simplified structure.                |

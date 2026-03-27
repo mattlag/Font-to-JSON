@@ -16,6 +16,28 @@ Use these guides when authoring Font Flux JSON from scratch.
 4. Run `validateJSON` frequently.
 5. Export only when `report.valid === true`.
 
+## JSON serialization
+
+Use `fontToJSON` and `fontFromJSON` to safely convert font objects to and from JSON strings. This handles BigInt values (used for LONGDATETIME fields in `head.created` and `head.modified`), converts TypedArrays to plain arrays, and strips transient internal properties while preserving the data needed for lossless re-export.
+
+```js
+import { importFont, exportFont, fontToJSON, fontFromJSON } from 'font-flux-js';
+
+// Import a font
+const fontData = importFont(buffer);
+
+// Serialize to JSON string (for saving, transmitting, or editing)
+const jsonString = fontToJSON(fontData);
+
+// Deserialize back to a font object
+const restored = fontFromJSON(jsonString);
+
+// Export back to binary
+const binary = exportFont(restored);
+```
+
+`fontToJSON` accepts an optional `indent` parameter (default `2`, use `0` for compact output).
+
 ## Container formats (WOFF / WOFF2)
 
 By default, `exportFont` outputs raw SFNT bytes. You can wrap the output in a WOFF or WOFF2 container using the `format` option:

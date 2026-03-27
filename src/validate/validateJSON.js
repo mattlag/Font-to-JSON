@@ -1,5 +1,9 @@
 import { ALL_SUPPORTED_TABLES, REQUIRED_CORE_TABLES } from './tables.js';
 
+// =========================================================================
+//  Helpers
+// =========================================================================
+
 function isPlainObject(value) {
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -20,44 +24,107 @@ function addIssue(list, severity, code, message, path) {
 	list.push({ severity, code, message, path });
 }
 
+// =========================================================================
+//  Header helpers — compute correct directory fields for N tables
+// =========================================================================
+
+function computeDirectoryFields(numTables) {
+	const maxPow2 = numTables > 0 ? 2 ** Math.floor(Math.log2(numTables)) : 0;
+	const searchRange = maxPow2 * 16;
+	const entrySelector = maxPow2 > 0 ? Math.floor(Math.log2(maxPow2)) : 0;
+	const rangeShift = numTables * 16 - searchRange;
+	return { searchRange, entrySelector, rangeShift };
+}
+
+/**
+ * Infer sfVersion from the tables present.
+ * CFF/CFF2 → 'OTTO' (0x4F54544F), otherwise TrueType (0x00010000).
+ */
+function inferSfVersion(tables) {
+	if (isPlainObject(tables) && (tables['CFF '] || tables.CFF2)) {
+		return 0x4f54544f;
+	}
+	return 0x00010000;
+}
+
+// =========================================================================
+//  Report builder
+// =========================================================================
+
 function buildReport(issues) {
 	const errors = issues.filter((i) => i.severity === 'error');
 	const warnings = issues.filter((i) => i.severity === 'warning');
+	const infos = issues.filter((i) => i.severity === 'info');
 	return {
 		valid: errors.length === 0,
 		errors,
 		warnings,
+		infos,
 		issues,
 		summary: {
 			errorCount: errors.length,
 			warningCount: warnings.length,
+			infoCount: infos.length,
 			issueCount: issues.length,
 		},
 	};
 }
 
-function validateHeader(header, tableCount, path, issues) {
+// =========================================================================
+//  Header validation — with auto-fix
+// =========================================================================
+
+function validateHeader(fontData, tableCount, path, issues) {
+	let header = fontData.header;
+
+	// --- Resolve missing header ------------------------------------------
 	if (!isPlainObject(header)) {
-		addIssue(
-			issues,
-			'error',
-			'HEADER_MISSING',
-			'Font header is required and must be an object.',
-			path,
-		);
-		return;
+		if (isPlainObject(fontData._header)) {
+			// Promoted from _header (e.g. fontFromJSON round-trip)
+			fontData.header = { ...fontData._header };
+			header = fontData.header;
+			addIssue(
+				issues,
+				'info',
+				'HEADER_PROMOTED',
+				'No "header" found; promoted "_header" for export compatibility.',
+				path,
+			);
+		} else {
+			// Synthesize a header from scratch
+			const sfVersion = inferSfVersion(fontData.tables);
+			const dir = computeDirectoryFields(tableCount);
+			fontData.header = {
+				sfVersion,
+				numTables: tableCount,
+				...dir,
+			};
+			header = fontData.header;
+			addIssue(
+				issues,
+				'info',
+				'HEADER_SYNTHESIZED',
+				`No header found; synthesized one (sfVersion=0x${sfVersion.toString(16).toUpperCase().padStart(8, '0')}, ${tableCount} tables).`,
+				path,
+			);
+			return; // fully computed — no further checks needed
+		}
 	}
 
+	// --- sfVersion -------------------------------------------------------
 	if (!isUInt32(header.sfVersion)) {
+		const inferred = inferSfVersion(fontData.tables);
+		header.sfVersion = inferred;
 		addIssue(
 			issues,
-			'error',
-			'HEADER_SFVERSION_INVALID',
-			'header.sfVersion must be a uint32 number.',
+			'info',
+			'HEADER_SFVERSION_INFERRED',
+			`header.sfVersion was missing or invalid; set to 0x${inferred.toString(16).toUpperCase().padStart(8, '0')} based on outline tables.`,
 			`${path}.sfVersion`,
 		);
 	}
 
+	// --- numTables -------------------------------------------------------
 	if (
 		header.numTables !== undefined &&
 		(!Number.isInteger(header.numTables) || header.numTables < 0)
@@ -71,78 +138,45 @@ function validateHeader(header, tableCount, path, issues) {
 		);
 	}
 
-	if (Number.isInteger(header.numTables) && header.numTables !== tableCount) {
+	if (header.numTables !== tableCount) {
+		const old = header.numTables;
+		header.numTables = tableCount;
 		addIssue(
 			issues,
-			'warning',
-			'HEADER_NUMTABLES_MISMATCH',
-			`header.numTables (${header.numTables}) does not match tables count (${tableCount}).`,
+			'info',
+			'HEADER_NUMTABLES_CORRECTED',
+			old === undefined
+				? `header.numTables was missing; set to ${tableCount}.`
+				: `header.numTables corrected from ${old} to ${tableCount}.`,
 			`${path}.numTables`,
 		);
 	}
 
-	const hasDirectoryFields =
-		header.searchRange !== undefined ||
-		header.entrySelector !== undefined ||
-		header.rangeShift !== undefined;
+	// --- Directory fields (searchRange, entrySelector, rangeShift) -------
+	const expected = computeDirectoryFields(tableCount);
 
-	if (hasDirectoryFields) {
-		if (!isUInt16(header.searchRange ?? -1)) {
-			addIssue(
-				issues,
-				'error',
-				'HEADER_SEARCHRANGE_INVALID',
-				'header.searchRange must be a uint16 when provided.',
-				`${path}.searchRange`,
-			);
-		}
-		if (!isUInt16(header.entrySelector ?? -1)) {
-			addIssue(
-				issues,
-				'error',
-				'HEADER_ENTRYSELECTOR_INVALID',
-				'header.entrySelector must be a uint16 when provided.',
-				`${path}.entrySelector`,
-			);
-		}
-		if (!isUInt16(header.rangeShift ?? -1)) {
-			addIssue(
-				issues,
-				'error',
-				'HEADER_RANGESHIFT_INVALID',
-				'header.rangeShift must be a uint16 when provided.',
-				`${path}.rangeShift`,
-			);
-		}
+	const needsCorrection =
+		header.searchRange !== expected.searchRange ||
+		header.entrySelector !== expected.entrySelector ||
+		header.rangeShift !== expected.rangeShift;
 
-		if (
-			isUInt16(header.searchRange) &&
-			isUInt16(header.entrySelector) &&
-			isUInt16(header.rangeShift)
-		) {
-			const maxPow2 =
-				tableCount > 0 ? 2 ** Math.floor(Math.log2(tableCount)) : 0;
-			const expectedSearchRange = maxPow2 * 16;
-			const expectedEntrySelector =
-				maxPow2 > 0 ? Math.floor(Math.log2(maxPow2)) : 0;
-			const expectedRangeShift = tableCount * 16 - expectedSearchRange;
-
-			if (
-				header.searchRange !== expectedSearchRange ||
-				header.entrySelector !== expectedEntrySelector ||
-				header.rangeShift !== expectedRangeShift
-			) {
-				addIssue(
-					issues,
-					'warning',
-					'HEADER_DIRECTORY_FIELDS_MISMATCH',
-					`Header directory fields differ from expected values for ${tableCount} tables (expected searchRange=${expectedSearchRange}, entrySelector=${expectedEntrySelector}, rangeShift=${expectedRangeShift}).`,
-					path,
-				);
-			}
-		}
+	if (needsCorrection) {
+		header.searchRange = expected.searchRange;
+		header.entrySelector = expected.entrySelector;
+		header.rangeShift = expected.rangeShift;
+		addIssue(
+			issues,
+			'info',
+			'HEADER_FIELDS_CORRECTED',
+			`Header directory fields auto-corrected for ${tableCount} tables (searchRange=${expected.searchRange}, entrySelector=${expected.entrySelector}, rangeShift=${expected.rangeShift}).`,
+			path,
+		);
 	}
 }
+
+// =========================================================================
+//  Raw byte validation
+// =========================================================================
 
 function validateTableRawBytes(raw, path, issues) {
 	if (!Array.isArray(raw)) {
@@ -170,6 +204,10 @@ function validateTableRawBytes(raw, path, issues) {
 		}
 	}
 }
+
+// =========================================================================
+//  Table-level validation
+// =========================================================================
 
 function validateTables(tables, path, issues) {
 	if (!isPlainObject(tables)) {
@@ -234,7 +272,10 @@ function validateTables(tables, path, issues) {
 		}
 
 		const isSupported = ALL_SUPPORTED_TABLES.has(tag);
-		if (!hasRawTable(tableData) && !isSupported) {
+		const isRaw = hasRawTable(tableData);
+
+		if (!isRaw && !isSupported) {
+			// Parsed data for an unrecognized table — will fail at export
 			addIssue(
 				issues,
 				'error',
@@ -242,11 +283,24 @@ function validateTables(tables, path, issues) {
 				`Table "${tag}" is parsed JSON but no writer is available. Use _raw for unknown tables.`,
 				tablePath,
 			);
+		} else if (isRaw && !isSupported) {
+			// Unrecognized table preserved as raw bytes — fine, just noting it
+			addIssue(
+				issues,
+				'info',
+				'TABLE_UNRECOGNIZED_RAW',
+				`Table "${tag}" is not a recognized OpenType table; preserved via _raw bytes.`,
+				tablePath,
+			);
 		}
 	}
 
 	return tags;
 }
+
+// =========================================================================
+//  Cross-table dependency checks
+// =========================================================================
 
 function validateTableDependencies(tables, path, issues) {
 	const hasTable = (tag) => tables[tag] !== undefined;
@@ -292,6 +346,10 @@ function validateTableDependencies(tables, path, issues) {
 		);
 	}
 }
+
+// =========================================================================
+//  Outline & required table checks
+// =========================================================================
 
 function validateOutlineAndRequiredTables(tables, path, issues) {
 	const hasTable = (tag) => tables[tag] !== undefined;
@@ -363,6 +421,10 @@ function validateOutlineAndRequiredTables(tables, path, issues) {
 	}
 }
 
+// =========================================================================
+//  Single-font validation
+// =========================================================================
+
 function validateSingleFont(fontData, path, issues) {
 	if (!isPlainObject(fontData)) {
 		addIssue(
@@ -376,13 +438,17 @@ function validateSingleFont(fontData, path, issues) {
 	}
 
 	const tags = validateTables(fontData.tables, `${path}.tables`, issues);
-	validateHeader(fontData.header, tags.length, `${path}.header`, issues);
+	validateHeader(fontData, tags.length, `${path}.header`, issues);
 
 	if (isPlainObject(fontData.tables)) {
 		validateOutlineAndRequiredTables(fontData.tables, `${path}.tables`, issues);
 		validateTableDependencies(fontData.tables, `${path}.tables`, issues);
 	}
 }
+
+// =========================================================================
+//  Collection validation
+// =========================================================================
 
 function validateCollection(collectionData, path, issues) {
 	const collection = collectionData.collection;
@@ -410,15 +476,16 @@ function validateCollection(collectionData, path, issues) {
 	}
 
 	if (
-		collection &&
+		isPlainObject(collection) &&
 		collection.numFonts !== undefined &&
 		collection.numFonts !== fonts.length
 	) {
+		collection.numFonts = fonts.length;
 		addIssue(
 			issues,
-			'warning',
-			'COLLECTION_NUMFONTS_MISMATCH',
-			`collection.numFonts (${collection.numFonts}) does not match fonts.length (${fonts.length}).`,
+			'info',
+			'COLLECTION_NUMFONTS_CORRECTED',
+			`collection.numFonts corrected to ${fonts.length} to match fonts array.`,
 			`${path}.collection.numFonts`,
 		);
 	}
@@ -428,20 +495,29 @@ function validateCollection(collectionData, path, issues) {
 	}
 }
 
+// =========================================================================
+//  Public API
+// =========================================================================
+
 /**
  * Validate JSON font data before calling exportFont.
  *
- * This validator focuses on practical correctness checks for human-authored
- * JSON: structure, table tag validity, raw byte sanity, required core tables,
- * and common cross-table dependencies.
+ * This validator checks structure, table tag validity, raw byte sanity,
+ * required core tables, and common cross-table dependencies.  Where possible
+ * it auto-fixes recoverable issues (missing header, wrong directory fields,
+ * mismatched counts) and reports them as "info" level issues.
+ *
+ * The input object may be **mutated** when auto-fixes are applied — the same
+ * object can then be passed directly to `exportFont`.
  *
  * @param {object} fontData
  * @returns {{
  *   valid: boolean,
- *   errors: Array<{severity:'error'|'warning',code:string,message:string,path:string}>,
- *   warnings: Array<{severity:'error'|'warning',code:string,message:string,path:string}>,
- *   issues: Array<{severity:'error'|'warning',code:string,message:string,path:string}>,
- *   summary: { errorCount:number, warningCount:number, issueCount:number }
+ *   errors:   Array<{severity:'error',   code:string, message:string, path:string}>,
+ *   warnings: Array<{severity:'warning', code:string, message:string, path:string}>,
+ *   infos:    Array<{severity:'info',    code:string, message:string, path:string}>,
+ *   issues:   Array<{severity:string,    code:string, message:string, path:string}>,
+ *   summary: { errorCount:number, warningCount:number, infoCount:number, issueCount:number }
  * }}
  */
 export function validateJSON(fontData) {

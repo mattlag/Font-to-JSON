@@ -8,9 +8,10 @@ export function createLoadingScreen(container, onFontLoaded) {
 	container.innerHTML = `
 		<div class="loading-screen">
 			<div class="loading-content">
-				<h1>font flux js</h1>
-				<p class="hero-tagline">Convert font files to JSON, make edits, then convert it back!</p>
+				<img class="hero-logo" src="${new URL('../assets/font-flux-js-logo.svg', import.meta.url).href}" alt="font flux js">
+				<p class="hero-tagline">Convert fonts to JSON, make edits, then convert them back!</p>
 				<p class="hero-links">An open source frontend library. Read the <a href="docs/" target="_blank" rel="noopener">Docs</a>, use it with <a href="https://www.npmjs.com/package/font-flux-js" target="_blank" rel="noopener">NPM</a> or <a href="https://github.com/mattlag/Font-Flux-JS" target="_blank" rel="noopener">GitHub</a></p>
+				<p class="hero-demo-hint">This demo app can edit metadata, subset glyphs, and change file formats.</p>
 				<p class="tagline">Drop a font file anywhere, or <a href="#" class="browse-link">browse for files</a></p>
 				<p class="supported-formats">Supports OTF, TTF, WOFF, WOFF2, TTC, OTC</p>
 				<input type="file" accept="${ACCEPT}" hidden>

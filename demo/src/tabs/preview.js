@@ -78,6 +78,7 @@ function buildGlyphSample(fontData, wrap) {
 	const glyphs = fontData.glyphs || [];
 	const upm = fontData.font?.unitsPerEm || 1000;
 	const ascender = fontData.font?.ascender || upm * 0.8;
+	const PAGE_SIZE = 100;
 
 	// Collect up to 1000 glyphs that have contours
 	const drawn = [];
@@ -108,38 +109,84 @@ function buildGlyphSample(fontData, wrap) {
 
 	const grid = document.createElement('div');
 	grid.className = 'glyph-grid';
+	section.appendChild(grid);
 
-	for (const glyph of drawn) {
-		const cell = document.createElement('div');
-		cell.className = 'glyph-cell';
+	const paging = document.createElement('div');
+	paging.className = 'glyph-paging';
+	section.appendChild(paging);
 
-		const canvas = document.createElement('canvas');
-		canvas.className = 'glyph-thumb';
-		canvas.width = 128;
-		canvas.height = 128;
+	let currentPage = 0;
+	const totalPages = Math.ceil(drawn.length / PAGE_SIZE);
 
-		drawGlyph(canvas, glyph, upm, ascender);
+	function renderPage() {
+		grid.innerHTML = '';
+		const start = currentPage * PAGE_SIZE;
+		const pageGlyphs = drawn.slice(start, start + PAGE_SIZE);
 
-		const label = document.createElement('div');
-		label.className = 'glyph-label';
-		const name = glyph.name || '';
-		const uni = glyph.unicode
-			? `U+${glyph.unicode.toString(16).toUpperCase().padStart(4, '0')}`
-			: '';
-		label.textContent = name || uni || '—';
-		label.title = [name, uni].filter(Boolean).join(' · ');
+		for (const glyph of pageGlyphs) {
+			const cell = document.createElement('div');
+			cell.className = 'glyph-cell';
 
-		cell.addEventListener('click', () => {
-			showGlyphDetail(detailPanel, glyph, upm, ascender);
-			// Scroll detail into view
-			detailPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-		});
+			const canvas = document.createElement('canvas');
+			canvas.className = 'glyph-thumb';
+			canvas.width = 128;
+			canvas.height = 128;
 
-		cell.append(canvas, label);
-		grid.appendChild(cell);
+			drawGlyph(canvas, glyph, upm, ascender);
+
+			const label = document.createElement('div');
+			label.className = 'glyph-label';
+			const name = glyph.name || '';
+			const uni = glyph.unicode
+				? `U+${glyph.unicode.toString(16).toUpperCase().padStart(4, '0')}`
+				: '';
+			label.textContent = name || uni || '—';
+			label.title = [name, uni].filter(Boolean).join(' · ');
+
+			cell.addEventListener('click', () => {
+				showGlyphDetail(detailPanel, glyph, upm, ascender);
+				detailPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			});
+
+			cell.append(canvas, label);
+			grid.appendChild(cell);
+		}
+
+		renderPaging();
 	}
 
-	section.appendChild(grid);
+	function renderPaging() {
+		paging.innerHTML = '';
+		if (totalPages <= 1) return;
+
+		const prevBtn = document.createElement('button');
+		prevBtn.className = 'glyph-page-btn';
+		prevBtn.textContent = '← Prev';
+		prevBtn.disabled = currentPage === 0;
+		prevBtn.addEventListener('click', () => {
+			currentPage--;
+			renderPage();
+			grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
+
+		const pageInfo = document.createElement('span');
+		pageInfo.className = 'glyph-page-info';
+		pageInfo.textContent = `Page ${currentPage + 1} of ${totalPages}`;
+
+		const nextBtn = document.createElement('button');
+		nextBtn.className = 'glyph-page-btn';
+		nextBtn.textContent = 'Next →';
+		nextBtn.disabled = currentPage === totalPages - 1;
+		nextBtn.addEventListener('click', () => {
+			currentPage++;
+			renderPage();
+			grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
+
+		paging.append(prevBtn, pageInfo, nextBtn);
+	}
+
+	renderPage();
 	return section;
 }
 

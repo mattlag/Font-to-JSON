@@ -1,9 +1,17 @@
-import { importFont, initWoff2 } from 'font-flux-js';
+import {
+	exportFont,
+	fontToJSON,
+	importFont,
+	initWoff2,
+	validateJSON,
+} from 'font-flux-js';
 import { createLoadingScreen } from './components/loading.js';
+import { createSaveDialog } from './components/save-dialog.js';
 import { createTabBar } from './components/tab-bar.js';
 import { renderInfoTab } from './tabs/info.js';
 import { overviewTab } from './tabs/overview.js';
 import { previewTab } from './tabs/preview.js';
+import { subsetTab } from './tabs/subset.js';
 import { createTableTab } from './tabs/table-detail.js';
 
 const app = document.getElementById('app');
@@ -28,16 +36,25 @@ function showLoadingScreen() {
 			// Inject @font-face from original binary for live preview
 			injectFontFace(buffer, fileName);
 
-			// Handle collections: use first font but note it's a collection
+			// Handle collections: tag every font with shared metadata
 			let displayData;
 			if (fontData.collection) {
+				for (let i = 0; i < fontData.fonts.length; i++) {
+					const f = fontData.fonts[i];
+					f._collection = fontData.collection;
+					f._collectionFonts = fontData.fonts;
+					f._collectionIndex = i;
+					f._fileName = fileName;
+					f._originalBuffer = buffer;
+					f._dirty = false;
+				}
 				displayData = fontData.fonts[0];
-				displayData._collection = fontData.collection;
-				displayData._collectionFonts = fontData.fonts;
 			} else {
 				displayData = fontData;
+				displayData._fileName = fileName;
+				displayData._originalBuffer = buffer;
+				displayData._dirty = false;
 			}
-			displayData._fileName = fileName;
 
 			showApp(displayData);
 		} catch (err) {
@@ -81,6 +98,28 @@ function showApp(fontData) {
 	app.className = 'app-loaded';
 	app.innerHTML = '';
 
+	// ── App context shared with tabs ──
+
+	function markDirty() {
+		fontData._dirty = true;
+	}
+
+	function invalidateL1Cache(key) {
+		if (key) {
+			delete l1Cache[key];
+		} else {
+			for (const k of Object.keys(l1Cache)) delete l1Cache[k];
+		}
+		// Re-render active tab
+		if (activeL1) {
+			const prev = activeL1;
+			activeL1 = null;
+			setL1Active(prev);
+		}
+	}
+
+	const appContext = { fontData, markDirty, invalidateL1Cache };
+
 	// Header
 	const header = document.createElement('header');
 	header.className = 'app-header';
@@ -89,8 +128,10 @@ function showApp(fontData) {
 	const headerLeft = document.createElement('div');
 	headerLeft.className = 'header-left';
 
-	const title = document.createElement('h1');
-	title.textContent = 'font flux js';
+	const title = document.createElement('img');
+	title.src = new URL('./assets/font-flux-js-logo.svg', import.meta.url).href;
+	title.alt = 'font flux js';
+	title.className = 'header-logo';
 
 	const fontName = document.createElement('span');
 	fontName.className = 'font-name';
@@ -100,11 +141,28 @@ function showApp(fontData) {
 		fontData._fileName ||
 		'Untitled Font';
 	fontName.textContent = displayName;
-	if (fontData._collection) {
-		fontName.textContent += ` (Collection · ${fontData._collection.numFonts} fonts)`;
-	}
 
 	headerLeft.append(title, fontName);
+
+	// Collection font chooser
+	if (fontData._collectionFonts && fontData._collectionFonts.length > 1) {
+		const chooser = document.createElement('select');
+		chooser.className = 'font-chooser';
+		for (let i = 0; i < fontData._collectionFonts.length; i++) {
+			const f = fontData._collectionFonts[i];
+			const opt = document.createElement('option');
+			opt.value = String(i);
+			opt.textContent =
+				f.font?.fullName || f.font?.familyName || `Font ${i + 1}`;
+			if (i === (fontData._collectionIndex ?? 0)) opt.selected = true;
+			chooser.appendChild(opt);
+		}
+		chooser.addEventListener('change', () => {
+			const idx = parseInt(chooser.value, 10);
+			showApp(fontData._collectionFonts[idx]);
+		});
+		headerLeft.appendChild(chooser);
+	}
 
 	// Center: L1 nav
 	const l1Nav = document.createElement('nav');
@@ -113,6 +171,7 @@ function showApp(fontData) {
 	const l1Defs = [
 		{ key: 'overview', label: 'Overview' },
 		{ key: 'preview', label: 'Preview' },
+		{ key: 'subset', label: 'Subset' },
 		{ key: 'tables', label: 'Tables' },
 		{ key: 'info', label: 'Info' },
 	];
@@ -127,13 +186,38 @@ function showApp(fontData) {
 		l1Buttons[key] = btn;
 	});
 
-	// Right: Load Another
-	const loadBtn = document.createElement('button');
-	loadBtn.className = 'load-another';
-	loadBtn.textContent = 'Load Another';
-	loadBtn.addEventListener('click', showLoadingScreen);
+	// Right: Download JSON + Export Font
+	const headerRight = document.createElement('div');
+	headerRight.className = 'header-right';
 
-	header.append(headerLeft, l1Nav, loadBtn);
+	const jsonBtn = document.createElement('button');
+	jsonBtn.className = 'header-btn';
+	jsonBtn.textContent = 'Download JSON';
+	jsonBtn.addEventListener('click', () => {
+		const name =
+			fontData.font?.familyName ||
+			fontData.font?.fullName ||
+			fontData._fileName?.replace(/\.[^.]+$/, '') ||
+			'font';
+		const json = fontToJSON(fontData);
+		const blob = new Blob([json], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${name}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
+	});
+
+	const exportBtn = document.createElement('button');
+	exportBtn.className = 'header-btn header-btn-primary';
+	exportBtn.textContent = 'Export Font';
+	exportBtn.addEventListener('click', () => {
+		createSaveDialog(app, fontData, { exportFont, validateJSON });
+	});
+
+	headerRight.append(jsonBtn, exportBtn);
+	header.append(headerLeft, l1Nav, headerRight);
 	app.appendChild(header);
 
 	// Content area
@@ -159,10 +243,13 @@ function showApp(fontData) {
 
 			if (key === 'overview') {
 				panel.classList.add('l1-panel-padded');
-				overviewTab.render(panel, fontData);
+				overviewTab.render(panel, fontData, appContext);
 			} else if (key === 'preview') {
 				panel.classList.add('l1-panel-padded');
 				previewTab.render(panel, fontData);
+			} else if (key === 'subset') {
+				panel.classList.add('l1-panel-padded');
+				subsetTab.render(panel, fontData, appContext);
 			} else if (key === 'tables') {
 				panel.classList.add('l1-panel-tables');
 				renderTablesPanel(panel, fontData);

@@ -94,9 +94,10 @@ The returned object from a parser should NOT include `_checksum` or `_raw` — t
 
 ```
 src/
-  main.js           — entry point, re-exports importFont, importFontTables, exportFont, buildSimplified, buildRawFromSimplified, validateJSON, interpretCharString, disassembleCharString, contoursToSVGPath, svgPathToContours
+  main.js           — entry point, re-exports importFont, importFontTables, exportFont, fontToJSON, fontFromJSON, buildSimplified, buildRawFromSimplified, validateJSON, interpretCharString, disassembleCharString, contoursToSVGPath, svgPathToContours
   import.js         — importFont() returns simplified; importFontTables() returns { header, tables }; tableParsers registry, tableParseOrder
   export.js         — exportFont(), resolveExportSource() (3 input shapes), tableWriters registry, SFNT + TTC (`ttcf`) export paths
+  json.js           — fontToJSON(), fontFromJSON() — JSON serialization with BigInt, TypedArray, and transient key handling
   simplify.js       — buildSimplified() converts { header, tables } → unified simplified object with stored tables + _header; CFF glyphs get contours + charString + charStringDisassembly
   expand.js         — buildRawFromSimplified() expands hand-authored simplified → { header, tables }
   reader.js         — DataReader class
@@ -136,6 +137,7 @@ src/
     table_SVG.js    — parseSVG(), writeSVG() — SVG glyph descriptions (plain text + gzip)
 
 test/
+  json.test.js            — fontToJSON/fontFromJSON: BigInt handling, underscore stripping, indent control, real-font round-trips (OTF+TTF), export from deserialized JSON (11 tests)
   roundtrip.test.js       — import→export→reimport for OTF, TTF, and TTC samples
   sample fonts/            — binary font files for testing
     oblegg.otf, oblegg.ttf — primary test fonts (small, simple)
@@ -781,3 +783,5 @@ Possible future work:
 50. **GPOS PairPos fmt1 Device offset base nuance**: Some real fonts (e.g., `SegUIVar`) encode ValueRecord Device/VariationIndex offsets in PairPos format 1 relative to the **PairSet** start, not the parent PairPos subtable. Parsing uses the PairSet base for `parseValueRecord` in this path, and restores reader position after offset-jump parses to avoid corrupting sequential reads.
 51. **Apple bloc/bdat tables**: Binary-identical to EBLC/EBDT (same as CBLC/CBDT). Delegate parsing/writing to CBLC/CBDT — same pattern as EBLC/EBDT delegation. In import.js, bdat maps `tables.bloc → CBLC` so parseCBDT can find index info. Coordinated writes and post-parse cleanup mirror the EBLC/EBDT pattern exactly.
 52. **ltag table**: Apple language tag table — maps numeric codes to IETF BCP 47 tags. Simple structure: version(UInt32) + flags(UInt32) + numTags(UInt32) + tagRange[numTags]{offset(UInt16), length(UInt16)} + UTF-8 strings. Standalone parser/writer in `src/sfnt/table_ltag.js`.
+53. **JSON serialization** (`src/json.js`): `fontToJSON(fontData, indent?)` serializes font data to a JSON string, converting BigInt LONGDATETIME values to numbers, converting TypedArrays (e.g. `_raw` Uint8Array) to plain arrays, and stripping known transient top-level keys (`_dirty`, `_fileName`, `_originalBuffer`, `_collection`, `_collectionFonts`, `_woff`). `_header` is preserved because `exportFont` needs it for lossless re-export (without it, the export falls through to `buildRawFromSimplified` which has limitations). Table-level `_raw` and `_checksum` are also preserved. `fontFromJSON(jsonString)` deserializes back. The writer's `longDateTime()` method already accepts both BigInt and number via `BigInt(value)`, so deserialized numbers work without conversion. Both functions are exported from `src/main.js`.
+54. **Validator three-level severity** (`src/validate/validateJSON.js`): The validator now uses three severity levels — `error`, `warning`, and `info`. Auto-fixable issues (missing/wrong header, directory field mismatches, numTables mismatches, collection numFonts mismatches) are corrected in-place on the input object and reported as `info`. The report object includes `infos` array and `summary.infoCount` in addition to errors/warnings. `validateHeader` now receives the full `fontData` (not just `header`) so it can synthesize a header from `_header` or from table data. Unknown tables with `_raw` are reported as `TABLE_UNRECOGNIZED_RAW` (info) rather than being silently ignored. Complete issue reference in `docs/guide/validation.md`.
