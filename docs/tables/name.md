@@ -1,5 +1,7 @@
 # `name` table
 
+Contains human-readable strings — font name, designer, license, description, and other identifiers.
+
 ## Scope
 
 - Format family: Shared SFNT

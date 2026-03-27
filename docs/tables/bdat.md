@@ -1,5 +1,7 @@
 # `bdat` table
 
+Stores bitmap glyph image data in Apple-format bitmap fonts.
+
 ## Scope
 
 - Format family: Apple AAT

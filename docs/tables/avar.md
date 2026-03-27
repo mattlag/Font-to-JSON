@@ -1,5 +1,7 @@
 # `avar` table
 
+Maps axis coordinates to modified values, enabling non-linear interpolation for variable fonts.
+
 ## Scope
 
 - Format family: Shared SFNT

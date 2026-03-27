@@ -1,5 +1,7 @@
 # `head` table
 
+Contains global font metadata — units per em, bounding box, creation dates, and format flags.
+
 ## Scope
 
 - Format family: Shared SFNT

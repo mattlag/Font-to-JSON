@@ -1,5 +1,7 @@
 # `post` table
 
+Provides PostScript name mappings for glyphs and global italic angle and underline metrics.
+
 ## Scope
 
 - Format family: Shared SFNT

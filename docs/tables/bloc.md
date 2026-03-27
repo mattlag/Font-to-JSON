@@ -1,5 +1,7 @@
 # `bloc` table
 
+Indexes the location of bitmap glyph data within the bdat table for Apple-format bitmap fonts.
+
 ## Scope
 
 - Format family: Apple AAT

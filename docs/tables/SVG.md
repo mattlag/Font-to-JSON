@@ -1,5 +1,7 @@
 # `SVG ` table
 
+Contains SVG documents that define glyph appearances as scalable vector graphics.
+
 ## Scope
 
 - Format family: Shared SFNT

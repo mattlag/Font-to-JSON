@@ -1,5 +1,7 @@
 # `sbix` table
 
+Stores resolution-dependent bitmap or vector (PNG, JPEG, TIFF) glyph images, commonly used by Apple.
+
 ## Scope
 
 - Format family: Shared SFNT

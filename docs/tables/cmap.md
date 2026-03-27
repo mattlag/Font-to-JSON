@@ -1,5 +1,7 @@
 # `cmap` table
 
+Maps character codes (Unicode codepoints) to glyph indices.
+
 ## Scope
 
 - Format family: Shared SFNT

@@ -4,7 +4,7 @@ export default defineConfig({
 	title: 'Font Flux JS Docs',
 	description: 'Reference docs for authoring valid Font Flux JS JSON.',
 	ignoreDeadLinks: true,
-	base: '/docs/',
+	base: '/fontfluxjs/docs/',
 	outDir: '../demo/dist/docs',
 	themeConfig: {
 		nav: [

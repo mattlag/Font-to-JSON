@@ -1,5 +1,7 @@
 # `EBSC` table
 
+Defines scaling rules that map bitmap strikes to other sizes when exact-size bitmaps are unavailable.
+
 ## Scope
 
 - Format family: Shared SFNT

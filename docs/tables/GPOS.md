@@ -1,5 +1,7 @@
 # `GPOS` table
 
+Defines glyph positioning rules — kerning, mark placement, cursive attachment, and other adjustments.
+
 ## Scope
 
 - Format family: Shared SFNT

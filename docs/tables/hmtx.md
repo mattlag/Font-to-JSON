@@ -1,5 +1,7 @@
 # `hmtx` table
 
+Stores per-glyph horizontal metrics — advance width and left side bearing for each glyph.
+
 ## Scope
 
 - Format family: Shared SFNT

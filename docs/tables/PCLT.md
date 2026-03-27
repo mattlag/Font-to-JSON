@@ -1,5 +1,7 @@
 # `PCLT` table
 
+Contains PCL 5 printer compatibility data — typeface number, pitch, symbol set, and style.
+
 ## Scope
 
 - Format family: Shared SFNT

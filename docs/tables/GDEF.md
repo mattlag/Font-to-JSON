@@ -1,5 +1,7 @@
 # `GDEF` table
 
+Classifies glyphs (base, ligature, mark, component) and provides attachment and ligature caret data for layout.
+
 ## Scope
 
 - Format family: Shared SFNT

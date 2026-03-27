@@ -1,5 +1,7 @@
 # `DSIG` table
 
+Contains a digital signature for verifying the integrity and origin of the font file.
+
 ## Scope
 
 - Format family: Shared SFNT

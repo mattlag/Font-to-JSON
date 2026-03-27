@@ -1,5 +1,7 @@
 # `MVAR` table
 
+Provides variation deltas for global font metrics (ascender, descender, caret offset, etc.) in variable fonts.
+
 ## Scope
 
 - Format family: Shared SFNT

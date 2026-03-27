@@ -1,5 +1,7 @@
 # `VVAR` table
 
+Provides variation deltas for vertical metrics (advance heights and side bearings) in variable fonts.
+
 ## Scope
 
 - Format family: Shared SFNT

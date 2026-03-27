@@ -1,5 +1,7 @@
 # `kern` table
 
+Contains legacy kerning pair adjustments for horizontal glyph positioning (superseded by GPOS).
+
 ## Scope
 
 - Format family: Shared SFNT

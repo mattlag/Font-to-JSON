@@ -1,5 +1,7 @@
 # `vhea` table
 
+Provides vertical layout metrics — ascender, descender, and line gap for vertical text.
+
 ## Scope
 
 - Format family: Shared SFNT

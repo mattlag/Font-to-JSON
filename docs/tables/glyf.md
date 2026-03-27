@@ -1,5 +1,7 @@
 # `glyf` table
 
+Stores TrueType glyph outlines as quadratic Bézier contours and composite glyph references.
+
 ## Scope
 
 - Format family: TTF-specific

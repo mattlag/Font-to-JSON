@@ -2,7 +2,7 @@
 
 Convert a font file to JSON... and back!
 
-Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries into structured JSON, then exporting that JSON back into a valid font binary. Every table is fully parsed into human-readable fields — no opaque byte blobs for editable data.
+Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries into structured JSON, then exporting that JSON back into a valid font binary. Every table is fully parsed into human-readable fields! If you're ambitious, you can also create a font JSON from scratch and turn it into a font.
 
 ## Installation
 

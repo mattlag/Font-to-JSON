@@ -3,7 +3,7 @@
  * Calls onFontLoaded(arrayBuffer, fileName) when a font is selected.
  */
 export function createLoadingScreen(container, onFontLoaded) {
-	const ACCEPT = '.otf,.ttf,.woff,.ttc,.otc';
+	const ACCEPT = '.otf,.ttf,.woff,.woff2,.ttc,.otc';
 
 	container.innerHTML = `
 		<div class="loading-screen">
@@ -12,7 +12,7 @@ export function createLoadingScreen(container, onFontLoaded) {
 				<p class="hero-tagline">Convert font files to JSON, make edits, then convert it back!</p>
 				<p class="hero-links">An open source frontend library. Read the <a href="docs/" target="_blank" rel="noopener">Docs</a>, use it with <a href="https://www.npmjs.com/package/font-flux-js" target="_blank" rel="noopener">NPM</a> or <a href="https://github.com/mattlag/Font-Flux-JS" target="_blank" rel="noopener">GitHub</a></p>
 				<p class="tagline">Drop a font file anywhere, or <a href="#" class="browse-link">browse for files</a></p>
-				<p class="supported-formats">Supports OTF, TTF, WOFF, TTC, OTC</p>
+				<p class="supported-formats">Supports OTF, TTF, WOFF, WOFF2, TTC, OTC</p>
 				<input type="file" accept="${ACCEPT}" hidden>
 				<div class="status-area"></div>
 			</div>
@@ -70,10 +70,10 @@ export function createLoadingScreen(container, onFontLoaded) {
 
 		// Validate extension
 		const ext = file.name.split('.').pop().toLowerCase();
-		const valid = ['otf', 'ttf', 'woff', 'ttc', 'otc'];
+		const valid = ['otf', 'ttf', 'woff', 'woff2', 'ttc', 'otc'];
 		if (!valid.includes(ext)) {
 			showError(
-				`Unsupported file type ".${ext}". Please use OTF, TTF, WOFF, TTC, or OTC.`,
+				`Unsupported file type ".${ext}". Please use OTF, TTF, WOFF, WOFF2, TTC, or OTC.`,
 			);
 			return;
 		}

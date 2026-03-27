@@ -1,5 +1,7 @@
 # `loca` table
 
+Maps glyph indices to byte offsets within the glyf table for TrueType fonts.
+
 ## Scope
 
 - Format family: TTF-specific

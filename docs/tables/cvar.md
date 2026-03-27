@@ -1,5 +1,7 @@
 # `cvar` table
 
+Provides variation deltas for CVT values across the design space of a TrueType variable font.
+
 ## Scope
 
 - Format family: TTF-specific

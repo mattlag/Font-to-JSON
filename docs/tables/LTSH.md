@@ -1,5 +1,7 @@
 # `LTSH` table
 
+Records the pixel size at which each glyph transitions from needing hinting to rendering well without it.
+
 ## Scope
 
 - Format family: Shared SFNT

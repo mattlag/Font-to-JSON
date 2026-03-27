@@ -1,5 +1,7 @@
 # `ltag` table
 
+Stores IETF language tags referenced by other tables for Apple-platform language identification.
+
 ## Scope
 
 - Format family: Apple AAT

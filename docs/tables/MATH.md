@@ -1,5 +1,7 @@
 # `MATH` table
 
+Provides metrics, glyph variants, and assembly rules for mathematical typesetting layout.
+
 ## Scope
 
 - Format family: Shared SFNT

@@ -1,5 +1,7 @@
 # `STAT` table
 
+Describes design attributes (axis values and names) for presenting variable and non-variable font families.
+
 ## Scope
 
 - Format family: Shared SFNT

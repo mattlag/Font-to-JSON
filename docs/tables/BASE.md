@@ -1,5 +1,7 @@
 # `BASE` table
 
+Defines baseline positions for scripts and languages used in horizontal and vertical text layout.
+
 ## Scope
 
 - Format family: Shared SFNT

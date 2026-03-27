@@ -1,5 +1,7 @@
 # `GSUB` table
 
+Defines glyph substitution rules — ligatures, alternates, contextual forms, and other replacements.
+
 ## Scope
 
 - Format family: Shared SFNT

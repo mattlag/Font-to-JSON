@@ -1,5 +1,7 @@
 # `VDMX` table
 
+Stores pre-computed vertical device metrics to prevent clipping at specific pixel sizes on Windows.
+
 ## Scope
 
 - Format family: Shared SFNT

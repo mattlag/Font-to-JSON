@@ -1,5 +1,7 @@
 # `CFF2` table
 
+Contains variable PostScript glyph outlines with blend operators for CFF2-based variable fonts.
+
 ## Scope
 
 - Format family: OTF-specific

@@ -1,4 +1,4 @@
-import { importFont } from 'font-flux-js';
+import { importFont, initWoff2 } from 'font-flux-js';
 import { createLoadingScreen } from './components/loading.js';
 import { createTabBar } from './components/tab-bar.js';
 import { renderInfoTab } from './tabs/info.js';
@@ -193,4 +193,4 @@ function renderTablesPanel(panel, fontData) {
 }
 
 // Boot
-showLoadingScreen();
+initWoff2().then(showLoadingScreen);

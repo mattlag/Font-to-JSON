@@ -1,5 +1,7 @@
 # `CPAL` table
 
+Provides named color palettes used by the COLR table for multi-colored glyphs.
+
 ## Scope
 
 - Format family: Shared SFNT

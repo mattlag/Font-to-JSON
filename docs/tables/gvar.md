@@ -1,5 +1,7 @@
 # `gvar` table
 
+Stores per-glyph variation deltas for interpolating TrueType outlines across the design space.
+
 ## Scope
 
 - Format family: TTF-specific

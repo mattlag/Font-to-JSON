@@ -1,5 +1,7 @@
 # `cvt ` table
 
+Stores TrueType control values used by glyph hinting instructions to ensure consistent rendering.
+
 ## Scope
 
 - Format family: TTF-specific

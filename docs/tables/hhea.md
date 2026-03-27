@@ -1,5 +1,7 @@
 # `hhea` table
 
+Provides horizontal layout metrics — ascender, descender, line gap, and caret slope for horizontal text.
+
 ## Scope
 
 - Format family: Shared SFNT

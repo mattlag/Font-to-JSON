@@ -1,5 +1,7 @@
 # `HVAR` table
 
+Provides variation deltas for horizontal metrics (advance widths and side bearings) in variable fonts.
+
 ## Scope
 
 - Format family: Shared SFNT

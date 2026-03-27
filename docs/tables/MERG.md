@@ -1,5 +1,7 @@
 # `MERG` table
 
+Contains merge rules that control how glyphs combine when fonts are merged together.
+
 ## Scope
 
 - Format family: Shared SFNT

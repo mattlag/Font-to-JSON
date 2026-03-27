@@ -1,5 +1,7 @@
 # `gasp` table
 
+Controls grid-fitting (hinting) and anti-aliasing behavior at different pixel sizes.
+
 ## Scope
 
 - Format family: TTF-specific

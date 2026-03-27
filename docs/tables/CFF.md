@@ -1,5 +1,7 @@
 # `CFF ` table
 
+Contains PostScript-flavored (Type 2) cubic Bézier glyph outlines for CFF-based OpenType fonts.
+
 ## Scope
 
 - Format family: OTF-specific

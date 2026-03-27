@@ -1,5 +1,7 @@
 # `CBLC` table
 
+Indexes the location and format of color bitmap glyphs within the CBDT table.
+
 ## Scope
 
 - Format family: Shared SFNT

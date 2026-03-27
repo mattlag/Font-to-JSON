@@ -1,5 +1,7 @@
 # `JSTF` table
 
+Defines justification rules — glyph and language-level adjustments for justified text layout.
+
 ## Scope
 
 - Format family: Shared SFNT

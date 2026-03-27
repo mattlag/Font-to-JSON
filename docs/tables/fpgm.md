@@ -1,5 +1,7 @@
 # `fpgm` table
 
+Contains the TrueType font program — global hinting instructions executed once when the font is loaded.
+
 ## Scope
 
 - Format family: TTF-specific

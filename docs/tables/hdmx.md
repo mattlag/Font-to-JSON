@@ -1,5 +1,7 @@
 # `hdmx` table
 
+Caches pre-computed horizontal device metrics (advance widths) at specific pixel sizes for faster rendering.
+
 ## Scope
 
 - Format family: Shared SFNT

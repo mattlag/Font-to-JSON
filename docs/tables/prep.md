@@ -1,5 +1,7 @@
 # `prep` table
 
+Contains the TrueType control value program — hinting instructions executed before each glyph is rendered.
+
 ## Scope
 
 - Format family: TTF-specific

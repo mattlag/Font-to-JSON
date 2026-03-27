@@ -1,5 +1,7 @@
 # `meta` table
 
+Stores font-level metadata as tagged key-value pairs (e.g. design languages, supported scripts).
+
 ## Scope
 
 - Format family: Shared SFNT

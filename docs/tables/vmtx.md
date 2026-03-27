@@ -1,5 +1,7 @@
 # `vmtx` table
 
+Stores per-glyph vertical metrics — advance height and top side bearing for each glyph.
+
 ## Scope
 
 - Format family: Shared SFNT

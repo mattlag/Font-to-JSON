@@ -1,5 +1,7 @@
 # `EBLC` table
 
+Indexes the location and format of embedded bitmap glyphs within the EBDT table.
+
 ## Scope
 
 - Format family: Shared SFNT

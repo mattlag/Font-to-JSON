@@ -1,5 +1,7 @@
 # `EBDT` table
 
+Stores embedded bitmap glyph image data for screen-optimized rendering at specific sizes.
+
 ## Scope
 
 - Format family: Shared SFNT

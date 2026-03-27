@@ -1,5 +1,7 @@
 # `VORG` table
 
+Defines vertical origin positions for CFF/CFF2 glyphs used in vertical text layout.
+
 ## Scope
 
 - Format family: OTF-specific

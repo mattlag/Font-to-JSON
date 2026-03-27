@@ -1,5 +1,7 @@
 # `COLR` table
 
+Defines multi-colored glyphs using layered glyph references (v0) or a full paint graph (v1).
+
 ## Scope
 
 - Format family: Shared SFNT

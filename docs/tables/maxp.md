@@ -1,5 +1,7 @@
 # `maxp` table
 
+Declares maximum resource limits — glyph count, point/contour maximums, and stack depths.
+
 ## Scope
 
 - Format family: Shared SFNT

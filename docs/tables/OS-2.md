@@ -1,5 +1,7 @@
 # `OS/2` table
 
+Stores OS/2 and Windows-specific metrics — weight class, width class, Unicode ranges, and embedding flags.
+
 ## Scope
 
 - Format family: Shared SFNT

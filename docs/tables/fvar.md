@@ -1,5 +1,7 @@
 # `fvar` table
 
+Defines the variation axes (e.g. weight, width) and their ranges for a variable font.
+
 ## Scope
 
 - Format family: Shared SFNT

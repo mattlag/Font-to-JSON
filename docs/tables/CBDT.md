@@ -1,5 +1,7 @@
 # `CBDT` table
 
+Stores color bitmap glyph image data, commonly used for color emoji.
+
 ## Scope
 
 - Format family: Shared SFNT
