@@ -114,5 +114,46 @@ const newContours = svgPathToContours(svg, 'cff');
 
 CFF outlines produce `C` (cubic) SVG commands. The round-trip is lossless for cubic paths. See the [SVG path conversion docs](./index.md#svg-path-conversion) for details on supported SVG commands and coordinate handling.
 
+### Creating CFF glyphs from scratch
+
+For a complete guide to hand-authoring glyph data — including the `createGlyph` helper, all outline formats, metadata reference, and examples — see [Creating Glyphs](./creating-glyphs.md).
+
 - Keep required metrics tables (`head`, `hhea`, `hmtx`, `maxp`) consistent with your outline and glyph count.
 - Validate early with [`validateJSON`](./guide/validation.md).
+
+## Creating an OTC (OpenType Collection)
+
+An `.otc` file bundles multiple CFF-based OpenType font faces into a single binary. Each face is a complete OTF — it must satisfy all the requirements above.
+
+### Required collection shape
+
+At the top level, collection JSON uses this shape:
+
+```json
+{
+	"collection": {
+		"tag": "ttcf",
+		"majorVersion": 2,
+		"minorVersion": 0,
+		"numFonts": 2
+	},
+	"fonts": [
+		{ "header": {}, "tables": {} },
+		{ "header": {}, "tables": {} }
+	]
+}
+```
+
+Each entry in `fonts[]` is validated as a normal single font — it needs the same required tables listed above (`cmap`, `head`, `hhea`, `hmtx`, `maxp`, `name`, `post`, plus `CFF` or `CFF2`).
+
+### Optional collection-level fields
+
+- `collection.dsigTag`: DSIG tag for TTC v2+ metadata.
+- `collection.dsigLength`: DSIG block length.
+- `collection.dsigOffset`: DSIG block offset.
+
+### Notes
+
+- `collection.numFonts` should match `fonts.length`.
+- Faces in a collection can mix CFF v1 and CFF v2 as long as each face is internally valid.
+- Validate full collection JSON with [`validateJSON`](./guide/validation.md) before export.

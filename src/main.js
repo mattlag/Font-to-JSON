@@ -5,8 +5,13 @@
 
 import { buildRawFromSimplified } from './expand.js';
 import { exportFont } from './export.js';
+import { createGlyph } from './glyph.js';
 import { importFont, importFontTables } from './import.js';
 import { fontFromJSON, fontToJSON } from './json.js';
+import {
+	assembleCharString,
+	compileCharString,
+} from './otf/charstring_compiler.js';
 import {
 	disassembleCharString,
 	interpretCharString,
@@ -28,9 +33,12 @@ async function initWoff2() {
 }
 
 export {
+	assembleCharString,
 	buildRawFromSimplified,
 	buildSimplified,
+	compileCharString,
 	contoursToSVGPath,
+	createGlyph,
 	disassembleCharString,
 	exportFont,
 	fontFromJSON,

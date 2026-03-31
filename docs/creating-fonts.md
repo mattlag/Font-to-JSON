@@ -6,7 +6,10 @@ Use these guides when authoring Font Flux JSON from scratch.
 
 - [Creating an OTF](./creating-otf.md)
 - [Creating a TTF](./creating-ttf.md)
-- [Creating a TTC / OTC Collection](./creating-ttc-otc.md)
+
+## Creating glyph data
+
+See the [Creating Glyphs](./creating-glyphs.md) guide for a detailed reference on glyph metadata, outline formats (SVG path, CFF/PostScript, TrueType), the `createGlyph` helper, and common patterns like `.notdef`, space, and composite glyphs.
 
 ## Shared workflow
 

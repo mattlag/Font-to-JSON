@@ -125,3 +125,43 @@ const newContours = svgPathToContours(svg, 'truetype');
 TrueType outlines produce `Q` (quadratic) SVG commands. The round-trip is lossless for quadratic paths. If the SVG contains cubic `C` commands, they are approximated as quadratic curves (subdivision with 0.5-unit error threshold).
 
 See the [SVG path conversion docs](./index.md#svg-path-conversion) for details on supported SVG commands and coordinate handling.
+
+### Creating TrueType glyphs from scratch
+
+For a complete guide to hand-authoring glyph data — including the `createGlyph` helper, all outline formats, metadata reference, and examples — see [Creating Glyphs](./creating-glyphs.md).
+
+## Creating a TTC (TrueType Collection)
+
+A `.ttc` file bundles multiple TrueType font faces into a single binary. Each face is a complete TTF — it must satisfy all the requirements above.
+
+### Required collection shape
+
+At the top level, collection JSON uses this shape:
+
+```json
+{
+	"collection": {
+		"tag": "ttcf",
+		"majorVersion": 2,
+		"minorVersion": 0,
+		"numFonts": 2
+	},
+	"fonts": [
+		{ "header": {}, "tables": {} },
+		{ "header": {}, "tables": {} }
+	]
+}
+```
+
+Each entry in `fonts[]` is validated as a normal single font — it needs the same required tables listed above (`cmap`, `head`, `hhea`, `hmtx`, `maxp`, `name`, `post`, `glyf`, `loca`).
+
+### Optional collection-level fields
+
+- `collection.dsigTag`: DSIG tag for TTC v2+ metadata.
+- `collection.dsigLength`: DSIG block length.
+- `collection.dsigOffset`: DSIG block offset.
+
+### Notes
+
+- `collection.numFonts` should match `fonts.length`.
+- Validate full collection JSON with [`validateJSON`](./guide/validation.md) before export.

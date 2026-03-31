@@ -16,9 +16,9 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 
 - [Validation guide](./guide/validation.md)
 - [Creating Fonts](./creating-fonts.md)
+- [Creating Glyphs](./creating-glyphs.md)
 - [Creating an OTF](./creating-otf.md)
 - [Creating a TTF](./creating-ttf.md)
-- [Creating a TTC / OTC Collection](./creating-ttc-otc.md)
 - [Table references](./tables/index.md)
 
 ## API
@@ -38,6 +38,9 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 | `disassembleCharString(bytes)`              | Disassemble CFF charstring bytes into human-readable text.                     |
 | `contoursToSVGPath(contours)`               | Convert glyph contours (TrueType or CFF) to an SVG path `d` string.            |
 | `svgPathToContours(pathData, format)`       | Parse an SVG path `d` string into `'truetype'` or `'cff'` contours.            |
+| `createGlyph(options)`                      | Create a glyph object from metadata + outline in any supported format.         |
+| `compileCharString(contours)`               | Compile CFF contours into Type 2 charstring bytes.                             |
+| `assembleCharString(text)`                  | Assemble human-readable charstring text into bytes.                            |
 
 See the [README](https://github.com/mattlag/Font-Flux-JS#readme) for installation and usage examples.
 
@@ -72,6 +75,8 @@ The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editin
 ## Working with glyph outlines
 
 `importFont` produces simplified glyph data with decoded outline contours ready for inspection and editing.
+
+For a complete guide to creating glyphs from scratch — including metadata, outline formats, and examples — see [Creating Glyphs](./creating-glyphs.md).
 
 ### TrueType glyphs (TTF)
 

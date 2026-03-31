@@ -32,9 +32,9 @@ export default defineConfig({
 				items: [
 					{ text: 'Overview', link: '/' },
 					{ text: 'Creating Fonts', link: '/creating-fonts' },
+					{ text: 'Creating Glyphs', link: '/creating-glyphs' },
 					{ text: 'Creating an OTF', link: '/creating-otf' },
 					{ text: 'Creating a TTF', link: '/creating-ttf' },
-					{ text: 'Creating a TTC / OTC', link: '/creating-ttc-otc' },
 					{ text: 'Validation', link: '/guide/validation' },
 				],
 			},

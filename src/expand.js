@@ -6,6 +6,7 @@
  * and produces the table-by-table structure that export.js can encode to binary.
  */
 
+import { compileCharString } from './otf/charstring_compiler.js';
 import { isoToLongdatetime } from './simplify.js';
 
 // ===========================================================================
@@ -806,22 +807,44 @@ function buildGlyfTable(glyphs) {
 function buildCFFShell(font, glyphs) {
 	const fontName = font.postScriptName || buildPostScriptName(font);
 	const charset = glyphs.slice(1).map((g) => g.name || '.notdef');
-	const charStrings = glyphs.map((g) => g.charString || []);
+	const charStrings = glyphs.map((g) => {
+		if (g.charString) return g.charString;
+		// Auto-compile CFF contours to charstring bytes if not provided
+		if (g.contours && g.contours.length > 0 && g.contours[0]?.[0]?.type) {
+			return compileCharString(g.contours);
+		}
+		return [];
+	});
+
+	// CFF Top DICT string values (FullName, FamilyName, Weight) must be
+	// stored as SIDs. Custom strings get SID = 391 + index in the strings array.
+	const strings = [];
+	function addString(str) {
+		const sid = 391 + strings.length;
+		strings.push(str);
+		return sid;
+	}
+
+	const fullName =
+		font.fullName || `${font.familyName || ''} ${font.styleName || ''}`.trim();
+	const familyName = font.familyName || '';
+	const weight = getWeightString(font.weightClass);
+
+	// Charset glyph names also need SIDs
+	const charsetSIDs = charset.map((name) => addString(name));
 
 	return {
 		majorVersion: 1,
 		minorVersion: 0,
 		names: [fontName],
-		strings: [],
+		strings,
 		globalSubrs: [],
 		fonts: [
 			{
 				topDict: {
-					FullName:
-						font.fullName ||
-						`${font.familyName || ''} ${font.styleName || ''}`.trim(),
-					FamilyName: font.familyName || '',
-					Weight: getWeightString(font.weightClass),
+					FullName: addString(fullName),
+					FamilyName: addString(familyName),
+					Weight: addString(weight),
 					FontBBox: [
 						0,
 						font.descender || 0,
@@ -829,7 +852,7 @@ function buildCFFShell(font, glyphs) {
 						font.ascender || 0,
 					],
 				},
-				charset,
+				charset: charsetSIDs,
 				encoding: [],
 				charStrings,
 				privateDict: {},
