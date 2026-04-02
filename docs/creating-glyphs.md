@@ -21,6 +21,21 @@ That's the simplest form — a name, a Unicode code point, a width, and an SVG p
 
 You can also construct glyph objects directly as plain JSON without using `createGlyph`. The helper is a convenience, not a requirement.
 
+## Looking up glyphs with `getGlyph`
+
+Use `getGlyph` to look up a glyph from a font by name, Unicode code point, or hex string:
+
+```js
+import { getGlyph } from 'font-flux-js';
+
+getGlyph(font, 'A'); // by glyph name
+getGlyph(font, 65); // by numeric code point
+getGlyph(font, 'U+0041'); // by hex string
+getGlyph(font, '0x41'); // also works
+```
+
+Returns the glyph object or `undefined` if not found. The same flexible identifiers work with `getKerningValue` — see [Creating Kerning](./creating-kerning.md).
+
 ## Glyph metadata reference
 
 ### Required fields

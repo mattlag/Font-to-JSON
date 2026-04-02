@@ -5,9 +5,10 @@
 
 import { buildRawFromSimplified } from './expand.js';
 import { exportFont } from './export.js';
-import { createGlyph } from './glyph.js';
+import { createGlyph, getGlyph } from './glyph.js';
 import { importFont, importFontTables } from './import.js';
 import { fontFromJSON, fontToJSON } from './json.js';
+import { createKerning, getKerningValue } from './kerning.js';
 import {
 	assembleCharString,
 	compileCharString,
@@ -39,10 +40,13 @@ export {
 	compileCharString,
 	contoursToSVGPath,
 	createGlyph,
+	createKerning,
 	disassembleCharString,
 	exportFont,
 	fontFromJSON,
 	fontToJSON,
+	getGlyph,
+	getKerningValue,
 	importFont,
 	importFontTables,
 	initWoff2,

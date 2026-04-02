@@ -17,6 +17,7 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 - [Validation guide](./guide/validation.md)
 - [Creating Fonts](./creating-fonts.md)
 - [Creating Glyphs](./creating-glyphs.md)
+- [Creating Kerning](./creating-kerning.md)
 - [Creating an OTF](./creating-otf.md)
 - [Creating a TTF](./creating-ttf.md)
 - [Table references](./tables/index.md)
@@ -39,6 +40,9 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 | `contoursToSVGPath(contours)`               | Convert glyph contours (TrueType or CFF) to an SVG path `d` string.            |
 | `svgPathToContours(pathData, format)`       | Parse an SVG path `d` string into `'truetype'` or `'cff'` contours.            |
 | `createGlyph(options)`                      | Create a glyph object from metadata + outline in any supported format.         |
+| `getGlyph(font, id)`                        | Look up a glyph by name, code point, or hex string.                            |
+| `createKerning(input)`                      | Create a kerning pair array from flexible hand-authored input.                 |
+| `getKerningValue(font, left, right)`        | Look up the kerning value between two glyphs.                                  |
 | `compileCharString(contours)`               | Compile CFF contours into Type 2 charstring bytes.                             |
 | `assembleCharString(text)`                  | Assemble human-readable charstring text into bytes.                            |
 

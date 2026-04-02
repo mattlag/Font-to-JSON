@@ -2,6 +2,8 @@
 
 Defines glyph positioning rules — kerning, mark placement, cursive attachment, and other adjustments.
 
+GPOS PairPos (lookupType 2) is the modern standard for kerning. Font Flux extracts PairPos kerning into the simplified `kerning[]` array and can build GPOS PairPos from kerning data on export. See [Creating Kerning](../creating-kerning.md) for the full authoring guide.
+
 ## Scope
 
 - Format family: Shared SFNT
@@ -18,13 +20,13 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ```json
 {
-  "tables": {
-    "GPOS": {
-      "majorVersion": 0,
-      "minorVersion": 0,
-      "_checksum": 0
-    }
-  }
+	"tables": {
+		"GPOS": {
+			"majorVersion": 0,
+			"minorVersion": 0,
+			"_checksum": 0
+		}
+	}
 }
 ```
 
@@ -32,7 +34,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 - `majorVersion` - number (0..65535)
 - `minorVersion` - number (0..65535)
-
 
 ## Nested JSON Structure
 
@@ -75,9 +76,6 @@ Lookup subtable families by `lookupType`:
 - `7` ContextPos and `8` ChainedContextPos: shared Sequence/ChainedSequence context structures.
 - `9` ExtensionPos: wraps another positioning subtable in `subtable` with `extensionLookupType`.
 
-
-
-
 ## Validation Constraints
 
 - `majorVersion` is typically `1`.
@@ -102,8 +100,6 @@ Lookup subtable families by `lookupType`:
 	}
 }
 ```
-
-
 
 ## Additional Nested Keys Seen In Implementation
 

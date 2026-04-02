@@ -124,3 +124,74 @@ export function createGlyph(options) {
 
 	return glyph;
 }
+
+/**
+ * Look up a glyph from a font by name, Unicode code point, or hex string.
+ *
+ * Accepts:
+ *   - Glyph name string (e.g. 'A', '.notdef', 'uni0041')
+ *   - Numeric Unicode code point (e.g. 65, 0x41)
+ *   - Hex string ('U+0041', '0x41')
+ *
+ * @param {object} font - A Font Flux simplified font (must have `.glyphs`)
+ * @param {string|number} id - Glyph name, code point number, or hex string
+ * @returns {object|undefined} The glyph object, or undefined if not found
+ */
+export function getGlyph(font, id) {
+	const glyphs = font?.glyphs;
+	if (!glyphs || !Array.isArray(glyphs)) return undefined;
+
+	const codePoint = parseCodePoint(id);
+	if (codePoint !== undefined) {
+		return findGlyphByCodePoint(glyphs, codePoint);
+	}
+	if (typeof id === 'string') {
+		return glyphs.find((g) => g.name === id);
+	}
+	return undefined;
+}
+
+/**
+ * Resolve a flexible glyph identifier to a glyph name string.
+ * Accepts: glyph name string, numeric code point, or hex string ('U+0041', '0x41').
+ * Returns undefined if the identifier can't be resolved.
+ *
+ * @param {object[]} glyphs - The glyphs array
+ * @param {string|number} id - Glyph name, code point number, or hex string
+ * @returns {string|undefined}
+ */
+export function resolveGlyphId(glyphs, id) {
+	const codePoint = parseCodePoint(id);
+	if (codePoint !== undefined) {
+		return findGlyphByCodePoint(glyphs, codePoint)?.name;
+	}
+	if (typeof id === 'string') {
+		return id;
+	}
+	return undefined;
+}
+
+/**
+ * Parse a code point from a number or hex string.
+ * Returns undefined for plain glyph name strings.
+ */
+function parseCodePoint(id) {
+	if (typeof id === 'number') return id;
+	if (typeof id === 'string') {
+		const hex = id.match(/^(?:U\+|0x)([0-9A-Fa-f]+)$/i);
+		if (hex) return parseInt(hex[1], 16);
+	}
+	return undefined;
+}
+
+/**
+ * Find a glyph by Unicode code point.
+ */
+function findGlyphByCodePoint(glyphs, codePoint) {
+	for (const g of glyphs) {
+		if (g.unicode === codePoint) return g;
+		if (g.unicodes && g.unicodes.includes(codePoint)) return g;
+		if (g.codePoint === codePoint) return g;
+	}
+	return undefined;
+}
