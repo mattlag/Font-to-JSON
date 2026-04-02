@@ -48,8 +48,33 @@ export function buildRawFromSimplified(simplified) {
 	}
 
 	// == Optional kerning =============================================
+	const kerningFormat = simplified._options?.kerningFormat || 'gpos';
 	if (simplified.kerning && simplified.kerning.length > 0) {
-		tables.kern = buildKernTable(simplified.kerning, glyphs);
+		const wantGpos = kerningFormat === 'gpos' || kerningFormat === 'gpos+kern';
+		const wantKern = kerningFormat !== 'gpos';
+
+		if (wantGpos) {
+			// Build or merge GPOS kerning
+			const existingGPOS = simplified.features?.GPOS;
+			if (existingGPOS) {
+				tables.GPOS = mergeKerningIntoGPOS(
+					existingGPOS,
+					simplified.kerning,
+					glyphs,
+				);
+			} else {
+				tables.GPOS = buildGPOSFromKerning(simplified.kerning, glyphs);
+			}
+		}
+
+		if (wantKern) {
+			const kernTable = buildKernTableForFormat(
+				simplified.kerning,
+				glyphs,
+				kerningFormat,
+			);
+			if (kernTable) tables.kern = kernTable;
+		}
 	}
 
 	// == Variable font ================================================
@@ -79,7 +104,8 @@ export function buildRawFromSimplified(simplified) {
 
 	// -- OpenType layout features (passthrough) -----------------------
 	if (simplified.features) {
-		if (simplified.features.GPOS) tables.GPOS = simplified.features.GPOS;
+		if (simplified.features.GPOS && !tables.GPOS)
+			tables.GPOS = simplified.features.GPOS;
 		if (simplified.features.GSUB) tables.GSUB = simplified.features.GSUB;
 		if (simplified.features.GDEF) tables.GDEF = simplified.features.GDEF;
 	}
@@ -911,6 +937,480 @@ function buildKernTable(kerning, glyphs) {
 				entrySelector,
 				rangeShift,
 				pairs,
+			},
+		],
+	};
+}
+
+// ===========================================================================
+//  KERNING FORMAT BUILDERS
+// ===========================================================================
+
+/**
+ * Resolve simplified kerning pairs to glyph-index pairs.
+ * @returns {{ pairs: Array<{left: number, right: number, value: number}>, nameToIndex: Map }}
+ */
+function resolveKerningPairs(kerning, glyphs) {
+	const nameToIndex = new Map();
+	for (let i = 0; i < glyphs.length; i++) {
+		if (glyphs[i].name) nameToIndex.set(glyphs[i].name, i);
+	}
+
+	const pairs = [];
+	for (const pair of kerning) {
+		const left = nameToIndex.get(pair.left);
+		const right = nameToIndex.get(pair.right);
+		if (left !== undefined && right !== undefined) {
+			pairs.push({ left, right, value: pair.value });
+		}
+	}
+	return { pairs, nameToIndex };
+}
+
+/**
+ * Dispatch kern table building based on the requested format string.
+ */
+function buildKernTableForFormat(kerning, glyphs, format) {
+	switch (format) {
+		case 'kern-ot-f0':
+		case 'gpos+kern':
+			return buildKernTable(kerning, glyphs);
+		case 'kern-ot-f2':
+			return buildKernTableOTFormat2(kerning, glyphs);
+		case 'kern-apple-f0':
+			return buildKernTableAppleFormat0(kerning, glyphs);
+		case 'kern-apple-f3':
+			return buildKernTableAppleFormat3(kerning, glyphs);
+		default:
+			return buildKernTable(kerning, glyphs);
+	}
+}
+
+/**
+ * Build an OpenType kern Format 2 (class-based) table from simplified pairs.
+ */
+function buildKernTableOTFormat2(kerning, glyphs) {
+	const { pairs } = resolveKerningPairs(kerning, glyphs);
+	if (pairs.length === 0) return null;
+
+	// Group pairs by left glyph to find classes
+	const {
+		leftClasses,
+		rightClasses,
+		valueMatrix,
+		leftGlyphToClass,
+		rightGlyphToClass,
+	} = buildClassesFromPairs(pairs);
+
+	const nLeftClasses = leftClasses.length;
+	const nRightClasses = rightClasses.length;
+	const rowWidth = nRightClasses * 2;
+
+	// Layout: header(8) + leftClassTable + rightClassTable + array
+	const headerSize = 8;
+
+	// Find glyph ranges for class tables
+	const leftGlyphs = Array.from(leftGlyphToClass.keys()).sort((a, b) => a - b);
+	const rightGlyphs = Array.from(rightGlyphToClass.keys()).sort(
+		(a, b) => a - b,
+	);
+
+	const leftFirstGlyph = leftGlyphs.length > 0 ? leftGlyphs[0] : 0;
+	const leftNGlyphs =
+		leftGlyphs.length > 0
+			? leftGlyphs[leftGlyphs.length - 1] - leftFirstGlyph + 1
+			: 0;
+	const rightFirstGlyph = rightGlyphs.length > 0 ? rightGlyphs[0] : 0;
+	const rightNGlyphs =
+		rightGlyphs.length > 0
+			? rightGlyphs[rightGlyphs.length - 1] - rightFirstGlyph + 1
+			: 0;
+
+	const leftClassTableSize = 4 + leftNGlyphs * 2;
+	const rightClassTableSize = 4 + rightNGlyphs * 2;
+	const arraySize = nLeftClasses * nRightClasses * 2;
+
+	const leftOffsetTable = headerSize;
+	const rightOffsetTable = leftOffsetTable + leftClassTableSize;
+	const kerningArrayOffset = rightOffsetTable + rightClassTableSize;
+
+	// Build pre-multiplied offset arrays
+	const leftOffsets = [];
+	for (let i = 0; i < leftNGlyphs; i++) {
+		const g = leftFirstGlyph + i;
+		const c = leftGlyphToClass.get(g) ?? 0;
+		leftOffsets.push(kerningArrayOffset + c * rowWidth);
+	}
+
+	const rightOffsets = [];
+	for (let i = 0; i < rightNGlyphs; i++) {
+		const g = rightFirstGlyph + i;
+		const c = rightGlyphToClass.get(g) ?? 0;
+		rightOffsets.push(c * 2);
+	}
+
+	return {
+		formatVariant: 'opentype',
+		version: 0,
+		nTables: 1,
+		subtables: [
+			{
+				version: 0,
+				coverage: (2 << 8) | 1, // format 2, horizontal
+				format: 2,
+				rowWidth,
+				leftOffsetTable,
+				rightOffsetTable,
+				kerningArrayOffset,
+				leftClassTable: {
+					firstGlyph: leftFirstGlyph,
+					nGlyphs: leftNGlyphs,
+					offsets: leftOffsets,
+				},
+				rightClassTable: {
+					firstGlyph: rightFirstGlyph,
+					nGlyphs: rightNGlyphs,
+					offsets: rightOffsets,
+				},
+				nLeftClasses,
+				nRightClasses,
+				values: valueMatrix,
+			},
+		],
+	};
+}
+
+/**
+ * Build an Apple kern Format 0 table from simplified pairs.
+ */
+function buildKernTableAppleFormat0(kerning, glyphs) {
+	const { pairs } = resolveKerningPairs(kerning, glyphs);
+	if (pairs.length === 0) return null;
+
+	const nPairs = pairs.length;
+	const entrySelector = Math.floor(Math.log2(nPairs));
+	const searchRange = Math.pow(2, entrySelector) * 6;
+	const rangeShift = nPairs * 6 - searchRange;
+
+	return {
+		formatVariant: 'apple',
+		version: 0x00010000,
+		nTables: 1,
+		subtables: [
+			{
+				coverage: 0x00, // horizontal
+				format: 0,
+				tupleIndex: 0,
+				nPairs,
+				searchRange,
+				entrySelector,
+				rangeShift,
+				pairs,
+			},
+		],
+	};
+}
+
+/**
+ * Build an Apple kern Format 3 (compact class-based) table from simplified pairs.
+ * Falls back to Apple Format 0 if > 256 classes or > 256 unique values.
+ */
+function buildKernTableAppleFormat3(kerning, glyphs) {
+	const { pairs } = resolveKerningPairs(kerning, glyphs);
+	if (pairs.length === 0) return null;
+
+	const {
+		leftClasses,
+		rightClasses,
+		valueMatrix,
+		leftGlyphToClass,
+		rightGlyphToClass,
+	} = buildClassesFromPairs(pairs);
+
+	const leftClassCount = leftClasses.length;
+	const rightClassCount = rightClasses.length;
+
+	// Collect unique kern values from the matrix
+	const uniqueValues = new Set();
+	uniqueValues.add(0);
+	for (const row of valueMatrix) {
+		for (const v of row) {
+			uniqueValues.add(v);
+		}
+	}
+
+	// Check Format 3 limits (uint8 for all arrays)
+	if (
+		leftClassCount > 255 ||
+		rightClassCount > 255 ||
+		uniqueValues.size > 255
+	) {
+		return buildKernTableAppleFormat0(kerning, glyphs);
+	}
+
+	// Build kernValues array and value-to-index map
+	const kernValues = Array.from(uniqueValues).sort((a, b) => a - b);
+	const valueToIndex = new Map();
+	for (let i = 0; i < kernValues.length; i++) {
+		valueToIndex.set(kernValues[i], i);
+	}
+
+	// Build left/right class arrays indexed by glyph index
+	const glyphCount = glyphs.length;
+	const leftClassArr = new Array(glyphCount).fill(0);
+	const rightClassArr = new Array(glyphCount).fill(0);
+
+	for (const [g, c] of leftGlyphToClass) {
+		if (g < glyphCount) leftClassArr[g] = c;
+	}
+	for (const [g, c] of rightGlyphToClass) {
+		if (g < glyphCount) rightClassArr[g] = c;
+	}
+
+	// Build kern index array
+	const kernIndices = [];
+	for (let lc = 0; lc < leftClassCount; lc++) {
+		for (let rc = 0; rc < rightClassCount; rc++) {
+			const value = valueMatrix[lc]?.[rc] || 0;
+			kernIndices.push(valueToIndex.get(value) ?? 0);
+		}
+	}
+
+	return {
+		formatVariant: 'apple',
+		version: 0x00010000,
+		nTables: 1,
+		subtables: [
+			{
+				coverage: 0x00,
+				format: 3,
+				tupleIndex: 0,
+				glyphCount,
+				kernValueCount: kernValues.length,
+				leftClassCount,
+				rightClassCount,
+				flags: 0,
+				kernValues,
+				leftClasses: leftClassArr,
+				rightClasses: rightClassArr,
+				kernIndices,
+			},
+		],
+	};
+}
+
+/**
+ * Build glyph classes from a list of resolved kerning pairs.
+ * Groups glyphs with identical kerning profiles into the same class.
+ */
+function buildClassesFromPairs(pairs) {
+	// Build left and right kerning profiles
+	// Left profile: for each left glyph, the set of (right, value) entries
+	const leftProfiles = new Map(); // leftGlyph → Map<rightGlyph, value>
+	const rightGlyphSet = new Set();
+
+	for (const { left, right, value } of pairs) {
+		if (!leftProfiles.has(left)) leftProfiles.set(left, new Map());
+		leftProfiles.get(left).set(right, value);
+		rightGlyphSet.add(right);
+	}
+
+	// Group left glyphs by identical kerning profile → same class
+	const leftProfileKey = new Map(); // leftGlyph → serialized profile key
+	for (const [glyph, profile] of leftProfiles) {
+		const entries = Array.from(profile.entries()).sort((a, b) => a[0] - b[0]);
+		leftProfileKey.set(glyph, entries.map((e) => `${e[0]}:${e[1]}`).join(','));
+	}
+
+	const leftKeyToClass = new Map();
+	const leftGlyphToClass = new Map();
+	let nextLeftClass = 1; // class 0 = no-kern default
+	for (const [glyph, key] of leftProfileKey) {
+		if (!leftKeyToClass.has(key)) {
+			leftKeyToClass.set(key, nextLeftClass++);
+		}
+		leftGlyphToClass.set(glyph, leftKeyToClass.get(key));
+	}
+
+	// Build right profiles similarly
+	const rightProfiles = new Map(); // rightGlyph → Map<leftGlyph, value>
+	for (const { left, right, value } of pairs) {
+		if (!rightProfiles.has(right)) rightProfiles.set(right, new Map());
+		rightProfiles.get(right).set(left, value);
+	}
+
+	const rightProfileKey = new Map();
+	for (const [glyph, profile] of rightProfiles) {
+		const entries = Array.from(profile.entries()).sort((a, b) => a[0] - b[0]);
+		rightProfileKey.set(glyph, entries.map((e) => `${e[0]}:${e[1]}`).join(','));
+	}
+
+	const rightKeyToClass = new Map();
+	const rightGlyphToClass = new Map();
+	let nextRightClass = 1;
+	for (const [glyph, key] of rightProfileKey) {
+		if (!rightKeyToClass.has(key)) {
+			rightKeyToClass.set(key, nextRightClass++);
+		}
+		rightGlyphToClass.set(glyph, rightKeyToClass.get(key));
+	}
+
+	const nLeftClasses = nextLeftClass; // 0..nextLeftClass-1
+	const nRightClasses = nextRightClass;
+
+	// Build value matrix: leftClasses × rightClasses
+	const valueMatrix = [];
+	for (let lc = 0; lc < nLeftClasses; lc++) {
+		valueMatrix.push(new Array(nRightClasses).fill(0));
+	}
+
+	for (const { left, right, value } of pairs) {
+		const lc = leftGlyphToClass.get(left) ?? 0;
+		const rc = rightGlyphToClass.get(right) ?? 0;
+		valueMatrix[lc][rc] = value;
+	}
+
+	const leftClasses = Array.from({ length: nLeftClasses }, (_, i) => i);
+	const rightClasses = Array.from({ length: nRightClasses }, (_, i) => i);
+
+	return {
+		leftClasses,
+		rightClasses,
+		valueMatrix,
+		leftGlyphToClass,
+		rightGlyphToClass,
+	};
+}
+
+// ===========================================================================
+//  GPOS KERNING BUILDERS
+// ===========================================================================
+
+/**
+ * Build a minimal GPOS table from simplified kerning pairs.
+ * Creates a single PairPos Format 1 lookup with a 'kern' feature.
+ */
+function buildGPOSFromKerning(kerning, glyphs) {
+	const { pairs } = resolveKerningPairs(kerning, glyphs);
+	if (pairs.length === 0) return null;
+
+	const lookup = buildPairPosLookup(pairs);
+
+	return {
+		majorVersion: 1,
+		minorVersion: 0,
+		scriptList: {
+			scriptRecords: [
+				{
+					scriptTag: 'DFLT',
+					script: {
+						defaultLangSys: {
+							lookupOrderOffset: 0,
+							requiredFeatureIndex: 0xffff,
+							featureIndices: [0],
+						},
+						langSysRecords: [],
+					},
+				},
+			],
+		},
+		featureList: {
+			featureRecords: [
+				{
+					featureTag: 'kern',
+					feature: {
+						featureParamsOffset: 0,
+						lookupListIndices: [0],
+					},
+				},
+			],
+		},
+		lookupList: {
+			lookups: [lookup],
+		},
+	};
+}
+
+/**
+ * Merge kerning pairs into an existing GPOS table.
+ * Replaces the 'kern' feature lookups; preserves all other features/lookups.
+ */
+function mergeKerningIntoGPOS(existingGPOS, kerning, glyphs) {
+	const { pairs } = resolveKerningPairs(kerning, glyphs);
+	const gpos = JSON.parse(JSON.stringify(existingGPOS)); // deep clone
+
+	if (pairs.length === 0) return gpos;
+
+	const newLookup = buildPairPosLookup(pairs);
+	const newLookupIdx = gpos.lookupList.lookups.length;
+	gpos.lookupList.lookups.push(newLookup);
+
+	// Find existing 'kern' feature(s) and replace their lookup indices
+	let foundKern = false;
+	for (const rec of gpos.featureList.featureRecords) {
+		if (rec.featureTag === 'kern') {
+			// Remove old kern lookups (we could leave them, but they become orphans)
+			rec.feature.lookupListIndices = [newLookupIdx];
+			foundKern = true;
+		}
+	}
+
+	// If no kern feature exists, add one
+	if (!foundKern) {
+		gpos.featureList.featureRecords.push({
+			featureTag: 'kern',
+			feature: {
+				featureParamsOffset: 0,
+				lookupListIndices: [newLookupIdx],
+			},
+		});
+
+		// Add kern feature index to all script/langSys featureIndices
+		const kernFeatureIdx = gpos.featureList.featureRecords.length - 1;
+		for (const sr of gpos.scriptList.scriptRecords) {
+			if (sr.script.defaultLangSys) {
+				sr.script.defaultLangSys.featureIndices.push(kernFeatureIdx);
+			}
+			for (const lr of sr.script.langSysRecords || []) {
+				lr.langSys.featureIndices.push(kernFeatureIdx);
+			}
+		}
+	}
+
+	return gpos;
+}
+
+/**
+ * Build a PairPos Format 1 lookup from resolved glyph-index pairs.
+ */
+function buildPairPosLookup(pairs) {
+	// Group by first (left) glyph
+	const byLeft = new Map();
+	for (const { left, right, value } of pairs) {
+		if (!byLeft.has(left)) byLeft.set(left, []);
+		byLeft
+			.get(left)
+			.push({ secondGlyph: right, value1: { xAdvance: value }, value2: null });
+	}
+
+	// Sort coverage glyphs and pair sets
+	const covGlyphs = Array.from(byLeft.keys()).sort((a, b) => a - b);
+	const pairSets = covGlyphs.map((g) => {
+		const ps = byLeft.get(g);
+		ps.sort((a, b) => a.secondGlyph - b.secondGlyph);
+		return ps;
+	});
+
+	return {
+		lookupType: 2,
+		lookupFlag: 0,
+		subtables: [
+			{
+				format: 1,
+				coverage: { format: 1, glyphs: covGlyphs },
+				valueFormat1: 0x0004, // xAdvance
+				valueFormat2: 0x0000,
+				pairSets,
 			},
 		],
 	};

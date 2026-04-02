@@ -454,15 +454,177 @@ function buildSimplifiedGlyphs(tables) {
 // ===========================================================================
 
 /**
- * Extract kerning pairs from kern table, resolved to glyph names.
+ * Extract kerning pairs from all available sources (GPOS and kern table),
+ * resolved to glyph names. GPOS pairs take priority on conflict.
  */
 function extractKerning(tables, glyphs) {
+	const gposPairs = extractGPOSKerning(tables, glyphs);
+	const kernPairs = extractKernTableKerning(tables, glyphs);
+
+	if (gposPairs.length === 0) return kernPairs;
+	if (kernPairs.length === 0) return gposPairs;
+
+	// Merge: GPOS wins on conflict, dedup by (left, right)
+	const seen = new Map();
+	for (const p of gposPairs) {
+		seen.set(`${p.left}\0${p.right}`, p);
+	}
+	for (const p of kernPairs) {
+		const key = `${p.left}\0${p.right}`;
+		if (!seen.has(key)) {
+			seen.set(key, p);
+		}
+	}
+	return Array.from(seen.values());
+}
+
+/**
+ * Extract kerning pairs from GPOS PairPos lookups tagged with 'kern' feature.
+ */
+function extractGPOSKerning(tables, glyphs) {
+	const gpos = tables.GPOS;
+	if (!gpos || gpos._raw || !gpos.featureList || !gpos.lookupList) return [];
+
+	// Find 'kern' feature lookup indices
+	const kernLookupIndices = new Set();
+	for (const rec of gpos.featureList.featureRecords) {
+		if (rec.featureTag === 'kern') {
+			for (const idx of rec.feature.lookupListIndices) {
+				kernLookupIndices.add(idx);
+			}
+		}
+	}
+	if (kernLookupIndices.size === 0) return [];
+
+	const pairs = [];
+	for (const idx of kernLookupIndices) {
+		const lookup = gpos.lookupList.lookups[idx];
+		if (!lookup || lookup.lookupType !== 2) continue; // PairPos only
+
+		for (const st of lookup.subtables) {
+			if (st.format === 1) {
+				extractPairPosFormat1(st, glyphs, pairs);
+			} else if (st.format === 2) {
+				extractPairPosFormat2(st, glyphs, pairs);
+			}
+		}
+	}
+	return pairs;
+}
+
+/**
+ * Extract pairs from GPOS PairPos Format 1 (individual glyph pairs).
+ */
+function extractPairPosFormat1(st, glyphs, pairs) {
+	const covGlyphs = expandCoverage(st.coverage);
+	for (let i = 0; i < covGlyphs.length && i < st.pairSets.length; i++) {
+		const leftGlyph = covGlyphs[i];
+		const leftName = glyphs[leftGlyph]?.name || `glyph${leftGlyph}`;
+		for (const pvr of st.pairSets[i]) {
+			const value = pvr.value1?.xAdvance;
+			if (value === undefined || value === 0) continue;
+			const rightName =
+				glyphs[pvr.secondGlyph]?.name || `glyph${pvr.secondGlyph}`;
+			pairs.push({ left: leftName, right: rightName, value });
+		}
+	}
+}
+
+/**
+ * Extract pairs from GPOS PairPos Format 2 (class-based).
+ * Expands classes to individual glyph pairs; skips zero-value entries.
+ */
+function extractPairPosFormat2(st, glyphs, pairs) {
+	const glyphToClass1 = buildClassMap(st.classDef1, glyphs.length);
+	const glyphToClass2 = buildClassMap(st.classDef2, glyphs.length);
+
+	// Build reverse maps: class → glyph indices
+	const class1Glyphs = new Map(); // classIdx → [glyphIdx, ...]
+	const class2Glyphs = new Map();
+
+	// Only include glyphs in the coverage for class 1 lookups
+	const covSet = new Set(expandCoverage(st.coverage));
+
+	for (let g = 0; g < glyphs.length; g++) {
+		if (covSet.has(g)) {
+			const c1 = glyphToClass1.get(g) ?? 0;
+			if (!class1Glyphs.has(c1)) class1Glyphs.set(c1, []);
+			class1Glyphs.get(c1).push(g);
+		}
+		const c2 = glyphToClass2.get(g) ?? 0;
+		if (!class2Glyphs.has(c2)) class2Glyphs.set(c2, []);
+		class2Glyphs.get(c2).push(g);
+	}
+
+	for (let c1 = 0; c1 < st.class1Count; c1++) {
+		const leftGlyphs = class1Glyphs.get(c1);
+		if (!leftGlyphs) continue;
+		for (let c2 = 0; c2 < st.class2Count; c2++) {
+			const rec = st.class1Records[c1]?.[c2];
+			const value = rec?.value1?.xAdvance;
+			if (value === undefined || value === 0) continue;
+			const rightGlyphs = class2Glyphs.get(c2);
+			if (!rightGlyphs) continue;
+			for (const lg of leftGlyphs) {
+				const leftName = glyphs[lg]?.name || `glyph${lg}`;
+				for (const rg of rightGlyphs) {
+					const rightName = glyphs[rg]?.name || `glyph${rg}`;
+					pairs.push({ left: leftName, right: rightName, value });
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Expand a Coverage table to an array of glyph indices.
+ */
+function expandCoverage(coverage) {
+	if (coverage.format === 1) return coverage.glyphs;
+	if (coverage.format === 2) {
+		const result = [];
+		for (const range of coverage.ranges) {
+			for (let g = range.startGlyphID; g <= range.endGlyphID; g++) {
+				result.push(g);
+			}
+		}
+		return result;
+	}
+	return [];
+}
+
+/**
+ * Build a Map<glyphIndex, classIndex> from a ClassDef table.
+ */
+function buildClassMap(classDef, numGlyphs) {
+	const map = new Map();
+	if (classDef.format === 1) {
+		for (let i = 0; i < classDef.classValues.length; i++) {
+			map.set(classDef.startGlyphID + i, classDef.classValues[i]);
+		}
+	} else if (classDef.format === 2) {
+		for (const range of classDef.ranges) {
+			for (let g = range.startGlyphID; g <= range.endGlyphID; g++) {
+				map.set(g, range.class);
+			}
+		}
+	}
+	return map;
+}
+
+/**
+ * Extract kerning pairs from the kern table (all supported formats).
+ */
+function extractKernTableKerning(tables, glyphs) {
 	const kern = tables.kern;
 	if (!kern || kern._raw || !kern.subtables) return [];
 
 	const pairs = [];
 	for (const subtable of kern.subtables) {
+		if (subtable._raw) continue;
+
 		if (subtable.format === 0 && subtable.pairs) {
+			// Format 0: ordered pair list (OT and Apple)
 			for (const pair of subtable.pairs) {
 				const leftName = glyphs[pair.left]?.name || `glyph${pair.left}`;
 				const rightName = glyphs[pair.right]?.name || `glyph${pair.right}`;
@@ -472,10 +634,234 @@ function extractKerning(tables, glyphs) {
 					value: pair.value,
 				});
 			}
+		} else if (subtable.format === 2 && subtable.values) {
+			// Format 2: class-based n×m array (OT and Apple)
+			extractKernFormat2Pairs(subtable, glyphs, pairs);
+		} else if (subtable.format === 3 && subtable.kernValues) {
+			// Format 3: compact class-based (Apple)
+			extractKernFormat3Pairs(subtable, glyphs, pairs);
+		} else if (subtable.format === 1 && subtable.states) {
+			// Format 1: state table contextual kerning (Apple) — best-effort
+			extractKernFormat1Pairs(subtable, glyphs, pairs);
 		}
 	}
 
 	return pairs;
+}
+
+/**
+ * Extract pairs from kern Format 2 (class-based n×m array).
+ * Left/right class tables map glyphs to row/column indices.
+ */
+function extractKernFormat2Pairs(subtable, glyphs, pairs) {
+	const {
+		leftClassTable,
+		rightClassTable,
+		rowWidth,
+		kerningArrayOffset,
+		values,
+	} = subtable;
+	if (!values) return;
+
+	const nRightClasses = rowWidth > 0 ? rowWidth / 2 : 0;
+
+	// Build glyph → class index maps
+	// Left offsets are pre-multiplied by rowWidth, offset from kerningArrayOffset
+	const leftGlyphToClass = new Map();
+	for (let i = 0; i < leftClassTable.nGlyphs; i++) {
+		const g = leftClassTable.firstGlyph + i;
+		const rawOffset = leftClassTable.offsets[i] || 0;
+		// Left class = (offset - kerningArrayOffset) / rowWidth
+		const classIdx =
+			rowWidth > 0
+				? Math.floor((rawOffset - kerningArrayOffset) / rowWidth)
+				: 0;
+		if (classIdx >= 0 && classIdx < values.length) {
+			leftGlyphToClass.set(g, classIdx);
+		}
+	}
+
+	// Right offsets are pre-multiplied by 2 (sizeof int16)
+	const rightGlyphToClass = new Map();
+	for (let i = 0; i < rightClassTable.nGlyphs; i++) {
+		const g = rightClassTable.firstGlyph + i;
+		const rawOffset = rightClassTable.offsets[i] || 0;
+		const classIdx = Math.floor(rawOffset / 2);
+		if (classIdx >= 0 && classIdx < nRightClasses) {
+			rightGlyphToClass.set(g, classIdx);
+		}
+	}
+
+	// Expand class pairs to individual glyph pairs
+	for (const [leftGlyph, leftClass] of leftGlyphToClass) {
+		const row = values[leftClass];
+		if (!row) continue;
+		const leftName = glyphs[leftGlyph]?.name || `glyph${leftGlyph}`;
+		for (const [rightGlyph, rightClass] of rightGlyphToClass) {
+			const value = row[rightClass];
+			if (value === 0) continue;
+			const rightName = glyphs[rightGlyph]?.name || `glyph${rightGlyph}`;
+			pairs.push({ left: leftName, right: rightName, value });
+		}
+	}
+}
+
+/**
+ * Extract pairs from kern Format 3 (compact class-based).
+ * value = kernValues[kernIndices[leftClass[L] * rightClassCount + rightClass[R]]]
+ */
+function extractKernFormat3Pairs(subtable, glyphs, pairs) {
+	const {
+		glyphCount,
+		leftClassCount,
+		rightClassCount,
+		kernValues,
+		leftClasses,
+		rightClasses,
+		kernIndices,
+	} = subtable;
+
+	const maxGlyph = Math.min(glyphCount, glyphs.length);
+
+	for (let left = 0; left < maxGlyph; left++) {
+		const lc = leftClasses[left];
+		if (lc >= leftClassCount) continue;
+		const leftName = glyphs[left]?.name || `glyph${left}`;
+
+		for (let right = 0; right < maxGlyph; right++) {
+			const rc = rightClasses[right];
+			if (rc >= rightClassCount) continue;
+
+			const idx = lc * rightClassCount + rc;
+			const kernIdx = kernIndices[idx];
+			if (kernIdx === undefined || kernIdx >= kernValues.length) continue;
+
+			const value = kernValues[kernIdx];
+			if (value === 0) continue;
+
+			const rightName = glyphs[right]?.name || `glyph${right}`;
+			pairs.push({ left: leftName, right: rightName, value });
+		}
+	}
+}
+
+/**
+ * Extract pairs from Apple kern Format 1 (state table) — best-effort.
+ * Simulates the state machine for each ordered glyph pair in the class table.
+ * This is lossy — contextual rules involving 3+ glyph sequences can't be
+ * represented as simple pairs.
+ */
+function extractKernFormat1Pairs(subtable, glyphs, pairs) {
+	const {
+		stateSize,
+		classTable,
+		states,
+		entryTable,
+		valueTable,
+		stateArrayOffset,
+	} = subtable;
+	if (!classTable || !states || !entryTable || !valueTable) return;
+	if (states.length === 0 || stateSize === 0) return;
+
+	// Build glyph → class map (classes 0–3 are reserved: EOT, OOB, deleted, EOL)
+	const glyphToClass = new Map();
+	for (let i = 0; i < classTable.nGlyphs; i++) {
+		const g = classTable.firstGlyph + i;
+		const c = classTable.classArray[i];
+		if (c >= 4) {
+			// only user-defined classes
+			glyphToClass.set(g, c);
+		}
+	}
+
+	// Collect all glyphs with assigned classes
+	const classGlyphs = Array.from(glyphToClass.keys());
+	if (classGlyphs.length === 0) return;
+
+	// Simulate for each pair of classified glyphs
+	for (const leftGlyph of classGlyphs) {
+		for (const rightGlyph of classGlyphs) {
+			const value = simulateKernFormat1(
+				leftGlyph,
+				rightGlyph,
+				glyphToClass,
+				states,
+				entryTable,
+				valueTable,
+				stateSize,
+				stateArrayOffset,
+			);
+			if (value !== 0) {
+				const leftName = glyphs[leftGlyph]?.name || `glyph${leftGlyph}`;
+				const rightName = glyphs[rightGlyph]?.name || `glyph${rightGlyph}`;
+				pairs.push({ left: leftName, right: rightName, value });
+			}
+		}
+	}
+}
+
+/**
+ * Simulate the Apple kern Format 1 state machine for a two-glyph sequence.
+ * Returns the total kerning value applied to the first glyph.
+ */
+function simulateKernFormat1(
+	leftGlyph,
+	rightGlyph,
+	glyphToClass,
+	states,
+	entryTable,
+	valueTable,
+	stateSize,
+	stateArrayOffset,
+) {
+	let stateIdx = 0; // start-of-text state
+	let totalKern = 0;
+	const kernStack = [];
+
+	const sequence = [leftGlyph, rightGlyph];
+
+	for (const glyph of sequence) {
+		const glyphClass = glyphToClass.get(glyph) ?? 1; // 1 = out-of-bounds
+		if (glyphClass >= stateSize || stateIdx >= states.length) break;
+
+		const entryIdx = states[stateIdx][glyphClass];
+		if (entryIdx === undefined || entryIdx >= entryTable.length) break;
+
+		const entry = entryTable[entryIdx];
+		const push = (entry.flags & 0x8000) !== 0;
+		const valueOffset = entry.flags & 0x3fff;
+
+		if (push) {
+			kernStack.push(glyph);
+		}
+
+		if (valueOffset > 0 && kernStack.length > 0) {
+			// valueOffset is byte offset from start of subtable to value table;
+			// convert to index into our valueTable array
+			const baseIdx = Math.floor((valueOffset - (valueTable._offset || 0)) / 2);
+			for (let k = 0; k < kernStack.length; k++) {
+				const vidx = baseIdx + k;
+				if (vidx >= 0 && vidx < valueTable.length) {
+					const v = valueTable[vidx];
+					// Check for end-of-list marker (odd value)
+					const isLast = (v & 1) !== 0;
+					totalKern += isLast ? v & ~1 : v;
+					if (isLast) break;
+				}
+			}
+			kernStack.length = 0;
+		}
+
+		// Advance state: newStateOffset is byte offset from stateArrayOffset
+		const newStateByteOffset = entry.newStateOffset;
+		stateIdx =
+			stateSize > 0
+				? Math.floor((newStateByteOffset - stateArrayOffset) / stateSize)
+				: 0;
+		if (stateIdx < 0 || stateIdx >= states.length) stateIdx = 0;
+	}
+
+	return totalKern;
 }
 
 // ===========================================================================

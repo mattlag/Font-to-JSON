@@ -731,7 +731,9 @@ function extractFieldDocs(sourceText) {
 		const specTypeRaw = parts[0];
 		if (!/^[A-Za-z][A-Za-z0-9.]*$/.test(specTypeRaw)) continue;
 
-		const fieldMatch = parts[1].match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\[[^\]]+\])?$/);
+		const fieldMatch = parts[1].match(
+			/^([A-Za-z_][A-Za-z0-9_]*)(?:\[[^\]]+\])?$/,
+		);
 		if (!fieldMatch) continue;
 		const field = fieldMatch[1];
 
