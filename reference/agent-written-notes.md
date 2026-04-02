@@ -789,11 +789,13 @@ Possible future work:
 ### Demo App — UI Polish (March 2026)
 
 **Info page card redesign** (`demo/src/tabs/info.js`, CSS lines ~267+):
+
 - Replaced flat layout with card-based design: hero card (logo + tagline + description + version), three link cards in a responsive grid (Documentation/NPM/GitHub with inline SVG icons), and a family card (Glyphr Studio, GitHub issues, email).
 - npm icon: uses the clean square-with-"n" single-path SVG (`M0 0v24h24V0H0zm19.2 19.2h-2.4V7.2h-4.8v12H4.8V4.8h14.4v14.4z`).
 - Responsive: grid collapses to single column below 520px.
 
 **Subset tab redesign** (`demo/src/tabs/subset.js`, CSS `.subset-*`):
+
 - **Inverted selection model**: Nothing checked by default. Check ranges to mark for removal. Button says "Remove Checked Ranges" (was "Remove Unchecked Glyphs").
 - **Filter bar**: Moved below the summary bar. Input is ~25% width (max 300px), not full-width.
 - **Toggle button**: Single "Toggle Selection" text button (light gray, swap icon) replaces the two ugly "Check All" / "Uncheck All" buttons.
@@ -801,17 +803,105 @@ Possible future work:
 - **Range Preview section**: Below the block list. `<select>` dropdown to pick a populated block → glyph grid showing characters rendered in the loaded font (`DemoLoadedFont` @font-face) + hex code point. Paged at 1000 glyphs/page with Prev/Next controls.
 
 **Collection font chooser** (`demo/src/main.js`):
+
 - On collection load (TTC/OTC), every font in `_collectionFonts` is tagged with `_collection`, `_collectionFonts`, `_collectionIndex`, `_fileName`, `_originalBuffer`, `_dirty`.
 - A `<select class="font-chooser">` dropdown appears in the header only for multi-font collections.
 - Changing the dropdown calls `showApp(collectionFonts[idx])` — full app re-render. All fonts live in memory by reference, so edits persist across switches.
 - Export/JSON download currently operates on the single displayed font. Full collection re-export (TTC/OTC) not yet supported from the demo UI.
 
 **Preview tab paging** (`demo/src/tabs/preview.js`):
+
 - Glyph Outlines grid now pages at 100 glyphs per page (was all 1000 at once).
 - Prev/Next paging controls below the grid (`.glyph-paging`, `.glyph-page-btn`, `.glyph-page-info`).
 - Page change scrolls to grid top.
 
 **Branding updates**:
+
 - Favicon: `font-flux-js-favicon.svg` (112×112, rounded rect with teal 'f') added to `docs/public/` and `demo/src/assets/`. Referenced in VitePress config `head` and `demo/index.html`.
 - Logo in README: centered at 400px width above the title.
 - Tagline: "Convert fonts to JSON, make edits, then convert them back!" (updated in README, package.json, loading.js, info.js).
+
+## Two-Scenario Architecture Analysis (April 2026)
+
+> Full design document: `reference/two-scenario-architecture.md`
+
+### CRITICAL BUG: resolveExportSource() Ignores Simplified Edits
+
+**The problem**: When `_header` is present (i.e., font was imported), `resolveExportSource()` returns stored `tables` directly, **silently discarding any user edits** to `font.*`, `glyphs[]`, `kerning[]`, etc. This breaks Scenario 1 editing completely.
+
+**Code path** (export.js):
+
+```javascript
+if (fontData._header && fontData.tables) {
+	return { header: fontData._header, tables: fontData.tables };
+	// ↑ simplified fields are completely ignored
+}
+```
+
+**Proposed fix**: Hybrid reconciliation — when both `_header`/`tables` AND `font`/`glyphs` are present:
+
+1. Rebuild DECOMPOSED_TABLES from simplified fields (honoring user edits)
+2. Preserve non-decomposed tables from stored `tables` (COLR, gvar, GSUB internal structure, etc.)
+3. Result: "edit what you can see, preserve what you can't"
+
+### DECOMPOSED_TABLES Coverage Map
+
+Tables in `DECOMPOSED_TABLES` (simplify.js line ~24) that get extracted into simplified fields:
+
+```
+head, hhea, hmtx, vmtx, name, OS/2, post, maxp, cmap, glyf, loca, CFF, kern, fvar,
+GPOS, GSUB, GDEF, gasp, cvt, fpgm, prep
+```
+
+Builder coverage in expand.js:
+
+| Simplified Field                           | Builder(s)                                                                               | Status                                                   |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `font.*` → head/hhea/name/OS-2/post        | buildHeadTable, buildHheaTable, buildNameTable, buildOS2Table, buildPostTable            | ✅ Complete                                              |
+| `glyphs[]` → glyf/CFF/hmtx/cmap/post/loca  | buildGlyfTable/buildCFFShell, buildHmtxTable, buildCmapTable, buildPostTable, loca coord | ✅ Complete                                              |
+| `glyphs[]` → vmtx/vhea                     | _(no builder)_                                                                           | ❌ **GAP**: vmtx is decomposed on import but not rebuilt |
+| `kerning[]` → kern/GPOS                    | buildKernTableForFormat, buildGPOSFromKerning, mergeKerningIntoGPOS                      | ✅ Complete                                              |
+| `features.GPOS/GSUB/GDEF` → GPOS/GSUB/GDEF | Passthrough from features object (no rebuild)                                            | ⚠️ Passthrough only                                      |
+| `axes[]`/`instances[]` → fvar              | buildFvarTable                                                                           | ✅ Complete                                              |
+| `gasp[]` → gasp                            | Direct rebuild                                                                           | ✅ Complete                                              |
+| `cvt[]`/`fpgm[]`/`prep[]` → cvt/fpgm/prep  | Direct rebuild                                                                           | ✅ Complete                                              |
+| — → maxp                                   | buildMaxpTable                                                                           | ✅ Complete                                              |
+
+### Non-Decomposed Tables (passthrough only)
+
+These have parsers/writers but no simplified representation. They survive in Scenario 1 (in `tables`) but are lost if `_header` is stripped:
+
+- **Variable font deltas**: avar, gvar, STAT, MVAR, HVAR, VVAR, cvar
+- **Color / bitmap**: COLR, CPAL, CBDT, CBLC, EBDT, EBLC, EBSC, sbix, SVG
+- **Advanced typography**: BASE, JSTF, MATH
+- **Hinting optimization**: hdmx, LTSH, VDMX
+- **Vertical header**: vhea
+- **Other**: DSIG, MERG, meta, PCLT, VORG, ltag, CFF2
+
+### Convenience Function Inventory
+
+Currently exported from main.js:
+
+- `createGlyph(options)` — Multi-format glyph builder (SVG path, contours, charstring, components)
+- `getGlyph(font, id)` — Lookup by name/unicode/hex
+- `createKerning(input)` — 5 input formats including class-based
+- `getKerningValue(font, left, right)` — Kerning pair lookup
+- `svgPathToContours()` / `contoursToSVGPath()` — SVG path ↔ contour conversion
+- `compileCharString()` / `assembleCharString()` — CFF contour/text → bytecode
+- `interpretCharString()` / `disassembleCharString()` — CFF bytecode → contour/text
+- `validateJSON()` — Validation + auto-fix
+- `fontToJSON()` / `fontFromJSON()` — JSON serialization
+
+Proposed new convenience functions (see full design in `reference/two-scenario-architecture.md`):
+
+1. `createFont(options)` — Starter template with .notdef + space
+2. `addGlyph(font, glyph)` / `removeGlyph(font, id)` — Array mutators with ordering
+3. `addKerning(font, pairs)` / `removeKerning(font, left, right)` — Deduplicating mutators
+4. `detachFromOriginal(font)` — Strip \_header/tables for Scenario 1→2 transition
+5. `subsetFont(font, options)` — Glyph subsetting by unicode/name/range
+
+### Edge Cases for Reconciliation
+
+- **gvar invalidation**: Editing glyph contours on a variable font makes stored gvar deltas reference wrong point positions. Need to decide: warn, strip gvar, or ignore.
+- **GSUB/GDEF passthrough**: These are in DECOMPOSED_TABLES but have no builder. During hybrid reconciliation, should carry forward from `features{}` or stored `tables`.
+- **CFF2 authoring**: No builder exists. Only CFF v1 has `buildCFFShell()`. CFF2 fonts can only round-trip via passthrough.

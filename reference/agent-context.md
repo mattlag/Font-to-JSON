@@ -72,16 +72,59 @@ We will start with OTF fonts, importing and exporting general file header data, 
 
 After each phase of work, give me a one-sentence summary of what was done that can be used as a Git commit message.
 
-# Short term strategy
+# Two Core Use Cases (High-Level Directives)
 
-This section will be updated based on what phase of support we are working on.
+Everything in this library serves one of two scenarios. All architectural decisions
+should be evaluated against both.
 
-1: fvar, avar, STAT, gvar (variable-font support is the biggest modern gap)
-2: HVAR, MVAR, VVAR, cvar (variation refinements; important after core variable support)
-3: kern (legacy, still common in older fonts), BASE (useful for complex scripts)
-4: CBLC/CBDT, sbix, EBLC/EBDT/EBSC (emoji/image-heavy ecosystems)
-Low priority: JSTF, MATH (domain-specific), meta, hdmx, LTSH, VDMX, PCLT, VORG, ltag
-Very low/skip for now: DSIG (deprecated), FFTM (non-standard), MERG (rare)
+## Scenario 1 — Load, Edit, Save
+
+A user loads an existing font, makes small targeted changes via the simplified JSON
+fields (rename family, adjust a glyph, tweak kerning), and saves a new font file.
+
+**Guiding principle**: Minimal impact. Parts of the font NOT explicitly changed by
+the user must survive the round-trip untouched — including complex structures like
+GSUB rules, COLR color layers, variable font deltas, bitmap data, etc.
+
+## Scenario 2 — Author from Scratch
+
+A font editor or person constructs JSON by hand (using convenience functions) and
+exports it as a real font file.
+
+**Guiding principle**: Ease of use. The user specifies only what matters (family name,
+glyphs, metrics, kerning) and the library generates all required binary tables.
+
+## The Bridge (1 → 2)
+
+A user may start in Scenario 1 with small edits and gradually take over authorship.
+The library must support this transition seamlessly — edits via simplified fields
+AND edits via convenience functions must both be honored on export.
+
+See `reference/two-scenario-architecture.md` for the full analysis, gap inventory,
+proposed reconciliation approach, and convenience function plan.
+
+# Current Strategy
+
+All OpenType tables are implemented and tested. The table-level infrastructure is
+complete. Current focus areas:
+
+## Phase: Architecture & Convenience (Active)
+
+1. **Fix the reconciliation gap**: `resolveExportSource()` currently ignores simplified
+   field edits when `_header` is present. Implement hybrid export path that rebuilds
+   decomposed tables from simplified fields while preserving non-decomposed tables.
+2. **Convenience functions**: `createFont()`, `addGlyph()`/`removeGlyph()`,
+   `addKerning()`/`removeKerning()`, `detachFromOriginal()`, `subsetFont()`.
+3. **Fill minor builder gaps**: vmtx/vhea builders in expand.js (vertical metrics
+   are decomposed on import but not rebuilt on export).
+
+## Future Work
+
+- GSUB builder for ligatures and alternates (simplified authoring)
+- COLR/CPAL simplified decomposition (color font editing)
+- Variable font delta editing (gvar simplified representation)
+- WOFF2 forward transforms for better compression ratios
+- export.js refactor to use DataWriter for header/directory
 
 # Overall Roadmap — Complete Table Checklist
 
