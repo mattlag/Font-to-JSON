@@ -153,6 +153,40 @@ body {
 	}
 }
 
+/* ===== Beta Notice ===== */
+.beta-notice {
+	position: relative;
+	background: #fef9c3;
+	border: 1px solid #d4a017;
+	border-radius: 0;
+	padding: 18px 22px 18px 18px;
+	color: #713f12;
+	font-size: 0.85rem;
+	line-height: 1.5;
+	text-align: center;
+	max-width: 520px;
+	margin: 24px auto;
+	transform: rotate(-1.5deg);
+	box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.12);
+	clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+}
+
+.beta-notice::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 20px;
+	height: 20px;
+	border-left: 1px solid #d4a017;
+	border-bottom: 1px solid #d4a017;
+	background: transparent;
+}
+
+.beta-notice strong {
+	font-weight: 700;
+}
+
 /* ===== App Layout ===== */
 .app-loaded {
 	display: flex;
@@ -515,7 +549,7 @@ body {
 /* Stats row */
 .stats-row {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	grid-template-columns: repeat(5, 1fr);
 	gap: 16px;
 	padding: 16px 20px;
 }
@@ -1603,6 +1637,6 @@ pre.data-string-long.data-expanded {
 		grid-template-columns: 1fr;
 	}
 	.stats-row {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 	}
 }

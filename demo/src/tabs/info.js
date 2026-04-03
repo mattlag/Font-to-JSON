@@ -17,6 +17,8 @@ export function renderInfoTab(container) {
 				<p class="info-version">Version ${version}${buildDate ? ` · Built ${buildDate}` : ''}</p>
 			</div>
 
+			<div class="beta-notice"><strong>April 2026</strong><br>This is a fast-moving project with lots of breaking changes happening every day. <strong>Do not depend on it for anything important.</strong> V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so V2 exists, but should be considered "beta".</div>
+
 			<div class="info-links-row">
 				<a class="info-card info-link-card" href="docs/" target="_blank" rel="noopener">
 					<svg class="info-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
