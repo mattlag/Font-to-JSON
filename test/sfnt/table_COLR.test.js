@@ -4,7 +4,8 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFontTables } from '../../src/main.js';
+import { exportFont } from '../../src/export.js';
+import { importFontTables } from '../../src/import.js';
 import { parseCOLR, writeCOLR } from '../../src/sfnt/table_COLR.js';
 
 const SAMPLES = path.resolve('test/sample fonts');

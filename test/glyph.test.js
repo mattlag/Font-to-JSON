@@ -6,12 +6,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-	createGlyph,
-	exportFont,
-	importFont,
-	interpretCharString,
-} from '../src/main.js';
+import { exportFont } from '../src/export.js';
+import { createGlyph } from '../src/glyph.js';
+import { importFont } from '../src/import.js';
+import { interpretCharString } from '../src/otf/charstring_interpreter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Validation & metadata

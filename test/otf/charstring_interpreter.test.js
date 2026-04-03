@@ -5,11 +5,11 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { importFont } from '../../src/import.js';
 import {
 	disassembleCharString,
-	importFont,
 	interpretCharString,
-} from '../../src/main.js';
+} from '../../src/otf/charstring_interpreter.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 

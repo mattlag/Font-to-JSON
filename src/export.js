@@ -49,6 +49,7 @@ import { writeVDMX } from './sfnt/table_VDMX.js';
 import { writeVhea } from './sfnt/table_vhea.js';
 import { writeVmtx } from './sfnt/table_vmtx.js';
 import { writeVVAR } from './sfnt/table_VVAR.js';
+import { DECOMPOSED_TABLES } from './simplify.js';
 import { writeCvar } from './ttf/table_cvar.js';
 import { writeCvt } from './ttf/table_cvt.js';
 import { writeFpgm } from './ttf/table_fpgm.js';
@@ -244,7 +245,10 @@ function isCollection(fontData) {
  *
  * Supported shapes:
  * 1. Legacy: { header, tables } — already the raw format, use as-is.
- * 2. Imported simplified: has `_header` + `tables` — use stored tables directly.
+ * 2. Hybrid (imported + edited): has `_header` + `tables` AND `font` + `glyphs` —
+ *    rebuild decomposed tables from simplified fields, preserve non-decomposed
+ *    tables from the original import. This ensures edits to simplified fields
+ *    (familyName, glyphs, kerning, etc.) are always honoured on export.
  * 3. Hand-authored simplified: has `font` + `glyphs` but no `_header` — expand.
  */
 function resolveExportSource(fontData) {
@@ -253,7 +257,32 @@ function resolveExportSource(fontData) {
 		return fontData;
 	}
 
-	// Imported simplified: has _header and original tables for lossless round-trip
+	// Hybrid: imported font with simplified fields present.
+	// Rebuild decomposed tables from simplified (honouring user edits),
+	// then merge in non-decomposed tables from the original import.
+	if (fontData._header && fontData.tables && fontData.font && fontData.glyphs) {
+		const rebuilt = buildRawFromSimplified(fontData);
+		// Carry forward non-decomposed tables that the rebuild cannot produce
+		for (const [tag, data] of Object.entries(fontData.tables)) {
+			if (!DECOMPOSED_TABLES.has(tag) && !rebuilt.tables[tag]) {
+				rebuilt.tables[tag] = data;
+			}
+		}
+		// Preserve original CFF/CFF2 table when available — the rebuilt shell
+		// loses subroutines and other internal structures that are essential
+		// for correct charstring interpretation. The original is authoritative
+		// for outline data in Scenario 1 (imported fonts).
+		if (fontData.tables['CFF '] && rebuilt.tables['CFF ']) {
+			rebuilt.tables['CFF '] = fontData.tables['CFF '];
+		}
+		if (fontData.tables.CFF2 && rebuilt.tables.CFF2) {
+			rebuilt.tables.CFF2 = fontData.tables.CFF2;
+		}
+		return rebuilt;
+	}
+
+	// Pure lossless passthrough: _header + tables but no simplified fields
+	// (e.g. constructed manually via importFontTables)
 	if (fontData._header && fontData.tables) {
 		return { header: fontData._header, tables: fontData.tables };
 	}

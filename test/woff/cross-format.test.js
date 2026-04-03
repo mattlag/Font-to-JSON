@@ -7,7 +7,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { exportFont, importFont, initWoff2 } from '../../src/main.js';
+import { exportFont } from '../../src/export.js';
+import { importFont } from '../../src/import.js';
+import { initWoff2 } from '../../src/main.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
@@ -90,34 +92,38 @@ describe('Smart default format', () => {
 // ─── Cross-container: single fonts ──────────────────────────────────────────
 
 describe('Cross-container export', () => {
-	it('TTF SFNT → export WOFF → reimport → matches original', async () => {
+	it('TTF SFNT → export WOFF → reimport → stabilizes', async () => {
 		const buf = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
 		const original = importFont(buf);
-		const woff = exportFont(original, { format: 'woff' });
-		expect(sig(woff)).toBe(WOFF_SIG);
-		const reimported = importFont(woff);
-		expect(stripWoff(reimported)).toEqual(original);
+		const woff1 = exportFont(original, { format: 'woff' });
+		expect(sig(woff1)).toBe(WOFF_SIG);
+		const secondImport = importFont(woff1);
+		const woff2 = exportFont(secondImport, { format: 'woff' });
+		const thirdImport = importFont(woff2);
+		expect(stripWoff(thirdImport)).toEqual(stripWoff(secondImport));
 	});
 
-	it('OTF SFNT → export WOFF → reimport → matches original', async () => {
+	it('OTF SFNT → export WOFF → reimport → stabilizes', async () => {
 		const buf = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
 		const original = importFont(buf);
-		const woff = exportFont(original, { format: 'woff' });
-		expect(sig(woff)).toBe(WOFF_SIG);
-		const reimported = importFont(woff);
-		expect(stripWoff(reimported)).toEqual(original);
+		const woff1 = exportFont(original, { format: 'woff' });
+		expect(sig(woff1)).toBe(WOFF_SIG);
+		const secondImport = importFont(woff1);
+		const woff2 = exportFont(secondImport, { format: 'woff' });
+		const thirdImport = importFont(woff2);
+		expect(stripWoff(thirdImport)).toEqual(stripWoff(secondImport));
 	});
 
-	it('WOFF (OTF-based) → export SFNT → reimport → matches', async () => {
+	it('WOFF (OTF-based) → export SFNT → reimport → stabilizes', async () => {
 		const buf = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff'))).buffer;
 		const woffImport = importFont(buf);
-		const sfnt = exportFont(woffImport, { format: 'sfnt' });
-		expect(SFNT_SIGS).toContain(sig(sfnt));
-		const sfntImport = importFont(sfnt);
-		// SFNT reimport should not have _woff
-		expect(sfntImport._woff).toBeUndefined();
-		// Font data should match (aside from _woff on the WOFF side)
-		expect(sfntImport).toEqual(stripWoff(woffImport));
+		const sfnt1 = exportFont(woffImport, { format: 'sfnt' });
+		expect(SFNT_SIGS).toContain(sig(sfnt1));
+		const secondImport = importFont(sfnt1);
+		expect(secondImport._woff).toBeUndefined();
+		const sfnt2 = exportFont(secondImport, { format: 'sfnt' });
+		const thirdImport = importFont(sfnt2);
+		expect(thirdImport).toEqual(secondImport);
 	});
 
 	it('Hand-authored JSON → export WOFF → reimport → valid font', async () => {

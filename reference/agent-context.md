@@ -61,15 +61,6 @@ This folder will be for reference materials, project notes, and possibly spec fi
 
 # Project plan
 
-Here is the order in which we will build this library.
-
-We will start with OTF fonts, importing and exporting general file header data, then moving on to tables. When support for a table is being written, the flow will work like this (using 'OS/2' as an example shared table):
-
-1. read the online spec to understand that table and how it is constructed.
-2. create a file in `src\sfnt` (for shared tables) or `src\ttf`/`src\otf` (for format-specific tables) called `table_OS-2.js`, which will contain both the logic that will read binary data and convert it to JSON, as well as take well-formatted JSON data and convert it back into binary for that table.
-3. add any updates to `src\main.js` or any other JS files in src that may need to handle this new table.
-4. create a file in `test\sfnt` (or `test\ttf`/`test\otf`) called `table_OS-2.test.js` for any table specific tests.
-
 After each phase of work, give me a one-sentence summary of what was done that can be used as a Git commit message.
 
 # Two Core Use Cases (High-Level Directives)
@@ -105,8 +96,7 @@ proposed reconciliation approach, and convenience function plan.
 
 # Current Strategy
 
-All OpenType tables are implemented and tested. The table-level infrastructure is
-complete. Current focus areas:
+Current focus areas:
 
 ## Phase: Architecture & Convenience (Active)
 
@@ -126,15 +116,13 @@ complete. Current focus areas:
 - WOFF2 forward transforms for better compression ratios
 - export.js refactor to use DataWriter for header/directory
 
-# Overall Roadmap — Complete Table Checklist
+# Table Checklist
 
-Every table defined in the OpenType specification, categorized by where it lives
-in this project. Checked items are implemented and tested. Unchecked items are
-listed in recommended implementation order (highest priority first).
+Every table defined in the OpenType specification, categorized by where it lives in this project. 
 
 ## SFNT — Shared Tables (src/sfnt)
 
-Tables that are identical for both TrueType- and CFF-based fonts.
+Tables that are identical for both TrueType - and CFF-based fonts.
 
 ### Required Tables
 

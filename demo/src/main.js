@@ -1,10 +1,8 @@
-import {
-	exportFont,
-	fontToJSON,
-	importFont,
-	initWoff2,
-	validateJSON,
-} from 'font-flux-js';
+import { initWoff2 } from 'font-flux-js';
+import { exportFont } from 'font-flux-js/export';
+import { importFont } from 'font-flux-js/import';
+import { fontToJSON } from 'font-flux-js/json';
+import { validateJSON } from 'font-flux-js/validate';
 import { createLoadingScreen } from './components/loading.js';
 import { createSaveDialog } from './components/save-dialog.js';
 import { createTabBar } from './components/tab-bar.js';

@@ -6,9 +6,11 @@ import { describe, expect, it } from 'vitest';
 import {
 	assembleCharString,
 	compileCharString,
+} from '../../src/otf/charstring_compiler.js';
+import {
 	disassembleCharString,
 	interpretCharString,
-} from '../../src/main.js';
+} from '../../src/otf/charstring_interpreter.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  compileCharString — contours → bytecode

@@ -5,12 +5,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-	exportFont,
-	fontFromJSON,
-	fontToJSON,
-	importFont,
-} from '../src/main.js';
+import { exportFont } from '../src/export.js';
+import { importFont } from '../src/import.js';
+import { fontFromJSON, fontToJSON } from '../src/json.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, 'sample fonts');
 

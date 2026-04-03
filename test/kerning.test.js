@@ -6,7 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { createKerning, getGlyph, getKerningValue } from '../src/main.js';
+import { getGlyph } from '../src/glyph.js';
+import { createKerning, getKerningValue } from '../src/kerning.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Validation

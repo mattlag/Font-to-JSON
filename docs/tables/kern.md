@@ -110,4 +110,4 @@ See [Creating Kerning](../creating-kerning.md) for the full guide on authoring a
 - Preserve `_checksum` for stable round-tripping.
 - Unknown subtable formats are preserved as `_raw` bytes.
 - When both kern and GPOS contain kerning, the simplified representation merges both — GPOS values win on conflicts.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

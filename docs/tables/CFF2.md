@@ -83,9 +83,9 @@ Notes:
 Like CFF v1, CFF2 stores glyph outlines as Type 2 charstring byte arrays. Font Flux interprets these into cubic Bézier contour commands:
 
 ```js
-import { interpretCharString } from 'font-flux';
+import { FontFlux } from 'font-flux-js';
 
-const contours = interpretCharString(
+const contours = FontFlux.interpretCharString(
 	cff2.charStrings[glyphIndex],
 	fontDict.localSubrs,
 	cff2.globalSubrs,
@@ -93,19 +93,17 @@ const contours = interpretCharString(
 // Returns: [[{ type: 'M', x, y }, { type: 'C', x1, y1, x2, y2, x, y }, ...], ...]
 ```
 
-Use `disassembleCharString(bytes)` for a human-readable text representation of the charstring program.
+Use `FontFlux.disassembleCharString(bytes)` for a human-readable text representation of the charstring program.
 
-When using `importFont`, CFF2 glyphs in the simplified `glyphs` array automatically include `contours`, `charString`, and `charStringDisassembly`.
+When using `FontFlux.open()`, CFF2 glyphs automatically include `contours`, `charString`, and `charStringDisassembly`.
 
 ## Converting to/from SVG paths
 
-CFF2 contours work identically with the SVG path conversion functions:
+CFF2 contours work identically with the SVG path conversion methods:
 
 ```js
-import { contoursToSVGPath, svgPathToContours } from 'font-flux';
-
-const d = contoursToSVGPath(glyph.contours); // CFF2 cubic → SVG
-const contours = svgPathToContours(d, 'cff'); // SVG → CFF cubic
+const d = FontFlux.contoursToSVG(glyph.contours); // CFF2 cubic → SVG
+const contours = FontFlux.svgToContours(d, 'cff'); // SVG → CFF cubic
 ```
 
 See the [main docs](../index.md#svg-path-conversion) for full SVG path conversion details.
@@ -152,4 +150,4 @@ See the [main docs](../index.md#svg-path-conversion) for full SVG path conversio
 
 - Preserve `_checksum` for stable round-tripping.
 - If a table is only partially understood, prefer keeping unknown bytes in `_raw` instead of dropping data.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

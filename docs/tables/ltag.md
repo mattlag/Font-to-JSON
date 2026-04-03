@@ -41,4 +41,4 @@ The `ltag` table maps numeric language codes to IETF BCP 47 language tags (e.g. 
 - Tag index 0 maps to language code 0, index 1 to code 1, etc.
 - Tags are ASCII strings (also valid UTF-8).
 - Preserve `_checksum` for stable round-tripping.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

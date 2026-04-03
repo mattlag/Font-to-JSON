@@ -1,25 +1,17 @@
 /**
- * Font Flux JS
- * Main entry point - exposes import and export functionality.
+ * Font Flux JS — v2 API
+ *
+ * The FontFlux class is the sole public API. It wraps the font data and
+ * provides methods for reading, editing, and exporting fonts.
+ *
+ * Standalone utility functions (importFont, exportFont, createGlyph, etc.)
+ * are internal implementation details and are NOT re-exported.
+ *
+ * WOFF2 initialization is exported standalone since it's a one-time global
+ * init, not font-scoped.
  */
 
-import { buildRawFromSimplified } from './expand.js';
-import { exportFont } from './export.js';
-import { createGlyph, getGlyph } from './glyph.js';
-import { importFont, importFontTables } from './import.js';
-import { fontFromJSON, fontToJSON } from './json.js';
-import { createKerning, getKerningValue } from './kerning.js';
-import {
-	assembleCharString,
-	compileCharString,
-} from './otf/charstring_compiler.js';
-import {
-	disassembleCharString,
-	interpretCharString,
-} from './otf/charstring_interpreter.js';
-import { buildSimplified } from './simplify.js';
-import { contoursToSVGPath, svgPathToContours } from './svg_path.js';
-import { validateJSON } from './validate/index.js';
+import { FontFlux } from './font_flux.js';
 import { initBrotli } from './woff/woff2.js';
 
 /**
@@ -33,24 +25,4 @@ async function initWoff2() {
 	return initBrotli();
 }
 
-export {
-	assembleCharString,
-	buildRawFromSimplified,
-	buildSimplified,
-	compileCharString,
-	contoursToSVGPath,
-	createGlyph,
-	createKerning,
-	disassembleCharString,
-	exportFont,
-	fontFromJSON,
-	fontToJSON,
-	getGlyph,
-	getKerningValue,
-	importFont,
-	importFontTables,
-	initWoff2,
-	interpretCharString,
-	svgPathToContours,
-	validateJSON,
-};
+export { FontFlux, initWoff2 };

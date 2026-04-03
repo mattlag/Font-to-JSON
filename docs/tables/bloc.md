@@ -25,4 +25,4 @@ Same structure as the [`CBLC`](./CBLC.md) table. See that page for field documen
 
 - Always paired with a [`bdat`](./bdat.md) table (the bitmap data).
 - Preserve `_checksum` for stable round-tripping.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

@@ -87,14 +87,14 @@ Notes:
 
 The `charStrings` byte arrays are opaque Type 2 programs that encode glyph outlines. Font Flux provides two functions for working with them directly:
 
-### `interpretCharString(bytes, localSubrs, globalSubrs)`
+### `FontFlux.interpretCharString(bytes, localSubrs, globalSubrs)`
 
 Interprets a charstring byte array into an array of cubic Bézier contour commands:
 
 ```js
-import { interpretCharString } from 'font-flux';
+import { FontFlux } from 'font-flux-js';
 
-const contours = interpretCharString(
+const contours = FontFlux.interpretCharString(
 	font.charStrings[glyphIndex],
 	font.localSubrs,
 	font.globalSubrs,
@@ -108,14 +108,12 @@ Command types:
 - `L` — lineTo
 - `C` — cubic curveTo with two control points (`x1,y1`, `x2,y2`) and endpoint (`x,y`)
 
-### `disassembleCharString(bytes)`
+### `FontFlux.disassembleCharString(bytes)`
 
 Converts a charstring byte array into human-readable disassembly text:
 
 ```js
-import { disassembleCharString } from 'font-flux';
-
-const text = disassembleCharString(font.charStrings[glyphIndex]);
+const text = FontFlux.disassembleCharString(font.charStrings[glyphIndex]);
 // Returns: "100 700 rmoveto 300 0 rlineto 0 -200 -200 -200 -100 0 rrcurveto endchar"
 ```
 
@@ -123,25 +121,25 @@ This is useful for debugging and understanding what a charstring program does wi
 
 ### Simplified glyph output
 
-When using `importFont`, CFF glyphs in the simplified `glyphs` array automatically include:
+When using `FontFlux.open()`, CFF glyphs automatically include:
 
 - `contours` — decoded cubic Bézier commands (same format as `interpretCharString` output)
-- `charString` — the raw byte array (for lossless round-tripping via tables)
+- `charString` — the raw byte array (for lossless round-tripping)
 - `charStringDisassembly` — human-readable disassembly text
 
 ## Converting to/from SVG paths
 
-Use `contoursToSVGPath` and `svgPathToContours` to convert between CFF contours and SVG path `d` strings:
+Use `FontFlux.contoursToSVG()` and `FontFlux.svgToContours()` to convert between CFF contours and SVG path `d` strings:
 
 ```js
-import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+import { FontFlux } from 'font-flux-js';
 
 // CFF contours → SVG (produces C commands for cubic curves)
-const d = contoursToSVGPath(glyph.contours);
+const d = FontFlux.contoursToSVG(glyph.contours);
 // "M100 700 L400 700 C400 500 200 300 100 300 Z"
 
 // SVG → CFF contours
-const contours = svgPathToContours(d, 'cff');
+const contours = FontFlux.svgToContours(d, 'cff');
 ```
 
 This enables visual editing workflows: export contours to SVG, modify the path in an SVG editor, then import the result back as CFF contours.
@@ -194,4 +192,4 @@ See the [main docs](../index.md#svg-path-conversion) for full details on SVG pat
 
 - Preserve `_checksum` for stable round-tripping.
 - If a table is only partially understood, prefer keeping unknown bytes in `_raw` instead of dropping data.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

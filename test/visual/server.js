@@ -16,7 +16,8 @@ import fs from 'fs';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { exportFont, importFont } from '../../src/main.js';
+import { exportFont } from '../../src/export.js';
+import { importFont } from '../../src/import.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLES_DIR = path.resolve(__dirname, '../sample fonts');

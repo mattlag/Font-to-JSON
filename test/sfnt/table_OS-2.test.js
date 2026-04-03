@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFontTables } from '../../src/main.js';
+import { importFontTables } from '../../src/import.js';
 import { parseOS2, writeOS2 } from '../../src/sfnt/table_OS-2.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');

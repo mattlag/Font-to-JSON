@@ -2,14 +2,16 @@
 
 This guide covers how to create individual glyph data for a Font Flux font. Whether you're building a font from scratch in a font editor, generating glyphs programmatically, or hand-authoring JSON — this is the reference for glyph structure, metadata, and outline formats.
 
-## Quick start with `createGlyph`
+## Quick start with `.addGlyph()`
 
-The `createGlyph` helper accepts metadata and outline data in several formats, and returns a glyph object ready for use in `font.glyphs[]`.
+The `.addGlyph()` method accepts metadata and outline data in several formats, and adds the glyph to the font.
 
 ```js
-import { createGlyph } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-const glyph = createGlyph({
+const font = FontFlux.create({ familyName: 'My Font' });
+
+font.addGlyph({
 	name: 'A',
 	unicode: 65,
 	advanceWidth: 600,
@@ -17,24 +19,22 @@ const glyph = createGlyph({
 });
 ```
 
-That's the simplest form — a name, a Unicode code point, a width, and an SVG path string. The helper handles everything else: contour conversion, format detection, and charstring compilation.
+That's the simplest form — a name, a Unicode code point, a width, and an SVG path string. The method handles everything else: contour conversion, format detection, and charstring compilation.
 
-You can also construct glyph objects directly as plain JSON without using `createGlyph`. The helper is a convenience, not a requirement.
+You can also construct glyph objects directly as plain JSON and push them into `font.glyphs` without using `.addGlyph()`. The method is a convenience, not a requirement.
 
-## Looking up glyphs with `getGlyph`
+## Looking up glyphs with `.getGlyph()`
 
-Use `getGlyph` to look up a glyph from a font by name, Unicode code point, or hex string:
+Use `.getGlyph()` to look up a glyph by name, Unicode code point, or hex string:
 
 ```js
-import { getGlyph } from 'font-flux-js';
-
-getGlyph(font, 'A'); // by glyph name
-getGlyph(font, 65); // by numeric code point
-getGlyph(font, 'U+0041'); // by hex string
-getGlyph(font, '0x41'); // also works
+font.getGlyph('A'); // by glyph name
+font.getGlyph(65); // by numeric code point
+font.getGlyph('U+0041'); // by hex string
+font.getGlyph('0x41'); // also works
 ```
 
-Returns the glyph object or `undefined` if not found. The same flexible identifiers work with `getKerningValue` — see [Creating Kerning](./creating-kerning.md).
+Returns the glyph object or `undefined` if not found. The same flexible identifiers work with `.getKerning()` — see [Creating Kerning](./creating-kerning.md).
 
 ## Glyph metadata reference
 
@@ -112,7 +112,7 @@ Font Flux supports three ways to specify glyph outlines. Use whichever is most n
 The easiest format for hand-authoring. Provide an SVG path `d` attribute string and let Font Flux handle the conversion.
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'square',
 	unicode: 0x25a0,
 	advanceWidth: 800,
@@ -127,7 +127,7 @@ Supported SVG commands: `M` (moveTo), `L` (lineTo), `C` (cubic curveTo), `Q` (qu
 By default, SVG paths are converted to **CFF contours** (cubic Béziers for OTF). To produce TrueType contours (quadratic Béziers for TTF), pass `format: 'truetype'`:
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'square',
 	unicode: 0x25a0,
 	advanceWidth: 800,
@@ -146,7 +146,7 @@ If the SVG path contains cubic curves (`C` commands) and you specify `format: 't
 
 ### 2. CFF contours (PostScript / cubic Bézier)
 
-CFF contours use the same format that `importFont` produces for OTF files. Each contour is an array of commands with `type`, `x`, `y` properties.
+CFF contours use the same format that `FontFlux.open()` produces for OTF files. Each contour is an array of commands with `type`, `x`, `y` properties.
 
 #### Commands
 
@@ -159,7 +159,7 @@ CFF contours use the same format that `importFont` produces for OTF files. Each 
 #### Example: Triangle
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'triangle',
 	unicode: 0x25b3,
 	advanceWidth: 700,
@@ -176,7 +176,7 @@ createGlyph({
 #### Example: Letter with a curve
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'D',
 	unicode: 68,
 	advanceWidth: 650,
@@ -196,7 +196,7 @@ createGlyph({
 Letters like "O", "B", "D" have interior cutouts (counters). These are separate contours with opposite winding direction:
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'O',
 	unicode: 79,
 	advanceWidth: 700,
@@ -229,7 +229,7 @@ When you provide CFF contours, Font Flux automatically compiles them into the Ty
 
 ### 3. TrueType contours (quadratic Bézier)
 
-TrueType contours use the same point-based format that `importFont` produces for TTF files. Each contour is an array of points with `x`, `y`, and `onCurve` properties.
+TrueType contours use the same point-based format that `FontFlux.open()` produces for TTF files. Each contour is an array of points with `x`, `y`, and `onCurve` properties.
 
 #### Point types
 
@@ -243,7 +243,7 @@ TrueType contours use the same point-based format that `importFont` produces for
 #### Example: Rectangle (all straight lines)
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'square',
 	unicode: 0x25a0,
 	advanceWidth: 800,
@@ -261,7 +261,7 @@ createGlyph({
 #### Example: Circle (quadratic curves)
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'circle',
 	unicode: 0x25cb,
 	advanceWidth: 800,
@@ -292,7 +292,7 @@ In the circle example, consecutive off-curve points (like `{700,700}` → `{700,
 For advanced use: you can provide raw Type 2 charstring bytecode directly. This is the actual binary data stored in the CFF table.
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'A',
 	unicode: 65,
 	advanceWidth: 600,
@@ -308,22 +308,20 @@ Most users will never need this. It's primarily useful for:
 
 If `charString` is provided, it takes priority over `path` and `contours`.
 
-You can also use `assembleCharString` to convert human-readable charstring text into bytes:
+You can also use `FontFlux.assembleCharString()` to convert human-readable charstring text into bytes:
 
 ```js
-import { assembleCharString } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-const bytes = assembleCharString(
+const bytes = FontFlux.assembleCharString(
 	'100 700 rmoveto 300 0 rlineto 0 -700 rlineto endchar',
 );
 ```
 
-And `disassembleCharString` to convert bytes back to text:
+And `FontFlux.disassembleCharString()` to convert bytes back to text:
 
 ```js
-import { disassembleCharString } from 'font-flux-js';
-
-const text = disassembleCharString(bytes);
+const text = FontFlux.disassembleCharString(bytes);
 // "100 700 rmoveto\n300 0 rlineto\n0 -700 rlineto\nendchar"
 ```
 
@@ -332,7 +330,7 @@ const text = disassembleCharString(bytes);
 Composite glyphs reference other glyphs instead of having their own outlines. This is common for accented characters (é = e + combining acute accent).
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'eacute',
 	unicode: 233,
 	advanceWidth: 550,
@@ -359,10 +357,12 @@ Component properties:
 
 ### The `.notdef` glyph
 
-Every font must have a `.notdef` glyph as the first entry in the glyphs array. This is the "missing glyph" shown when a character isn't found. It typically looks like an empty rectangle:
+Every font must have a `.notdef` glyph as the first entry in the glyphs array. This is the "missing glyph" shown when a character isn't found. It typically looks like an empty rectangle.
+
+Note: `FontFlux.create()` generates `.notdef` and `space` glyphs automatically, but you can also add custom ones:
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: '.notdef',
 	advanceWidth: 500,
 	path: 'M 50 0 L 50 700 L 450 700 L 450 0 Z M 100 50 L 400 50 L 400 650 L 100 650 Z',
@@ -376,7 +376,7 @@ No `unicode` — `.notdef` is never mapped to a character.
 A space character has a width but no outline:
 
 ```js
-createGlyph({
+font.addGlyph({
 	name: 'space',
 	unicode: 32,
 	advanceWidth: 250,
@@ -388,37 +388,25 @@ createGlyph({
 Here's a minimal font with `.notdef`, a space, and one letter:
 
 ```js
-import { createGlyph, exportFont } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-const fontData = {
-	font: {
-		familyName: 'My Font',
-		styleName: 'Regular',
-		unitsPerEm: 1000,
-		ascender: 800,
-		descender: -200,
-	},
-	glyphs: [
-		createGlyph({
-			name: '.notdef',
-			advanceWidth: 500,
-			path: 'M 50 0 L 50 700 L 450 700 L 450 0 Z',
-		}),
-		createGlyph({
-			name: 'space',
-			unicode: 32,
-			advanceWidth: 250,
-		}),
-		createGlyph({
-			name: 'A',
-			unicode: 65,
-			advanceWidth: 600,
-			path: 'M 0 0 L 250 700 L 300 700 L 550 0 Z M 125 250 L 425 250 L 425 300 L 125 300 Z',
-		}),
-	],
-};
+const font = FontFlux.create({
+	familyName: 'My Font',
+	unitsPerEm: 1000,
+	ascender: 800,
+	descender: -200,
+});
 
-const buffer = exportFont(fontData);
+// .notdef and space are created automatically by FontFlux.create()
+
+font.addGlyph({
+	name: 'A',
+	unicode: 65,
+	advanceWidth: 600,
+	path: 'M 0 0 L 250 700 L 300 700 L 550 0 Z M 125 250 L 425 250 L 425 300 L 125 300 Z',
+});
+
+const buffer = font.export();
 ```
 
 ## Coordinate system
@@ -432,7 +420,7 @@ Font coordinates use the standard OpenType coordinate system:
 
 The baseline sits at `y = 0`. Characters like "A" have outlines from `y = 0` up to the cap height. Descenders (like "g" or "p") extend below the baseline into negative y values.
 
-**Important**: SVG uses a y-down coordinate system, but SVG path strings provided to `createGlyph` or `svgPathToContours` are used directly — Font Flux does **not** flip the y-axis. If you're copying path data from an SVG file rendered in a browser, you may need to flip the y coordinates (`y = ascender - svgY`).
+**Important**: SVG uses a y-down coordinate system, but SVG path strings provided to `.addGlyph()` or `FontFlux.svgToContours()` are used directly — Font Flux does **not** flip the y-axis. If you're copying path data from an SVG file rendered in a browser, you may need to flip the y coordinates (`y = ascender - svgY`).
 
 ## Choosing an outline format
 
@@ -448,14 +436,12 @@ The baseline sits at `y = 0`. Characters like "A" have outlines from `y = 0` up 
 
 ## Validation
 
-Run `validateJSON` on your complete font object to catch structural issues before export:
+Run `.validate()` on your font to catch structural issues before export:
 
 ```js
-import { validateJSON, exportFont } from 'font-flux-js';
-
-const report = validateJSON(fontData);
+const report = font.validate();
 if (report.valid) {
-	const buffer = exportFont(fontData);
+	const buffer = font.export();
 }
 ```
 

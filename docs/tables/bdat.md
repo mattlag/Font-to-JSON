@@ -25,4 +25,4 @@ Same structure as the [`CBDT`](./CBDT.md) table. See that page for field documen
 
 - Always paired with a [`bloc`](./bloc.md) table (the bitmap locations/index).
 - Preserve `_checksum` for stable round-tripping.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

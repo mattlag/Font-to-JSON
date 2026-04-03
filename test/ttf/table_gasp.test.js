@@ -5,14 +5,17 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { exportFont, importFontTables } from '../../src/main.js';
+import { exportFont } from '../../src/export.js';
+import { importFontTables } from '../../src/import.js';
 import { parseGasp, writeGasp } from '../../src/ttf/table_gasp.js';
 
 const SAMPLES = 'test/sample fonts';
 
 function loadFont(filename) {
 	const buf = fs.readFileSync(path.join(SAMPLES, filename));
-	return importFontTables(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+	return importFontTables(
+		buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+	);
 }
 
 describe('gasp table', () => {

@@ -85,41 +85,41 @@ CFF fonts store glyph outlines as Type 2 charstring byte arrays — an opaque bi
 
 ### Reading outlines
 
-When you import an OTF with `importFont`, each glyph in the simplified output includes:
+When you open an OTF with `FontFlux.open()`, each glyph includes:
 
 - `contours` — decoded cubic Bézier commands: `M` (moveTo), `L` (lineTo), `C` (curveTo)
 - `charString` — the raw charstring bytes (for lossless export)
 - `charStringDisassembly` — human-readable charstring text
 
 ```js
-const font = importFont(buffer);
-const glyph = font.glyphs.find((g) => g.name === 'A');
+const font = FontFlux.open(buffer);
+const glyph = font.getGlyph('A');
 console.log(glyph.contours); // [[{ type: 'M', x, y }, { type: 'C', ... }, ...]]
 console.log(glyph.charStringDisassembly); // "100 700 rmoveto 300 0 rlineto ..."
 ```
 
-For table-level work, use `interpretCharString` and `disassembleCharString` directly on `charStrings` byte arrays. See the [`CFF `](./tables/CFF.md#interpreting-charstrings) or [`CFF2`](./tables/CFF2.md#interpreting-charstrings) table docs.
+For table-level work, use `FontFlux.interpretCharString()` and `FontFlux.disassembleCharString()` directly on charstring byte arrays. See the [`CFF `](./tables/CFF.md#interpreting-charstrings) or [`CFF2`](./tables/CFF2.md#interpreting-charstrings) table docs.
 
 ### Editing outlines via SVG
 
 Convert contours to SVG path strings for visual editing, then convert back:
 
 ```js
-import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+import { FontFlux } from 'font-flux-js';
 
-const svg = contoursToSVGPath(glyph.contours); // "M100 700 C... Z"
+const svg = FontFlux.contoursToSVG(glyph.contours); // "M100 700 C... Z"
 // ... edit the SVG path string ...
-const newContours = svgPathToContours(svg, 'cff');
+const newContours = FontFlux.svgToContours(svg, 'cff');
 ```
 
 CFF outlines produce `C` (cubic) SVG commands. The round-trip is lossless for cubic paths. See the [SVG path conversion docs](./index.md#svg-path-conversion) for details on supported SVG commands and coordinate handling.
 
 ### Creating CFF glyphs from scratch
 
-For a complete guide to hand-authoring glyph data — including the `createGlyph` helper, all outline formats, metadata reference, and examples — see [Creating Glyphs](./creating-glyphs.md).
+For a complete guide to hand-authoring glyph data — including `.addGlyph()`, all outline formats, metadata reference, and examples — see [Creating Glyphs](./creating-glyphs.md).
 
 - Keep required metrics tables (`head`, `hhea`, `hmtx`, `maxp`) consistent with your outline and glyph count.
-- Validate early with [`validateJSON`](./guide/validation.md).
+- Validate early with [`.validate()`](./guide/validation.md).
 
 ## Creating an OTC (OpenType Collection)
 
@@ -156,4 +156,4 @@ Each entry in `fonts[]` is validated as a normal single font — it needs the sa
 
 - `collection.numFonts` should match `fonts.length`.
 - Faces in a collection can mix CFF v1 and CFF v2 as long as each face is internally valid.
-- Validate full collection JSON with [`validateJSON`](./guide/validation.md) before export.
+- Validate full collection JSON with [`.validate()`](./guide/validation.md) before export.

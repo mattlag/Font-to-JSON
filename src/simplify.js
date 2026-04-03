@@ -21,7 +21,7 @@ import {
  * These are NOT passed through to the `tables` property because their
  * data is already represented in font info, glyphs, kerning, etc.
  */
-const DECOMPOSED_TABLES = new Set([
+export const DECOMPOSED_TABLES = new Set([
 	'head',
 	'hhea',
 	'hmtx',
@@ -315,12 +315,24 @@ function getGlyphNames(tables, numGlyphs) {
 		return tables.post.glyphNames;
 	}
 
-	// CFF charset has glyph names
+	// CFF charset has glyph names (as SIDs)
 	if (tables['CFF '] && !tables['CFF ']._raw) {
 		const cff = tables['CFF '];
 		if (cff.fonts && cff.fonts[0] && cff.fonts[0].charset) {
-			// CFF charset includes .notdef implicitly at index 0
-			return ['.notdef', ...cff.fonts[0].charset];
+			const charset = cff.fonts[0].charset;
+			const strings = cff.strings || [];
+			// Resolve SIDs: 0-390 are standard CFF strings, 391+ are custom
+			const resolved = charset.map((sid) => {
+				if (typeof sid === 'string') return sid;
+				if (typeof sid === 'number' && sid >= 391) {
+					const custom = strings[sid - 391];
+					return typeof custom === 'string' && custom !== ''
+						? custom
+						: String(sid);
+				}
+				return String(sid);
+			});
+			return ['.notdef', ...resolved];
 		}
 	}
 

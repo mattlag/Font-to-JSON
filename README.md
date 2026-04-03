@@ -34,17 +34,17 @@ You can also use `dist/font-flux-js.js` directly as a single-file ES module — 
 
 ```html
 <script type="module">
-	import { importFont, exportFont } from 'font-flux-js';
+	import { FontFlux } from 'font-flux-js';
 
 	const response = await fetch('./fonts/MyFont.ttf');
 	const buffer = await response.arrayBuffer();
 
-	const fontData = importFont(buffer);
+	const font = FontFlux.open(buffer);
 
-	// Modify anything — font metadata, glyphs, kerning, tables...
-	fontData.font.familyName = 'My Custom Font';
+	// Modify anything — font metadata, glyphs, kerning...
+	font.info.familyName = 'My Custom Font';
 
-	const outputBuffer = exportFont(fontData);
+	const outputBuffer = font.export();
 
 	// Download the modified font
 	const blob = new Blob([outputBuffer], { type: 'font/ttf' });
@@ -59,35 +59,168 @@ You can also use `dist/font-flux-js.js` directly as a single-file ES module — 
 
 ```js
 import { readFile, writeFile } from 'node:fs/promises';
-import { importFont, exportFont, validateJSON } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-// Import
+// Open a font
 const buffer = (await readFile('MyFont.ttf')).buffer;
-const fontData = importFont(buffer);
+const font = FontFlux.open(buffer);
 
-// Inspect the simplified structure
-console.log(fontData.font.familyName); // "Helvetica"
-console.log(fontData.glyphs.length); // 756
-console.log(fontData.kerning?.length); // 1200
+// Inspect
+console.log(font.info.familyName); // "Helvetica"
+console.log(font.glyphCount); // 756
+console.log(font.kerning?.length); // 1200
 
 // Modify
-fontData.font.familyName = 'My Custom Font';
-fontData.font.version = 'Version 2.0';
+font.info.familyName = 'My Custom Font';
+
+// Add a glyph
+font.addGlyph({
+	name: 'bullet',
+	unicode: 0x2022,
+	advanceWidth: 500,
+	contours: [
+		[
+			{ x: 100, y: 200, onCurve: true },
+			{ x: 200, y: 300, onCurve: false },
+			{ x: 300, y: 200, onCurve: true },
+		],
+	],
+});
 
 // Validate before export
-const report = validateJSON(fontData);
+const report = font.validate();
 if (!report.valid) {
 	console.error(report.issues);
 }
 
 // Export
-const output = exportFont(fontData);
+const output = font.export();
 await writeFile('MyFont-modified.ttf', Buffer.from(output));
 ```
 
-## What `importFont` returns
+### Create a font from scratch
 
-`importFont` returns a **simplified** structure that consolidates data from many tables into a single coherent view:
+```js
+import { FontFlux } from 'font-flux-js';
+
+const font = FontFlux.create({
+	familyName: 'Brand New Font',
+	unitsPerEm: 1000,
+	ascender: 800,
+	descender: -200,
+});
+
+font.addGlyph({
+	name: 'A',
+	unicode: 65,
+	advanceWidth: 600,
+	contours: [
+		[
+			{ x: 0, y: 0, onCurve: true },
+			{ x: 300, y: 700, onCurve: true },
+			{ x: 600, y: 0, onCurve: true },
+		],
+	],
+});
+
+font.addKerning({ left: 'A', right: 'V', value: -50 });
+
+const buffer = font.export();
+```
+
+## FontFlux API
+
+### Static factories
+
+| Method                                   | Description                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance. Handles TTF, OTF, TTC, OTC, WOFF, WOFF2. |
+| `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances.              |
+| `FontFlux.create(options)`               | Create a new empty font from metadata (familyName, unitsPerEm, etc.).                       |
+| `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                                       |
+| `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.                        |
+
+### Instance properties (live references)
+
+| Property      | Description                                                                         |
+| ------------- | ----------------------------------------------------------------------------------- |
+| `.info`       | Font metadata object (familyName, styleName, unitsPerEm, ascender, descender, etc.) |
+| `.glyphs`     | Array of glyph objects (name, unicode, advanceWidth, contours, ...)                 |
+| `.kerning`    | Array of kerning pairs `{ left, right, value }`                                     |
+| `.axes`       | Variable font axes (from fvar)                                                      |
+| `.instances`  | Named instances (from fvar)                                                         |
+| `.features`   | OpenType layout features (GPOS, GSUB, GDEF)                                         |
+| `.tables`     | All parsed tables (for advanced/lossless access)                                    |
+| `.glyphCount` | Number of glyphs                                                                    |
+| `.format`     | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                              |
+
+### Glyph methods
+
+| Method                      | Description                                               |
+| --------------------------- | --------------------------------------------------------- |
+| `.listGlyphs()`             | List all glyph names                                      |
+| `.getGlyph(id)`             | Get glyph by name, code point, or hex string (`'U+0041'`) |
+| `.hasGlyph(id)`             | Check if a glyph exists                                   |
+| `.addGlyph(glyphOrOptions)` | Add a glyph (raw object or options for createGlyph)       |
+| `.removeGlyph(id)`          | Remove a glyph (also cleans up kerning references)        |
+
+### Kerning methods
+
+| Method                        | Description                                    |
+| ----------------------------- | ---------------------------------------------- |
+| `.getKerning(left, right)`    | Look up kerning value between two glyphs       |
+| `.addKerning(input)`          | Add kerning pair(s) from flexible input format |
+| `.removeKerning(left, right)` | Remove a specific kerning pair                 |
+| `.listKerning()`              | List all kerning pairs                         |
+| `.clearKerning()`             | Remove all kerning                             |
+
+### Axis & instance methods
+
+| Method                   | Description                     |
+| ------------------------ | ------------------------------- |
+| `.listAxes()`            | List all variation axes         |
+| `.getAxis(tag)`          | Get axis by tag (e.g. `'wght'`) |
+| `.addAxis(axis)`         | Add a variation axis            |
+| `.removeAxis(tag)`       | Remove a variation axis         |
+| `.setAxis(tag, changes)` | Update axis properties          |
+| `.listInstances()`       | List named instances            |
+| `.addInstance(instance)` | Add a named instance            |
+| `.removeInstance(name)`  | Remove a named instance         |
+
+### Export & serialization
+
+| Method              | Description                                                             |
+| ------------------- | ----------------------------------------------------------------------- | ------ | ---------- |
+| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt'              | 'woff' | 'woff2' }` |
+| `.toJSON(indent?)`  | Serialize to JSON string                                                |
+| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }` |
+| `.detach()`         | Return the raw internal data object and detach it from this instance    |
+
+### Static utilities
+
+| Method                                       | Description                                                  |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| `FontFlux.svgToContours(d)`                  | Parse an SVG path `d` string into font contour data          |
+| `FontFlux.contoursToSVG(contours)`           | Convert font contours to an SVG path `d` string              |
+| `FontFlux.interpretCharString(bytes, ...)`   | Interpret CFF charstring bytecode into cubic Bézier contours |
+| `FontFlux.disassembleCharString(bytes, ...)` | Disassemble CFF charstring into human-readable instructions  |
+| `FontFlux.compileCharString(instructions)`   | Compile a charstring instruction listing to bytes            |
+| `FontFlux.assembleCharString(instructions)`  | Assemble a charstring instruction listing to bytes           |
+
+### WOFF2 initialization
+
+```js
+import { FontFlux, initWoff2 } from 'font-flux-js';
+
+await initWoff2(); // Call once at startup
+
+const font = FontFlux.open(woff2Buffer);
+const woff2Output = font.export({ format: 'woff2' });
+```
+
+## What `FontFlux.open()` gives you
+
+`FontFlux.open(buffer)` returns a `FontFlux` instance whose `.info`, `.glyphs`, `.kerning`, and other properties expose a **simplified** structure:
 
 ```js
 {
@@ -110,48 +243,12 @@ await writeFile('MyFont-modified.ttf', Buffer.from(output));
 
 The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editing interface. The `tables` object preserves every parsed table for lossless binary round-trip.
 
-## API
-
-| Function                             | Description                                                                                         |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `importFont(buffer)`                 | Parse an `ArrayBuffer` into a simplified font object. Handles TTF, OTF, TTC, OTC, WOFF, and WOFF2.  |
-| `exportFont(fontData, options?)`     | Convert a font object back to binary. Returns an `ArrayBuffer`.                                     |
-| `initWoff2()`                        | Initialize WOFF2 support (async). Must be awaited once before importing/exporting WOFF2 files.      |
-| `validateJSON(fontData)`             | Check a font object for structural issues. Returns `{ valid, errors, warnings, infos, summary }`.   |
-| `createGlyph(options)`               | Create a glyph object from metadata + outline in any supported format.                              |
-| `getGlyph(font, id)`                 | Look up a glyph by name, code point (`65`), or hex string (`'U+0041'`).                             |
-| `createKerning(input)`               | Create a kerning pair array from flexible hand-authored input (pairs, groups, classes).             |
-| `getKerningValue(font, left, right)` | Look up the kerning value between two glyphs by name, code point, or hex string.                    |
-| `fontToJSON(fontData, indent?)`      | Serialize a font object to a JSON string. Handles BigInt, TypedArrays, and strips transient fields. |
-| `fontFromJSON(jsonString)`           | Deserialize a JSON string back into a font object.                                                  |
-| `contoursToSVGPath(contours)`        | Convert font contours (TrueType or CFF) to an SVG path `d` string.                                  |
-| `svgPathToContours(d)`               | Parse an SVG path `d` string into font contour data.                                                |
-| `interpretCharString(bytes, ...)`    | Interpret CFF Type 2 charstring bytecode into cubic Bézier contours.                                |
-| `disassembleCharString(bytes, ...)`  | Disassemble CFF charstring bytecode into a human-readable instruction listing.                      |
-| `buildSimplified(raw)`               | Convert raw `{ header, tables }` into the simplified structure above.                               |
-| `buildRawFromSimplified(simplified)` | Convert a simplified object back to `{ header, tables }`.                                           |
-| `importFontTables(buffer)`           | Low-level import returning raw `{ header, tables }` without simplification.                         |
-
 ## Supported formats
 
 - **TTF** (`.ttf`) and **OTF** (`.otf`) — single fonts
 - **TTC** (`.ttc`) and **OTC** (`.otc`) — font collections
 - **WOFF** (`.woff`) — Web Open Font Format 1.0 (zlib compression)
 - **WOFF2** (`.woff2`) — Web Open Font Format 2.0 (Brotli compression)
-
-### WOFF2 initialization
-
-WOFF2 support requires a one-time async initialization before use. WOFF1 and SFNT formats work without it.
-
-```js
-import { initWoff2, importFont, exportFont } from 'font-flux-js';
-
-await initWoff2(); // Call once at startup
-
-// Now WOFF2 import and export work
-const fontData = importFont(woff2Buffer);
-const woff2Output = exportFont(fontData, { format: 'woff2' });
-```
 
 ## Supported tables
 

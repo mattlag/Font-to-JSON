@@ -1,23 +1,25 @@
 # Validation Guide
 
-Use `validateJSON` to catch structural and cross-table issues before export.
+Use `.validate()` to catch structural and cross-table issues before export.
 The validator also **auto-fixes** recoverable problems (missing headers, wrong
 directory fields, mismatched counts) and reports them as `info`-level issues
-so the same object can be passed directly to `exportFont`.
+so the font can be exported directly afterward.
 
 ## API
 
 ```js
-import { validateJSON, exportFont } from './dist/font-flux-js.js';
+import { FontFlux } from 'font-flux-js';
 
-const report = validateJSON(fontJson);
-// fontJson may have been mutated with auto-fixes
+const font = FontFlux.open(buffer);
+
+const report = font.validate();
+// The internal data may have been mutated with auto-fixes
 if (!report.valid) {
 	console.error(report.errors);
-	throw new Error('Font JSON failed validation');
+	throw new Error('Font failed validation');
 }
 
-const buffer = exportFont(fontJson);
+const output = font.export();
 ```
 
 ## Severity levels
@@ -28,7 +30,7 @@ const buffer = exportFont(fontJson);
 | **warning** | Likely bug or unusual condition; export may still succeed | no effect         |
 | **info**    | Auto-fixed or informational; no action needed             | no effect         |
 
-## What `validateJSON` checks
+## What `.validate()` checks
 
 - Root shape (`header`, `tables`) for single fonts, or `collection` + `fonts[]` for TTC/OTC.
 - Header field sanity (`sfVersion`, `numTables`, directory fields) — auto-fixed when possible.
@@ -51,7 +53,7 @@ const buffer = exportFont(fontJson);
 
 | Code                          | Message                                  | When                                                      |
 | ----------------------------- | ---------------------------------------- | --------------------------------------------------------- |
-| `INPUT_INVALID`               | validateJSON expects a font JSON object  | Input is not a plain object                               |
+| `INPUT_INVALID`               | validate expects a font JSON object      | Input is not a plain object                               |
 | `FONTDATA_INVALID`            | Font data must be an object              | Font entry (single or within collection) is not an object |
 | `TABLES_MISSING`              | Font tables are required                 | `tables` missing or not an object                         |
 | `TABLES_EMPTY`                | Font tables object is empty              | `tables` has zero entries                                 |
@@ -82,7 +84,7 @@ const buffer = exportFont(fontJson);
 | Code                            | Message                                      | When                                                                                      |
 | ------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `HEADER_SYNTHESIZED`            | No header found; synthesized one             | Neither `header` nor `_header` present; built from table data                             |
-| `HEADER_PROMOTED`               | Promoted "\_header" for export compatibility | No `header` but `_header` exists (e.g. after `fontFromJSON`)                              |
+| `HEADER_PROMOTED`               | Promoted "\_header" for export compatibility | No `header` but `_header` exists (e.g. after `FontFlux.fromJSON()`)                       |
 | `HEADER_SFVERSION_INFERRED`     | sfVersion inferred from outline tables       | `sfVersion` missing or invalid; inferred as `0x00010000` (TrueType) or `0x4F54544F` (CFF) |
 | `HEADER_NUMTABLES_CORRECTED`    | numTables corrected to match table count     | `numTables` missing or does not match actual table count                                  |
 | `HEADER_FIELDS_CORRECTED`       | Directory fields auto-corrected              | `searchRange`/`entrySelector`/`rangeShift` computed for actual table count                |
@@ -104,15 +106,15 @@ const buffer = exportFont(fontJson);
 
 ## Auto-fix behavior
 
-When `validateJSON` detects a recoverable issue it **mutates** the input
-object in place and reports an `info`-level issue. This means the same
-object can be passed directly to `exportFont` after validation:
+When `.validate()` detects a recoverable issue it **mutates** the input
+object in place and reports an `info`-level issue. This means the
+font can be exported directly after validation:
 
 ```js
-const report = validateJSON(fontJson);
-// fontJson.header is now guaranteed to exist and have correct fields
+const report = font.validate();
+// Internal data is now guaranteed to have correct header fields
 if (report.valid) {
-	const buffer = exportFont(fontJson);
+	const buffer = font.export();
 }
 ```
 
@@ -127,7 +129,7 @@ Auto-fixes applied:
 
 ## Best practices
 
-- Run `validateJSON` before every `exportFont` call to catch issues early and apply auto-fixes.
+- Run `.validate()` before every `.export()` call to catch issues early and apply auto-fixes.
 - Treat warnings as "likely bugs" when hand-authoring JSON.
 - Keep `_raw` for unknown tables to preserve round-trip behavior.
 - Prefer small iterative edits and validate after each edit.

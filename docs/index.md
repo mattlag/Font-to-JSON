@@ -2,14 +2,15 @@
 
 Convert fonts to JSON, make edits, then convert them back!
 
-Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries into structured JSON, then exporting that JSON back into a valid font binary. Every table is fully parsed into human-readable fields! If you're ambitious, you can also create a font JSON from scratch and turn it into a font.
+Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries into structured JSON, then exporting that JSON back into a valid font binary. Every table is fully parsed into human-readable fields! If you're ambitious, you can also create a font from scratch.
 
 Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'd love to hear from you: mail@glyphrstudio.com
 
 ## What this docs site covers
 
-- How to validate JSON before export.
-- What a valid top-level font JSON object looks like.
+- The `FontFlux` class API and how to use it.
+- How to validate before export.
+- What the internal font data structure looks like.
 - Table-by-table reference pages with JSON fragment examples, practical notes, and pitfalls.
 
 ## Quick links
@@ -24,33 +25,111 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 
 ## API
 
-| Function                                    | Description                                                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------ |
-| `importFont(buffer)`                        | Parse an `ArrayBuffer` into a simplified font object (TTF/OTF/TTC/WOFF/WOFF2). |
-| `exportFont(fontData, options?)`            | Convert a font object back to binary. Returns an `ArrayBuffer`.                |
-| `fontToJSON(fontData, indent?)`             | Serialize a font object to a JSON string (handles BigInt, strips internals).   |
-| `fontFromJSON(jsonString)`                  | Deserialize a JSON string back into a font object for `exportFont`.            |
-| `initWoff2()`                               | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
-| `validateJSON(fontData)`                    | Check a font object for structural issues. Returns `{ valid, issues[] }`.      |
-| `buildSimplified(raw)`                      | Convert raw `{ header, tables }` into the simplified structure.                |
-| `buildRawFromSimplified(simplified)`        | Convert simplified back to `{ header, tables }`.                               |
-| `importFontTables(buffer)`                  | Low-level import returning raw `{ header, tables }` without simplification.    |
-| `interpretCharString(bytes, subrs, gsubrs)` | Interpret CFF Type 2 charstring bytes into cubic Bézier contour commands.      |
-| `disassembleCharString(bytes)`              | Disassemble CFF charstring bytes into human-readable text.                     |
-| `contoursToSVGPath(contours)`               | Convert glyph contours (TrueType or CFF) to an SVG path `d` string.            |
-| `svgPathToContours(pathData, format)`       | Parse an SVG path `d` string into `'truetype'` or `'cff'` contours.            |
-| `createGlyph(options)`                      | Create a glyph object from metadata + outline in any supported format.         |
-| `getGlyph(font, id)`                        | Look up a glyph by name, code point, or hex string.                            |
-| `createKerning(input)`                      | Create a kerning pair array from flexible hand-authored input.                 |
-| `getKerningValue(font, left, right)`        | Look up the kerning value between two glyphs.                                  |
-| `compileCharString(contours)`               | Compile CFF contours into Type 2 charstring bytes.                             |
-| `assembleCharString(text)`                  | Assemble human-readable charstring text into bytes.                            |
+Everything goes through the `FontFlux` class. The library exports two things:
+
+```js
+import { FontFlux, initWoff2 } from 'font-flux-js';
+```
+
+### Static factories
+
+| Method                                   | Description                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance (TTF/OTF/TTC/WOFF/WOFF2).    |
+| `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances. |
+| `FontFlux.create(options)`               | Create a new empty font from metadata (`familyName`, `unitsPerEm`, etc.).      |
+| `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                          |
+| `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.           |
+| `initWoff2()`                            | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
+
+### Instance properties (live references)
+
+| Property      | Description                                                                      |
+| ------------- | -------------------------------------------------------------------------------- |
+| `.info`       | Font metadata object (`familyName`, `styleName`, `unitsPerEm`, `ascender`, etc.) |
+| `.glyphs`     | Array of glyph objects (`name`, `unicode`, `advanceWidth`, `contours`, ...)      |
+| `.kerning`    | Array of kerning pairs `{ left, right, value }`                                  |
+| `.axes`       | Variable font axes (from fvar)                                                   |
+| `.instances`  | Named instances (from fvar)                                                      |
+| `.features`   | OpenType layout features (GPOS, GSUB, GDEF)                                      |
+| `.tables`     | All parsed tables (for advanced/lossless access)                                 |
+| `.glyphCount` | Number of glyphs                                                                 |
+| `.format`     | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                           |
+
+### Glyph methods
+
+| Method                      | Description                                               |
+| --------------------------- | --------------------------------------------------------- |
+| `.listGlyphs()`             | List all glyph names                                      |
+| `.getGlyph(id)`             | Get glyph by name, code point, or hex string (`'U+0041'`) |
+| `.hasGlyph(id)`             | Check if a glyph exists                                   |
+| `.addGlyph(glyphOrOptions)` | Add a glyph (raw object or options for createGlyph)       |
+| `.removeGlyph(id)`          | Remove a glyph (also cleans up kerning references)        |
+
+### Font info methods
+
+| Method              | Description                          |
+| ------------------- | ------------------------------------ |
+| `.getInfo()`        | Get a copy of the font metadata      |
+| `.setInfo(partial)` | Merge partial updates into font info |
+
+### Kerning methods
+
+| Method                        | Description                                    |
+| ----------------------------- | ---------------------------------------------- |
+| `.getKerning(left, right)`    | Look up kerning value between two glyphs       |
+| `.addKerning(input)`          | Add kerning pair(s) from flexible input format |
+| `.removeKerning(left, right)` | Remove a specific kerning pair                 |
+| `.listKerning()`              | List all kerning pairs                         |
+| `.clearKerning()`             | Remove all kerning                             |
+
+### Axis & instance methods
+
+| Method                   | Description                     |
+| ------------------------ | ------------------------------- |
+| `.listAxes()`            | List all variation axes         |
+| `.getAxis(tag)`          | Get axis by tag (e.g. `'wght'`) |
+| `.addAxis(axis)`         | Add a variation axis            |
+| `.removeAxis(tag)`       | Remove a variation axis         |
+| `.setAxis(tag, changes)` | Update axis properties          |
+| `.listInstances()`       | List named instances            |
+| `.addInstance(instance)` | Add a named instance            |
+| `.removeInstance(name)`  | Remove a named instance         |
+
+### Feature & hinting methods
+
+| Method               | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `.getFeatures()`     | Get OpenType features (GPOS, GSUB, GDEF)            |
+| `.setFeatures(data)` | Replace or update feature tables                    |
+| `.getHinting()`      | Get TrueType hinting tables (gasp, cvt, fpgm, prep) |
+| `.setHinting(data)`  | Update TrueType hinting tables                      |
+
+### Export & serialization
+
+| Method              | Description                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt' \| 'woff' \| 'woff2' }` |
+| `.toJSON(indent?)`  | Serialize to JSON string                                                           |
+| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }`            |
+| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape               |
+
+### Static utilities
+
+| Method                                     | Description                                                  |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| `FontFlux.svgToContours(d, format?)`       | Parse an SVG path `d` string into font contour data          |
+| `FontFlux.contoursToSVG(contours)`         | Convert font contours to an SVG path `d` string              |
+| `FontFlux.interpretCharString(bytes, ...)` | Interpret CFF charstring bytecode into cubic Bézier contours |
+| `FontFlux.disassembleCharString(bytes)`    | Disassemble CFF charstring into human-readable text          |
+| `FontFlux.compileCharString(contours)`     | Compile CFF contours into Type 2 charstring bytes            |
+| `FontFlux.assembleCharString(text)`        | Assemble human-readable charstring text into bytes           |
 
 See the [README](https://github.com/mattlag/Font-Flux-JS#readme) for installation and usage examples.
 
-## Top-level JSON shape
+## Internal data structure
 
-`importFont` returns a **simplified** structure:
+`FontFlux.open()` parses a font binary into a **simplified** internal structure. The instance properties (`.info`, `.glyphs`, `.kerning`, etc.) are live references into this data:
 
 ```json
 {
@@ -78,7 +157,7 @@ The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editin
 
 ## Working with glyph outlines
 
-`importFont` produces simplified glyph data with decoded outline contours ready for inspection and editing.
+`FontFlux.open()` produces simplified glyph data with decoded outline contours ready for inspection and editing.
 
 For a complete guide to creating glyphs from scratch — including metadata, outline formats, and examples — see [Creating Glyphs](./creating-glyphs.md).
 
@@ -114,30 +193,30 @@ Each simplified CFF glyph includes:
 - `charString` — the raw charstring byte array (for lossless round-tripping)
 - `charStringDisassembly` — human-readable disassembly text
 
-Use `interpretCharString` and `disassembleCharString` for manual charstring work at the table level.
+Use `FontFlux.interpretCharString()` and `FontFlux.disassembleCharString()` for manual charstring work at the table level.
 
 ### SVG path conversion
 
 Font Flux provides read/write conversion between glyph contours and SVG path `d` strings. This is useful for visual editing, round-trip glyph modification, and interop with SVG-based tools.
 
 ```js
-import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+import { FontFlux } from 'font-flux-js';
 
 // Read: contours → SVG path string
-const d = contoursToSVGPath(glyph.contours);
+const d = FontFlux.contoursToSVG(glyph.contours);
 // d = "M100 700 L400 700 C400 500 200 300 100 300 Z"
 
 // Write: SVG path string → contours
-const cffContours = svgPathToContours(d, 'cff'); // cubic commands
-const ttfContours = svgPathToContours(d, 'truetype'); // quadratic points
+const cffContours = FontFlux.svgToContours(d, 'cff'); // cubic commands
+const ttfContours = FontFlux.svgToContours(d, 'truetype'); // quadratic points
 ```
 
-`contoursToSVGPath` auto-detects whether the input is TrueType or CFF format:
+`FontFlux.contoursToSVG()` auto-detects whether the input is TrueType or CFF format:
 
 - TrueType contours produce `Q` (quadratic) commands in the SVG path.
 - CFF contours produce `C` (cubic) commands.
 
-`svgPathToContours` accepts any valid SVG path (M, L, H, V, C, S, Q, T, Z plus relative variants) and converts to the requested format:
+`FontFlux.svgToContours()` accepts any valid SVG path (M, L, H, V, C, S, Q, T, Z plus relative variants) and converts to the requested format:
 
 - `'cff'` — cubic command objects. Quadratic curves are promoted to cubic (lossless degree elevation).
 - `'truetype'` — point arrays with `onCurve`. Cubic curves are approximated as quadratic (subdivision with 0.5-unit error threshold).
@@ -146,8 +225,8 @@ Coordinates are kept in font-space (Y-up). To render in SVG (Y-down), apply `tra
 
 ## Workflow recommendation
 
-1. Start from `importFont` output when possible.
-2. Edit the simplified fields (`font`, `glyphs`, `kerning`) for common changes.
-3. Edit `tables` directly for low-level or table-specific changes.
-4. Run `validateJSON` to check for structural issues.
-5. Only call `exportFont` when `report.valid === true`.
+1. Start from `FontFlux.open()` output when possible.
+2. Edit via instance properties and methods (`.info`, `.glyphs`, `.addGlyph()`, etc.) for common changes.
+3. Edit `.tables` directly for low-level or table-specific changes.
+4. Run `.validate()` to check for structural issues.
+5. Only call `.export()` when `report.valid === true`.

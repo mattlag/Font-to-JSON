@@ -66,17 +66,17 @@ This produces two quadratic segments: (0,0)→(50,100)→(**75,100**) and (**75,
 
 ### Converting to/from SVG paths
 
-Use `contoursToSVGPath` and `svgPathToContours` to convert between TrueType contours and SVG path `d` strings:
+Use `FontFlux.contoursToSVG()` and `FontFlux.svgToContours()` to convert between TrueType contours and SVG path `d` strings:
 
 ```js
-import { contoursToSVGPath, svgPathToContours } from 'font-flux';
+import { FontFlux } from 'font-flux-js';
 
 // TrueType contours → SVG (produces Q commands for quadratic curves)
-const d = contoursToSVGPath(glyph.contours);
+const d = FontFlux.contoursToSVG(glyph.contours);
 // "M0 0 Q50 100 75 100 Q100 100 150 0 Z"
 
 // SVG → TrueType contours
-const contours = svgPathToContours(d, 'truetype');
+const contours = FontFlux.svgToContours(d, 'truetype');
 // [[ { x: 0, y: 0, onCurve: true }, { x: 50, y: 100, onCurve: false }, ... ]]
 ```
 
@@ -100,4 +100,4 @@ See the [main docs](../index.md#svg-path-conversion) for full SVG path conversio
 
 - Preserve `_checksum` for stable round-tripping.
 - If a table is only partially understood, prefer keeping unknown bytes in `_raw` instead of dropping data.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

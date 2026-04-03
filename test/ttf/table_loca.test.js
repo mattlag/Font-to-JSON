@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFontTables } from '../../src/main.js';
+import { importFontTables } from '../../src/import.js';
 import { DataReader } from '../../src/reader.js';
 import { parseLoca, writeLoca } from '../../src/ttf/table_loca.js';
 

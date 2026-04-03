@@ -123,4 +123,4 @@ Lookup subtable families by `lookupType`:
 
 - Preserve `_checksum` for stable round-tripping.
 - If a table is only partially understood, prefer keeping unknown bytes in `_raw` instead of dropping data.
-- Validate with `validateJSON` after edits.
+- Validate with `.validate()` after edits.

@@ -1,5 +1,5 @@
-import { resolve } from 'path';
 import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 const pkg = JSON.parse(
@@ -19,6 +19,10 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
+			'font-flux-js/export': resolve(__dirname, '../src/export.js'),
+			'font-flux-js/import': resolve(__dirname, '../src/import.js'),
+			'font-flux-js/json': resolve(__dirname, '../src/json.js'),
+			'font-flux-js/validate': resolve(__dirname, '../src/validate/index.js'),
 			'font-flux-js': resolve(__dirname, '../src/main.js'),
 		},
 	},

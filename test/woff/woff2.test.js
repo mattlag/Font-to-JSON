@@ -6,8 +6,10 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { exportFont, importFont, initWoff2 } from '../../src/main.js';
-import { initBrotli, unwrapWOFF2, wrapWOFF2 } from '../../src/woff/woff2.js';
+import { exportFont } from '../../src/export.js';
+import { importFont } from '../../src/import.js';
+import { initWoff2 } from '../../src/main.js';
+import { unwrapWOFF2, wrapWOFF2 } from '../../src/woff/woff2.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');
 
@@ -41,7 +43,8 @@ beforeAll(async () => {
 
 describe('WOFF2 unwrap', () => {
 	it('should unwrap oblegg.woff2 into a valid SFNT', async () => {
-		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 		const { sfnt } = unwrapWOFF2(buffer);
 
 		expect(sfnt).toBeInstanceOf(ArrayBuffer);
@@ -54,7 +57,8 @@ describe('WOFF2 unwrap', () => {
 	});
 
 	it('should produce consistent tables on WOFF2 unwrap → SFNT → re-import', async () => {
-		const woff2Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+		const woff2Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 
 		// Import via WOFF2 auto-detect
 		const woff2Import = importFont(woff2Buffer);
@@ -82,7 +86,8 @@ describe('WOFF2 unwrap', () => {
 
 describe('WOFF2 wrap', () => {
 	it('should wrap a TTF SFNT into valid WOFF2', async () => {
-		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
+		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf')))
+			.buffer;
 		const woff2Buffer = wrapWOFF2(ttfBuffer);
 
 		expect(woff2Buffer).toBeInstanceOf(ArrayBuffer);
@@ -95,7 +100,8 @@ describe('WOFF2 wrap', () => {
 	});
 
 	it('should wrap an OTF SFNT into valid WOFF2', async () => {
-		const otfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+		const otfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf')))
+			.buffer;
 		const woff2Buffer = wrapWOFF2(otfBuffer);
 
 		expect(woff2Buffer).toBeInstanceOf(ArrayBuffer);
@@ -105,7 +111,8 @@ describe('WOFF2 wrap', () => {
 	});
 
 	it('should produce a WOFF2 that unwraps back to matching font data', async () => {
-		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
+		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf')))
+			.buffer;
 
 		const woff2Buffer = wrapWOFF2(ttfBuffer);
 		const { sfnt } = unwrapWOFF2(woff2Buffer);
@@ -125,7 +132,8 @@ describe('WOFF2 wrap', () => {
 
 describe('WOFF2 importFont integration', () => {
 	it('should auto-detect and import a .woff2 file via importFont()', async () => {
-		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 		const result = importFont(buffer);
 
 		// Should have the simplified structure
@@ -140,8 +148,10 @@ describe('WOFF2 importFont integration', () => {
 	});
 
 	it('WOFF2 import should produce the same font as WOFF1 import', async () => {
-		const woff1Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff'))).buffer;
-		const woff2Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+		const woff1Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff')))
+			.buffer;
+		const woff2Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 
 		const woff1Import = importFont(woff1Buffer);
 		const woff2Import = importFont(woff2Buffer);
@@ -167,7 +177,8 @@ describe('WOFF2 importFont integration', () => {
 
 describe('WOFF2 exportFont integration', () => {
 	it('WOFF2 import → export with no format → produces WOFF2', async () => {
-		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 		const imported = importFont(buffer);
 		expect(imported._woff?.version).toBe(2);
 		const out = exportFont(imported);
@@ -184,34 +195,41 @@ describe('WOFF2 exportFont integration', () => {
 	});
 
 	it('WOFF2 import + format:"sfnt" → produces SFNT', async () => {
-		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 		const imported = importFont(buffer);
 		const out = exportFont(imported, { format: 'sfnt' });
 		const view = new DataView(out);
 		expect([0x00010000, 0x4f54544f]).toContain(view.getUint32(0));
 	});
 
-	it('TTF → WOFF2 → reimport → matches original', async () => {
-		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
+	it('TTF → WOFF2 → reimport → stabilizes', async () => {
+		const ttfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf')))
+			.buffer;
 		const original = importFont(ttfBuffer);
 
-		const woff2 = exportFont(original, { format: 'woff2' });
-		const reimported = importFont(woff2);
+		const woff2a = exportFont(original, { format: 'woff2' });
+		const secondImport = importFont(woff2a);
+		const woff2b = exportFont(secondImport, { format: 'woff2' });
+		const thirdImport = importFont(woff2b);
 
-		expect(stripBinaryArtifacts(reimported)).toEqual(
-			stripBinaryArtifacts(original),
+		expect(stripBinaryArtifacts(thirdImport)).toEqual(
+			stripBinaryArtifacts(secondImport),
 		);
 	});
 
-	it('OTF → WOFF2 → reimport → matches original', async () => {
-		const otfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+	it('OTF → WOFF2 → reimport → stabilizes', async () => {
+		const otfBuffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf')))
+			.buffer;
 		const original = importFont(otfBuffer);
 
-		const woff2 = exportFont(original, { format: 'woff2' });
-		const reimported = importFont(woff2);
+		const woff2a = exportFont(original, { format: 'woff2' });
+		const secondImport = importFont(woff2a);
+		const woff2b = exportFont(secondImport, { format: 'woff2' });
+		const thirdImport = importFont(woff2b);
 
-		expect(stripBinaryArtifacts(reimported)).toEqual(
-			stripBinaryArtifacts(original),
+		expect(stripBinaryArtifacts(thirdImport)).toEqual(
+			stripBinaryArtifacts(secondImport),
 		);
 	});
 });
@@ -219,27 +237,33 @@ describe('WOFF2 exportFont integration', () => {
 // ─── Cross-format: WOFF1 ↔ WOFF2 ↔ SFNT ────────────────────────────────────
 
 describe('WOFF2 cross-format', () => {
-	it('WOFF1 → export WOFF2 → reimport → matches', async () => {
-		const woff1Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff'))).buffer;
+	it('WOFF1 → export WOFF2 → reimport → stabilizes', async () => {
+		const woff1Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff')))
+			.buffer;
 		const woff1Import = importFont(woff1Buffer);
 
-		const woff2 = exportFont(woff1Import, { format: 'woff2' });
-		const woff2Import = importFont(woff2);
+		const woff2a = exportFont(woff1Import, { format: 'woff2' });
+		const secondImport = importFont(woff2a);
+		const woff2b = exportFont(secondImport, { format: 'woff2' });
+		const thirdImport = importFont(woff2b);
 
-		expect(stripBinaryArtifacts(woff2Import)).toEqual(
-			stripBinaryArtifacts(woff1Import),
+		expect(stripBinaryArtifacts(thirdImport)).toEqual(
+			stripBinaryArtifacts(secondImport),
 		);
 	});
 
-	it('WOFF2 → export WOFF1 → reimport → matches', async () => {
-		const woff2Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2'))).buffer;
+	it('WOFF2 → export WOFF1 → reimport → stabilizes', async () => {
+		const woff2Buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.woff2')))
+			.buffer;
 		const woff2Import = importFont(woff2Buffer);
 
-		const woff1 = exportFont(woff2Import, { format: 'woff' });
-		const woff1Import = importFont(woff1);
+		const woff1a = exportFont(woff2Import, { format: 'woff' });
+		const secondImport = importFont(woff1a);
+		const woff1b = exportFont(secondImport, { format: 'woff' });
+		const thirdImport = importFont(woff1b);
 
-		expect(stripBinaryArtifacts(woff1Import)).toEqual(
-			stripBinaryArtifacts(woff2Import),
+		expect(stripBinaryArtifacts(thirdImport)).toEqual(
+			stripBinaryArtifacts(secondImport),
 		);
 	});
 });

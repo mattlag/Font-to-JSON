@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { importFont, importFontTables } from '../../src/main.js';
+import { importFont, importFontTables } from '../../src/import.js';
 import { parseGPOS, writeGPOS } from '../../src/sfnt/table_GPOS.js';
 
 const SAMPLES_DIR = resolve(import.meta.dirname, '..', 'sample fonts');

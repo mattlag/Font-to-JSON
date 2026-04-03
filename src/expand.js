@@ -246,15 +246,27 @@ function getGlyphBBox(glyph) {
 			yMin = Infinity,
 			xMax = -Infinity,
 			yMax = -Infinity;
+		let hasPoints = false;
 		for (const contour of glyph.contours) {
 			for (const pt of contour) {
-				if (pt.x < xMin) xMin = pt.x;
-				if (pt.y < yMin) yMin = pt.y;
-				if (pt.x > xMax) xMax = pt.x;
-				if (pt.y > yMax) yMax = pt.y;
+				// Collect all numeric coordinate fields (x, y, x1, y1, x2, y2)
+				const coords = [
+					[pt.x, pt.y],
+					[pt.x1, pt.y1],
+					[pt.x2, pt.y2],
+				];
+				for (const [cx, cy] of coords) {
+					if (typeof cx === 'number' && typeof cy === 'number') {
+						hasPoints = true;
+						if (cx < xMin) xMin = cx;
+						if (cy < yMin) yMin = cy;
+						if (cx > xMax) xMax = cx;
+						if (cy > yMax) yMax = cy;
+					}
+				}
 			}
 		}
-		return { xMin, yMin, xMax, yMax };
+		if (hasPoints) return { xMin, yMin, xMax, yMax };
 	}
 	// Components and CFF: can't easily compute bbox here,
 	// return null (the export pipeline handles it)
@@ -625,7 +637,7 @@ function buildPostTable(font, glyphs) {
 		maxMemType42: 0,
 		minMemType1: 0,
 		maxMemType1: 0,
-		glyphNames: glyphs.map((g) => g.name || '.notdef'),
+		glyphNames: glyphs.map((g) => String(g.name ?? '.notdef')),
 	};
 }
 
@@ -1342,14 +1354,42 @@ function mergeKerningIntoGPOS(existingGPOS, kerning, glyphs) {
 	if (pairs.length === 0) return gpos;
 
 	const newLookup = buildPairPosLookup(pairs);
-	const newLookupIdx = gpos.lookupList.lookups.length;
-	gpos.lookupList.lookups.push(newLookup);
 
-	// Find existing 'kern' feature(s) and replace their lookup indices
+	// Collect old kern lookup indices so we can replace one of them in-place
+	const oldKernIndices = new Set();
+	for (const rec of gpos.featureList.featureRecords) {
+		if (rec.featureTag === 'kern') {
+			for (const idx of rec.feature.lookupListIndices) {
+				oldKernIndices.add(idx);
+			}
+		}
+	}
+
+	let newLookupIdx;
+	if (oldKernIndices.size > 0) {
+		// Replace the first old kern lookup in-place, remove extras
+		const sorted = [...oldKernIndices].sort((a, b) => a - b);
+		newLookupIdx = sorted[0];
+		gpos.lookupList.lookups[newLookupIdx] = newLookup;
+		// Remove extra kern lookups (in reverse order to preserve indices)
+		for (let i = sorted.length - 1; i > 0; i--) {
+			gpos.lookupList.lookups.splice(sorted[i], 1);
+		}
+		// Remap lookup indices that shifted from the removals
+		if (sorted.length > 1) {
+			const removed = sorted.slice(1);
+			remapLookupIndices(gpos, removed);
+		}
+	} else {
+		// Append new lookup
+		newLookupIdx = gpos.lookupList.lookups.length;
+		gpos.lookupList.lookups.push(newLookup);
+	}
+
+	// Point kern feature to the new lookup
 	let foundKern = false;
 	for (const rec of gpos.featureList.featureRecords) {
 		if (rec.featureTag === 'kern') {
-			// Remove old kern lookups (we could leave them, but they become orphans)
 			rec.feature.lookupListIndices = [newLookupIdx];
 			foundKern = true;
 		}
@@ -1378,6 +1418,27 @@ function mergeKerningIntoGPOS(existingGPOS, kerning, glyphs) {
 	}
 
 	return gpos;
+}
+
+/**
+ * Remap lookup indices in all features and script/langSys after removing lookups.
+ * @param {object} gpos
+ * @param {number[]} removedIndices - sorted ascending
+ */
+function remapLookupIndices(gpos, removedIndices) {
+	function adjust(idx) {
+		let shift = 0;
+		for (const r of removedIndices) {
+			if (r < idx) shift++;
+			else break;
+		}
+		return idx - shift;
+	}
+	for (const rec of gpos.featureList.featureRecords) {
+		rec.feature.lookupListIndices = rec.feature.lookupListIndices
+			.filter((idx) => !removedIndices.includes(idx))
+			.map(adjust);
+	}
 }
 
 /**

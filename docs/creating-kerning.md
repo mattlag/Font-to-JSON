@@ -2,22 +2,24 @@
 
 This guide covers how to create and work with kerning data in a Font Flux font. Whether you're adding kerning to a font built from scratch, editing kerning from an imported font, or looking up specific pair values — this is the reference for kerning structure, input formats, and the export pipeline.
 
-## Quick start with `createKerning`
+## Quick start with `.addKerning()`
 
-The `createKerning` helper accepts kerning data in several flexible formats and returns the normalised `[{ left, right, value }]` array used by the pipeline.
+The `.addKerning()` method accepts kerning data in several flexible formats and merges them into the font's kerning array.
 
 ```js
-import { createKerning } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-const kerning = createKerning([
+const font = FontFlux.create({ familyName: 'My Font' });
+
+font.addKerning([
 	{ left: 'A', right: 'V', value: -80 },
 	{ left: 'T', right: 'o', value: -40 },
 ]);
 ```
 
-That's the simplest form — an array of `{ left, right, value }` pairs referencing glyphs by name. The helper also supports grouping, maps, and class-based expansion for more compact authoring.
+That's the simplest form — an array of `{ left, right, value }` pairs referencing glyphs by name. The method also supports grouping, maps, and class-based expansion for more compact authoring.
 
-You can also construct kerning arrays directly as plain JSON without using `createKerning`. The helper is a convenience, not a requirement.
+You can also construct kerning arrays directly as plain JSON and assign to `font.kerning` without using `.addKerning()`. The method is a convenience, not a requirement.
 
 ## Kerning pair reference
 
@@ -43,21 +45,21 @@ Positive values increase spacing (rare). Zero values have no effect but are vali
 
 ## Input formats
 
-`createKerning` accepts five formats, all of which can be freely mixed in an array.
+`createKerning` accepts five formats, all of which can be freely mixed in an array. These same formats work with `.addKerning()`.
 
 ### 1. Flat pair
 
 A single `{ left, right, value }` object:
 
 ```js
-createKerning({ left: 'A', right: 'V', value: -80 });
-// → [{ left: 'A', right: 'V', value: -80 }]
+font.addKerning({ left: 'A', right: 'V', value: -80 });
+// adds: { left: 'A', right: 'V', value: -80 }
 ```
 
 ### 2. Array of flat pairs
 
 ```js
-createKerning([
+font.addKerning([
 	{ left: 'A', right: 'V', value: -80 },
 	{ left: 'A', right: 'W', value: -60 },
 	{ left: 'T', right: 'o', value: -40 },
@@ -69,7 +71,7 @@ createKerning([
 All pairs sharing a left glyph, with right glyphs as keys:
 
 ```js
-createKerning({ left: 'A', pairs: { V: -80, W: -60, T: -50 } });
+font.addKerning({ left: 'A', pairs: { V: -80, W: -60, T: -50 } });
 // → [{ left: 'A', right: 'V', value: -80 },
 //    { left: 'A', right: 'W', value: -60 },
 //    { left: 'A', right: 'T', value: -50 }]
@@ -80,7 +82,7 @@ createKerning({ left: 'A', pairs: { V: -80, W: -60, T: -50 } });
 Multiple left glyphs, each with their own right-glyph map:
 
 ```js
-createKerning({
+font.addKerning({
 	groups: {
 		A: { V: -80, W: -60 },
 		T: { o: -40, a: -35 },
@@ -93,7 +95,7 @@ createKerning({
 Define glyph classes and reference them with `@className` in pairs:
 
 ```js
-createKerning({
+font.addKerning({
 	classes: {
 		roundLeft: ['O', 'C', 'G', 'Q'],
 		diagonal: ['V', 'W', 'Y'],
@@ -113,7 +115,7 @@ Class references work in all formats — flat pairs, grouped-by-left, and groupe
 All formats can be combined in a single array:
 
 ```js
-createKerning([
+font.addKerning([
 	{ classes: { diag: ['V', 'W', 'Y'] } },
 	{ left: 'A', pairs: { '@diag': -80, T: -50 } },
 	{ groups: { T: { o: -40, a: -35, e: -35 } } },
@@ -126,7 +128,7 @@ createKerning([
 When the same pair appears multiple times, the last definition wins. This matches how GPOS merging works and lets you override specific pairs after class-based expansion:
 
 ```js
-createKerning([
+font.addKerning([
 	{ left: '@caps', right: 'V', value: -60 },
 	{ left: 'A', right: 'V', value: -80 }, // overrides the class value for A→V
 ]);
@@ -134,35 +136,31 @@ createKerning([
 
 ## Looking up kerning values
 
-Use `getKerningValue` to look up the kerning value between two glyphs:
+Use `.getKerning()` to look up the kerning value between two glyphs:
 
 ```js
-import { getKerningValue } from 'font-flux-js';
-
-getKerningValue(font, 'A', 'V'); // → -80
+font.getKerning('A', 'V'); // → -80
 ```
 
-The first argument is the font object (with `.kerning` and `.glyphs`). The second and third arguments accept glyph names, numeric code points, or hex strings — the same flexible identifiers used by `getGlyph`:
+The arguments accept glyph names, numeric code points, or hex strings — the same flexible identifiers used by `.getGlyph()`:
 
 ```js
-getKerningValue(font, 'A', 'V'); // by name
-getKerningValue(font, 65, 86); // by code point
-getKerningValue(font, 'U+0041', 'U+0056'); // by hex string
-getKerningValue(font, 'A', 0x56); // mixed
+font.getKerning('A', 'V'); // by name
+font.getKerning(65, 86); // by code point
+font.getKerning('U+0041', 'U+0056'); // by hex string
+font.getKerning('A', 0x56); // mixed
 ```
 
 Returns `undefined` if no pair exists.
 
 ## Looking up glyphs
 
-The parallel `getGlyph` helper looks up a glyph object from the font:
+The `.getGlyph()` method looks up a glyph object from the font:
 
 ```js
-import { getGlyph } from 'font-flux-js';
-
-getGlyph(font, 'A'); // by name
-getGlyph(font, 65); // by code point
-getGlyph(font, 'U+0041'); // by hex string
+font.getGlyph('A'); // by name
+font.getGlyph(65); // by code point
+font.getGlyph('U+0041'); // by hex string
 ```
 
 Returns the glyph object or `undefined`. See [Creating Glyphs](./creating-glyphs.md) for more on glyph structure.
@@ -173,7 +171,7 @@ Font Flux extracts kerning from imported fonts and normalises it into the `kerni
 
 ### Import (any format → `kerning[]`)
 
-When you call `importFont`, kerning is extracted from all available sources:
+When you call `FontFlux.open()`, kerning is extracted from all available sources:
 
 - **GPOS PairPos** (Format 1 and 2) — the modern standard
 - **kern table** (OpenType Format 0 and 2, Apple Format 0, 1, 2, and 3)
@@ -182,7 +180,7 @@ If both GPOS and kern tables contain kerning, they are merged. GPOS values take 
 
 ### Export (`kerning[]` → binary)
 
-By default, `exportFont` writes kerning as **GPOS PairPos Format 1** — the modern standard supported by all major text engines.
+By default, `.export()` writes kerning as **GPOS PairPos Format 1** — the modern standard supported by all major text engines.
 
 To target a different format, set `_options.kerningFormat`:
 
@@ -209,76 +207,73 @@ const fontData = {
 Since all formats funnel through the same `kerning[]` array, importing from one format and exporting to another happens automatically:
 
 ```js
-// Import a font with legacy kern table
-const fontData = importFont(legacyFontBuffer);
+// Open a font with legacy kern table
+const font = FontFlux.open(legacyFontBuffer);
 
-// Kerning is now in fontData.kerning as [{ left, right, value }]
+// Kerning is now in font.kerning as [{ left, right, value }]
 // Export writes it as modern GPOS by default
-const modernBuffer = exportFont(fontData);
+const modernBuffer = font.export();
 ```
 
 ## Adding kerning to a font from scratch
 
 ```js
-import { createGlyph, createKerning, exportFont } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-const fontData = {
-	font: {
-		familyName: 'My Font',
-		styleName: 'Regular',
-		unitsPerEm: 1000,
-		ascender: 800,
-		descender: -200,
-	},
-	glyphs: [
-		createGlyph({ name: '.notdef', advanceWidth: 500 }),
-		createGlyph({ name: 'space', unicode: 32, advanceWidth: 250 }),
-		createGlyph({ name: 'A', unicode: 65, advanceWidth: 600, path: '...' }),
-		createGlyph({ name: 'V', unicode: 86, advanceWidth: 600, path: '...' }),
-		createGlyph({ name: 'T', unicode: 84, advanceWidth: 550, path: '...' }),
-		createGlyph({ name: 'o', unicode: 111, advanceWidth: 500, path: '...' }),
-	],
-	kerning: createKerning([
-		{ left: 'A', pairs: { V: -80, T: -50 } },
-		{ left: 'T', pairs: { o: -40, a: -35 } },
-	]),
-};
+const font = FontFlux.create({
+	familyName: 'My Font',
+	unitsPerEm: 1000,
+	ascender: 800,
+	descender: -200,
+});
 
-const buffer = exportFont(fontData);
+font.addGlyph({ name: 'A', unicode: 65, advanceWidth: 600, path: '...' });
+font.addGlyph({ name: 'V', unicode: 86, advanceWidth: 600, path: '...' });
+font.addGlyph({ name: 'T', unicode: 84, advanceWidth: 550, path: '...' });
+font.addGlyph({ name: 'o', unicode: 111, advanceWidth: 500, path: '...' });
+
+font.addKerning([
+	{ left: 'A', pairs: { V: -80, T: -50 } },
+	{ left: 'T', pairs: { o: -40, a: -35 } },
+]);
+
+const buffer = font.export();
 ```
 
 ## Editing kerning from an imported font
 
 ```js
-import { importFont, exportFont, createKerning } from 'font-flux-js';
+import { FontFlux } from 'font-flux-js';
 
-const fontData = importFont(buffer);
+const font = FontFlux.open(buffer);
 
 // Inspect existing kerning
-console.log(fontData.kerning.length); // e.g. 1200
+console.log(font.kerning.length); // e.g. 1200
 
-// Add pairs
-fontData.kerning.push({ left: 'A', right: 'V', value: -80 });
+// Add pairs (duplicates are merged with last-write-wins)
+font.addKerning({ left: 'A', right: 'V', value: -80 });
 
-// Or replace entirely
-fontData.kerning = createKerning({
+// Or clear and start fresh
+font.clearKerning();
+font.addKerning({
 	groups: {
 		A: { V: -80, W: -60 },
 		T: { o: -40, a: -35 },
 	},
 });
 
-const output = exportFont(fontData);
+// Remove a specific pair
+font.removeKerning('A', 'V');
+
+const output = font.export();
 ```
 
 ## Validation
 
-Run `validateJSON` on your complete font object to catch structural issues before export:
+Run `.validate()` on your font to catch structural issues before export:
 
 ```js
-import { validateJSON } from 'font-flux-js';
-
-const report = validateJSON(fontData);
+const report = font.validate();
 if (!report.valid) {
 	console.error(report.issues);
 }
