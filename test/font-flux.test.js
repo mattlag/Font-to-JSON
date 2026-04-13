@@ -333,6 +333,158 @@ describe('Reconciliation: edits to imported fonts are honoured on export', () =>
 			expect(newTableTags).toContain(tag);
 		}
 	});
+
+	// -- OTF / CFF reconciliation ----------------------------------------
+
+	it('OTF familyName change survives export', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+		const font = FontFlux.open(buffer);
+
+		font.setInfo({ familyName: 'OTF Renamed' });
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		expect(reimported.info.familyName).toBe('OTF Renamed');
+	});
+
+	it('OTF adding a glyph survives export', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+		const font = FontFlux.open(buffer);
+		const originalCount = font.glyphCount;
+
+		font.addGlyph({
+			name: 'testglyph',
+			unicode: 0xe000,
+			advanceWidth: 500,
+			format: 'cff',
+			contours: [
+				[
+					{ type: 'M', x: 0, y: 0 },
+					{ type: 'L', x: 500, y: 0 },
+					{ type: 'L', x: 500, y: 700 },
+					{ type: 'L', x: 0, y: 700 },
+				],
+			],
+		});
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		expect(reimported.glyphCount).toBe(originalCount + 1);
+		expect(reimported.hasGlyph('testglyph')).toBe(true);
+	});
+
+	it('OTF glyph removal survives export', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+		const font = FontFlux.open(buffer);
+		const originalCount = font.glyphCount;
+
+		// Remove a glyph that exists
+		const glyphName = font.glyphs[font.glyphCount - 1].name;
+		font.removeGlyph(glyphName);
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		expect(reimported.glyphCount).toBe(originalCount - 1);
+		expect(reimported.hasGlyph(glyphName)).toBe(false);
+	});
+
+	it('OTF glyph contour edit via charString replacement survives export', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+		const font = FontFlux.open(buffer);
+
+		// Replace glyph A with a simple rectangle charString compiled from contours
+		const rectContours = [
+			[
+				{ type: 'M', x: 50, y: 0 },
+				{ type: 'L', x: 550, y: 0 },
+				{ type: 'L', x: 550, y: 700 },
+				{ type: 'L', x: 50, y: 700 },
+			],
+		];
+		const newCS = FontFlux.compileCharString(rectContours);
+
+		const aGlyph = font.getGlyph('A');
+		aGlyph.charString = newCS;
+		aGlyph.contours = rectContours;
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		const aReimported = reimported.getGlyph('A');
+		expect(aReimported).toBeDefined();
+		// Contours should reflect the new rectangle, not the original A glyph
+		expect(aReimported.contours).toBeDefined();
+		expect(aReimported.contours.length).toBe(1); // single rectangle contour
+	});
+
+	it('OTF no-edit export preserves original CFF table', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.otf'))).buffer;
+		const font = FontFlux.open(buffer);
+
+		// Export without any edits — should preserve original CFF
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		// All original glyphs should be present with the same charStrings
+		expect(reimported.glyphCount).toBe(font.glyphCount);
+		for (let i = 0; i < font.glyphCount; i++) {
+			const orig = font.glyphs[i];
+			const reim = reimported.glyphs[i];
+			if (orig.charString) {
+				expect(reim.charString).toBeDefined();
+				expect(reim.charString.length).toBe(orig.charString.length);
+			}
+		}
+	});
+
+	// -- TTF glyph editing -----------------------------------------------
+
+	it('TTF glyph contour edit survives export', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
+		const font = FontFlux.open(buffer);
+
+		// Edit glyph A contours to a simple rectangle
+		const aGlyph = font.getGlyph('A');
+		const newContours = [
+			[
+				{ x: 50, y: 0, onCurve: true },
+				{ x: 550, y: 0, onCurve: true },
+				{ x: 550, y: 700, onCurve: true },
+				{ x: 50, y: 700, onCurve: true },
+			],
+		];
+		aGlyph.contours = newContours;
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		const aReimported = reimported.getGlyph('A');
+		expect(aReimported).toBeDefined();
+		expect(aReimported.contours).toBeDefined();
+		expect(aReimported.contours.length).toBe(1);
+		expect(aReimported.contours[0].length).toBe(4);
+		// Verify the coordinates match
+		expect(aReimported.contours[0][0].x).toBe(50);
+		expect(aReimported.contours[0][0].y).toBe(0);
+	});
+
+	it('TTF glyph removal survives export', async () => {
+		const buffer = (await readFile(resolve(SAMPLES_DIR, 'oblegg.ttf'))).buffer;
+		const font = FontFlux.open(buffer);
+		const originalCount = font.glyphCount;
+
+		const glyphName = font.glyphs[font.glyphCount - 1].name;
+		font.removeGlyph(glyphName);
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		expect(reimported.glyphCount).toBe(originalCount - 1);
+		expect(reimported.hasGlyph(glyphName)).toBe(false);
+	});
 });
 
 // ============================================================================

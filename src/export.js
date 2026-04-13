@@ -251,6 +251,40 @@ function isCollection(fontData) {
  *    (familyName, glyphs, kerning, etc.) are always honoured on export.
  * 3. Hand-authored simplified: has `font` + `glyphs` but no `_header` — expand.
  */
+/**
+ * Check whether simplified CFF glyph data is unchanged from the original
+ * CFF table.  When true, the original CFF table (with subroutines etc.)
+ * can safely be preserved for a lossless round-trip.
+ *
+ * Returns `true` only when every glyph still carries its original charString
+ * bytes and the glyph count hasn't changed.
+ */
+function cffGlyphsUnmodified(originalCFF, simplifiedGlyphs) {
+	if (!originalCFF?.fonts?.[0]) return false;
+	const origCS = originalCFF.fonts[0].charStrings;
+	if (!origCS || origCS.length !== simplifiedGlyphs.length) return false;
+
+	for (let i = 0; i < simplifiedGlyphs.length; i++) {
+		const glyph = simplifiedGlyphs[i];
+		const orig = origCS[i];
+
+		// Glyph no longer has a charString (user cleared it to provide contours)
+		if (!glyph.charString) {
+			if (orig && orig.length > 0) return false;
+			continue;
+		}
+
+		// Length mismatch
+		if (!orig || glyph.charString.length !== orig.length) return false;
+
+		// Byte-level comparison
+		for (let j = 0; j < orig.length; j++) {
+			if (glyph.charString[j] !== orig[j]) return false;
+		}
+	}
+	return true;
+}
+
 function resolveExportSource(fontData) {
 	// Legacy shape: { header, tables } — already the raw format
 	if (fontData.header && fontData.tables) {
@@ -268,15 +302,20 @@ function resolveExportSource(fontData) {
 				rebuilt.tables[tag] = data;
 			}
 		}
-		// Preserve original CFF/CFF2 table when available — the rebuilt shell
-		// loses subroutines and other internal structures that are essential
-		// for correct charstring interpretation. The original is authoritative
-		// for outline data in Scenario 1 (imported fonts).
+		// Preserve original CFF/CFF2 only when glyph outline data is unchanged.
+		// The original table retains subroutines and internal structures that
+		// the rebuilt shell cannot reproduce.  When glyphs HAVE been modified
+		// (added, removed, or charStrings changed), the rebuilt table — which
+		// compiles charStrings from simplified glyphs — must be used instead.
 		if (fontData.tables['CFF '] && rebuilt.tables['CFF ']) {
-			rebuilt.tables['CFF '] = fontData.tables['CFF '];
+			if (cffGlyphsUnmodified(fontData.tables['CFF '], fontData.glyphs)) {
+				rebuilt.tables['CFF '] = fontData.tables['CFF '];
+			}
 		}
 		if (fontData.tables.CFF2 && rebuilt.tables.CFF2) {
-			rebuilt.tables.CFF2 = fontData.tables.CFF2;
+			if (cffGlyphsUnmodified(fontData.tables.CFF2, fontData.glyphs)) {
+				rebuilt.tables.CFF2 = fontData.tables.CFF2;
+			}
 		}
 		return rebuilt;
 	}
