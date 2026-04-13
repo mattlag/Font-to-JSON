@@ -546,6 +546,146 @@ describe('validate()', () => {
 });
 
 // ============================================================================
+//  Vertical metrics (vhea / vmtx builders)
+// ============================================================================
+
+describe('Vertical metrics round-trip', () => {
+	it('glyphs with advanceHeight produce vhea/vmtx on export', () => {
+		const font = FontFlux.create({ family: 'Vertical' });
+		font.addGlyph({
+			name: 'A',
+			unicode: 65,
+			advanceWidth: 600,
+			advanceHeight: 1000,
+			topSideBearing: 100,
+			contours: [
+				[
+					{ x: 0, y: 0, onCurve: true },
+					{ x: 600, y: 0, onCurve: true },
+					{ x: 300, y: 700, onCurve: true },
+				],
+			],
+		});
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		// vhea and vmtx tables should be present
+		expect(reimported.tables.vhea).toBeDefined();
+		expect(reimported.tables.vmtx).toBeDefined();
+
+		// Glyph vertical metrics should survive
+		const a = reimported.getGlyph('A');
+		expect(a.advanceHeight).toBe(1000);
+		expect(a.topSideBearing).toBe(100);
+	});
+
+	it('fonts without vertical metrics omit vhea/vmtx', () => {
+		const font = FontFlux.create({ family: 'NoVertical' });
+		font.addGlyph({
+			name: 'A',
+			unicode: 65,
+			advanceWidth: 600,
+			contours: [
+				[
+					{ x: 0, y: 0, onCurve: true },
+					{ x: 600, y: 0, onCurve: true },
+					{ x: 300, y: 700, onCurve: true },
+				],
+			],
+		});
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		expect(reimported.tables.vhea).toBeUndefined();
+		expect(reimported.tables.vmtx).toBeUndefined();
+	});
+
+	it('vertical metrics for multiple glyphs are preserved per-glyph', () => {
+		const font = FontFlux.create({ family: 'MultiVert' });
+		font.addGlyph({
+			name: 'A',
+			unicode: 65,
+			advanceWidth: 600,
+			advanceHeight: 1000,
+			topSideBearing: 100,
+			contours: [
+				[
+					{ x: 0, y: 0, onCurve: true },
+					{ x: 600, y: 0, onCurve: true },
+					{ x: 300, y: 700, onCurve: true },
+				],
+			],
+		});
+		font.addGlyph({
+			name: 'B',
+			unicode: 66,
+			advanceWidth: 650,
+			advanceHeight: 900,
+			topSideBearing: 50,
+			contours: [
+				[
+					{ x: 0, y: 0, onCurve: true },
+					{ x: 650, y: 0, onCurve: true },
+					{ x: 650, y: 700, onCurve: true },
+					{ x: 0, y: 700, onCurve: true },
+				],
+			],
+		});
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		const a = reimported.getGlyph('A');
+		const b = reimported.getGlyph('B');
+		expect(a.advanceHeight).toBe(1000);
+		expect(a.topSideBearing).toBe(100);
+		expect(b.advanceHeight).toBe(900);
+		expect(b.topSideBearing).toBe(50);
+	});
+
+	it('vhea aggregate metrics are correctly computed', () => {
+		const font = FontFlux.create({ family: 'VheaAgg' });
+		font.addGlyph({
+			name: 'A',
+			unicode: 65,
+			advanceWidth: 600,
+			advanceHeight: 1200,
+			topSideBearing: 50,
+			contours: [
+				[
+					{ x: 0, y: 0, onCurve: true },
+					{ x: 600, y: 0, onCurve: true },
+					{ x: 300, y: 700, onCurve: true },
+				],
+			],
+		});
+		font.addGlyph({
+			name: 'B',
+			unicode: 66,
+			advanceWidth: 650,
+			advanceHeight: 800,
+			topSideBearing: 200,
+			contours: [
+				[
+					{ x: 0, y: 0, onCurve: true },
+					{ x: 650, y: 0, onCurve: true },
+					{ x: 650, y: 700, onCurve: true },
+					{ x: 0, y: 700, onCurve: true },
+				],
+			],
+		});
+
+		const exported = font.export({ format: 'sfnt' });
+		const reimported = FontFlux.open(exported);
+
+		// advanceHeightMax should be 1200 (from glyph A)
+		expect(reimported.tables.vhea.advanceHeightMax).toBe(1200);
+	});
+});
+
+// ============================================================================
 //  Static utilities
 // ============================================================================
 

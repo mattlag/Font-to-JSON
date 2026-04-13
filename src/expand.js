@@ -47,6 +47,13 @@ export function buildRawFromSimplified(simplified) {
 		tables.loca = { offsets: [] }; // placeholder — coordinated by export.js
 	}
 
+	// == Vertical metrics (only when glyphs carry vertical data) ======
+	const hasVerticalMetrics = glyphs.some((g) => g.advanceHeight !== undefined);
+	if (hasVerticalMetrics) {
+		tables.vhea = buildVheaTable(glyphs);
+		tables.vmtx = buildVmtxTable(glyphs);
+	}
+
 	// == Optional kerning =============================================
 	const kerningFormat = simplified._options?.kerningFormat || 'gpos';
 	if (simplified.kerning && simplified.kerning.length > 0) {
@@ -798,6 +805,70 @@ function buildHmtxTable(glyphs) {
 		lsb: g.leftSideBearing ?? 0,
 	}));
 	return { hMetrics, leftSideBearings: [] };
+}
+
+/**
+ * Build the vhea table from simplified glyphs (vertical header).
+ * Mirrors buildHheaTable but for vertical metrics.
+ */
+function buildVheaTable(glyphs) {
+	let advanceHeightMax = 0;
+	let minTSB = Infinity;
+	let minBSB = Infinity;
+	let maxExtent = -Infinity;
+
+	for (const glyph of glyphs) {
+		const ah = glyph.advanceHeight || 0;
+		if (ah > advanceHeightMax) advanceHeightMax = ah;
+
+		const bbox = getGlyphBBox(glyph);
+		if (bbox) {
+			const tsb = glyph.topSideBearing ?? 0;
+			const height = bbox.yMax - bbox.yMin;
+			const bsb = ah - (tsb + height);
+			const extent = tsb + height;
+
+			if (tsb < minTSB) minTSB = tsb;
+			if (bsb < minBSB) minBSB = bsb;
+			if (extent > maxExtent) maxExtent = extent;
+		}
+	}
+
+	if (minTSB === Infinity) minTSB = 0;
+	if (minBSB === Infinity) minBSB = 0;
+	if (maxExtent === -Infinity) maxExtent = 0;
+
+	return {
+		version: 0x00011000, // v1.1
+		vertTypoAscender: 0,
+		vertTypoDescender: 0,
+		vertTypoLineGap: 0,
+		advanceHeightMax,
+		minTopSideBearing: minTSB,
+		minBottomSideBearing: minBSB,
+		yMaxExtent: maxExtent,
+		caretSlopeRise: 0,
+		caretSlopeRun: 0,
+		caretOffset: 0,
+		reserved1: 0,
+		reserved2: 0,
+		reserved3: 0,
+		reserved4: 0,
+		metricDataFormat: 0,
+		numOfLongVerMetrics: glyphs.length,
+	};
+}
+
+/**
+ * Build the vmtx table from simplified glyphs (vertical metrics).
+ * Mirrors buildHmtxTable but for advanceHeight / topSideBearing.
+ */
+function buildVmtxTable(glyphs) {
+	const vMetrics = glyphs.map((g) => ({
+		advanceHeight: g.advanceHeight || 0,
+		topSideBearing: g.topSideBearing ?? 0,
+	}));
+	return { vMetrics, topSideBearings: [] };
 }
 
 /**
