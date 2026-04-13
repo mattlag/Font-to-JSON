@@ -37,10 +37,10 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 | ---------------------------------------- | ------------------------------------------------------------------------------ |
 | `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance (TTF/OTF/TTC/WOFF/WOFF2).    |
 | `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances. |
-| `FontFlux.create(options)`               | Create a new empty font from metadata (`familyName`, `unitsPerEm`, etc.).      |
+| `FontFlux.create(options)`               | Create a new empty font from metadata (`family`, `unitsPerEm`, etc.).          |
 | `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                          |
 | `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.           |
-| `initWoff2()`                            | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
+| `FontFlux.initWoff2()` / `initWoff2()`   | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
 
 ### Instance properties (live references)
 
@@ -68,10 +68,10 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 
 ### Font info methods
 
-| Method              | Description                          |
-| ------------------- | ------------------------------------ |
-| `.getInfo()`        | Get a copy of the font metadata      |
-| `.setInfo(partial)` | Merge partial updates into font info |
+| Method              | Description                            |
+| ------------------- | -------------------------------------- |
+| `.getInfo()`        | Get the font metadata (live reference) |
+| `.setInfo(partial)` | Merge partial updates into font info   |
 
 ### Kerning methods
 

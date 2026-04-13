@@ -11,6 +11,7 @@ Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries
 Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'd love to hear from you: mail@glyphrstudio.com
 
 # April 2026
+
 This is a fast-moving project with lots of breaking changes happening every day. **Do not depend on it for anything important**. V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so V2 exists, but should be considered "beta".
 
 ## Demo
@@ -107,7 +108,7 @@ await writeFile('MyFont-modified.ttf', Buffer.from(output));
 import { FontFlux } from 'font-flux-js';
 
 const font = FontFlux.create({
-	familyName: 'Brand New Font',
+	family: 'Brand New Font',
 	unitsPerEm: 1000,
 	ascender: 800,
 	descender: -200,
@@ -139,9 +140,10 @@ const buffer = font.export();
 | ---------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance. Handles TTF, OTF, TTC, OTC, WOFF, WOFF2. |
 | `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances.              |
-| `FontFlux.create(options)`               | Create a new empty font from metadata (familyName, unitsPerEm, etc.).                       |
+| `FontFlux.create(options)`               | Create a new empty font from metadata (family, unitsPerEm, etc.).                           |
 | `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                                       |
 | `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.                        |
+| `FontFlux.initWoff2()` / `initWoff2()`   | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.                    |
 
 ### Instance properties (live references)
 
@@ -167,6 +169,13 @@ const buffer = font.export();
 | `.addGlyph(glyphOrOptions)` | Add a glyph (raw object or options for createGlyph)       |
 | `.removeGlyph(id)`          | Remove a glyph (also cleans up kerning references)        |
 
+### Font info methods
+
+| Method              | Description                            |
+| ------------------- | -------------------------------------- |
+| `.getInfo()`        | Get the font metadata (live reference) |
+| `.setInfo(partial)` | Merge partial updates into font info   |
+
 ### Kerning methods
 
 | Method                        | Description                                    |
@@ -190,6 +199,15 @@ const buffer = font.export();
 | `.addInstance(instance)` | Add a named instance            |
 | `.removeInstance(name)`  | Remove a named instance         |
 
+### Feature & hinting methods
+
+| Method               | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `.getFeatures()`     | Get OpenType features (GPOS, GSUB, GDEF)            |
+| `.setFeatures(data)` | Replace or update feature tables                    |
+| `.getHinting()`      | Get TrueType hinting tables (gasp, cvt, fpgm, prep) |
+| `.setHinting(data)`  | Update TrueType hinting tables                      |
+
 ### Export & serialization
 
 | Method              | Description                                                             |
@@ -197,18 +215,18 @@ const buffer = font.export();
 | `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt'              | 'woff' | 'woff2' }` |
 | `.toJSON(indent?)`  | Serialize to JSON string                                                |
 | `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }` |
-| `.detach()`         | Return the raw internal data object and detach it from this instance    |
+| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape    |
 
 ### Static utilities
 
-| Method                                       | Description                                                  |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| `FontFlux.svgToContours(d)`                  | Parse an SVG path `d` string into font contour data          |
-| `FontFlux.contoursToSVG(contours)`           | Convert font contours to an SVG path `d` string              |
-| `FontFlux.interpretCharString(bytes, ...)`   | Interpret CFF charstring bytecode into cubic Bézier contours |
-| `FontFlux.disassembleCharString(bytes, ...)` | Disassemble CFF charstring into human-readable instructions  |
-| `FontFlux.compileCharString(instructions)`   | Compile a charstring instruction listing to bytes            |
-| `FontFlux.assembleCharString(instructions)`  | Assemble a charstring instruction listing to bytes           |
+| Method                                     | Description                                                  |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| `FontFlux.svgToContours(d, format?)`       | Parse an SVG path `d` string into font contour data          |
+| `FontFlux.contoursToSVG(contours)`         | Convert font contours to an SVG path `d` string              |
+| `FontFlux.interpretCharString(bytes, ...)` | Interpret CFF charstring bytecode into cubic Bézier contours |
+| `FontFlux.disassembleCharString(bytes)`    | Disassemble CFF charstring into human-readable text          |
+| `FontFlux.compileCharString(contours)`     | Compile CFF contours into Type 2 charstring bytes            |
+| `FontFlux.assembleCharString(text)`        | Assemble human-readable charstring text into bytes           |
 
 ### WOFF2 initialization
 

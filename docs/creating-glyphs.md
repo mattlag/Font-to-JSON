@@ -9,7 +9,7 @@ The `.addGlyph()` method accepts metadata and outline data in several formats, a
 ```js
 import { FontFlux } from 'font-flux-js';
 
-const font = FontFlux.create({ familyName: 'My Font' });
+const font = FontFlux.create({ family: 'My Font' });
 
 font.addGlyph({
 	name: 'A',
@@ -391,7 +391,7 @@ Here's a minimal font with `.notdef`, a space, and one letter:
 import { FontFlux } from 'font-flux-js';
 
 const font = FontFlux.create({
-	familyName: 'My Font',
+	family: 'My Font',
 	unitsPerEm: 1000,
 	ascender: 800,
 	descender: -200,

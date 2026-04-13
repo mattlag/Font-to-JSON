@@ -8,7 +8,7 @@ Use these guides when creating fonts with Font Flux JS.
 import { FontFlux } from 'font-flux-js';
 
 const font = FontFlux.create({
-	familyName: 'My Font',
+	family: 'My Font',
 	unitsPerEm: 1000,
 	ascender: 800,
 	descender: -200,
@@ -25,7 +25,7 @@ font.addGlyph({
 const buffer = font.export();
 ```
 
-`FontFlux.create()` accepts `familyName` (required), plus optional `styleName`, `unitsPerEm`, `ascender`, and `descender`. It automatically creates `.notdef` and `space` glyphs.
+`FontFlux.create()` accepts `family` (required), plus optional `style`, `unitsPerEm`, `ascender`, and `descender`. It automatically creates `.notdef` and `space` glyphs.
 
 ## Choose a target format
 

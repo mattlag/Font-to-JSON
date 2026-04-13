@@ -9,7 +9,7 @@ The `.addKerning()` method accepts kerning data in several flexible formats and 
 ```js
 import { FontFlux } from 'font-flux-js';
 
-const font = FontFlux.create({ familyName: 'My Font' });
+const font = FontFlux.create({ family: 'My Font' });
 
 font.addKerning([
 	{ left: 'A', right: 'V', value: -80 },
@@ -45,7 +45,7 @@ Positive values increase spacing (rare). Zero values have no effect but are vali
 
 ## Input formats
 
-`createKerning` accepts five formats, all of which can be freely mixed in an array. These same formats work with `.addKerning()`.
+`.addKerning()` accepts five formats, all of which can be freely mixed in an array.
 
 ### 1. Flat pair
 
@@ -221,7 +221,7 @@ const modernBuffer = font.export();
 import { FontFlux } from 'font-flux-js';
 
 const font = FontFlux.create({
-	familyName: 'My Font',
+	family: 'My Font',
 	unitsPerEm: 1000,
 	ascender: 800,
 	descender: -200,

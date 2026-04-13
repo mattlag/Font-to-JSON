@@ -33,6 +33,7 @@ export default defineConfig({
 					{ text: 'Overview', link: '/' },
 					{ text: 'Creating Fonts', link: '/creating-fonts' },
 					{ text: 'Creating Glyphs', link: '/creating-glyphs' },
+					{ text: 'Creating Kerning', link: '/creating-kerning' },
 					{ text: 'Creating an OTF', link: '/creating-otf' },
 					{ text: 'Creating a TTF', link: '/creating-ttf' },
 					{ text: 'Validation', link: '/guide/validation' },
