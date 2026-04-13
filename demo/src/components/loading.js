@@ -12,7 +12,7 @@ export function createLoadingScreen(container, onFontLoaded) {
 				<p class="hero-tagline">Convert fonts to JSON, make edits, then convert them back!</p>
 				<p class="hero-links">An open source frontend library. Read the <a href="docs/" target="_blank" rel="noopener">Docs</a>, use it with <a href="https://www.npmjs.com/package/font-flux-js" target="_blank" rel="noopener">NPM</a> or <a href="https://github.com/mattlag/Font-Flux-JS" target="_blank" rel="noopener">GitHub</a></p>
 				<p class="hero-demo-hint">This demo app can edit metadata, subset glyphs, and change file formats.</p>
-				<div class="beta-notice"><strong>April 2026</strong><br>This is a fast-moving project with lots of breaking changes happening every day. <strong>Do not depend on it for anything important.</strong> V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so V2 exists, but should be considered "beta".</div>
+				<div class="beta-notice"><strong>April 2026</strong><br>This is a fast-moving project with lots of breaking changes happening every day. <strong>Do not depend on it for anything important.</strong> V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so v2 exists, but it is in its early stages and may contain bugs or unexpected behavior.</div>
 				<p class="tagline">Drop a font file anywhere, or <a href="#" class="browse-link">browse for files</a></p>
 				<p class="supported-formats">Supports OTF, TTF, WOFF, WOFF2, TTC, OTC</p>
 				<input type="file" accept="${ACCEPT}" hidden>

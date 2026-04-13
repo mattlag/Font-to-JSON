@@ -12,7 +12,7 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 
 # April 2026
 
-This is a fast-moving project with lots of breaking changes happening every day. **Do not depend on it for anything important**. V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so V2 exists, but should be considered "beta".
+This is a fast-moving project with lots of breaking changes happening every day. **Do not depend on it for anything important**. V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so v2 exists, but it is in its early stages and may contain bugs or unexpected behavior.
 
 ## Demo
 

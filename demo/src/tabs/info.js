@@ -17,7 +17,7 @@ export function renderInfoTab(container) {
 				<p class="info-version">Version ${version}${buildDate ? ` · Built ${buildDate}` : ''}</p>
 			</div>
 
-			<div class="beta-notice"><strong>April 2026</strong><br>This is a fast-moving project with lots of breaking changes happening every day. <strong>Do not depend on it for anything important.</strong> V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so V2 exists, but should be considered "beta".</div>
+			<div class="beta-notice"><strong>April 2026</strong><br>This is a fast-moving project with lots of breaking changes happening every day. <strong>Do not depend on it for anything important.</strong> V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so v2 exists, but it is in its early stages and may contain bugs or unexpected behavior.</div>
 
 			<div class="info-links-row">
 				<a class="info-card info-link-card" href="docs/" target="_blank" rel="noopener">
