@@ -1,5 +1,7 @@
 # OTF vs TTF: Similarities, Differences, and Project Impact
 
+_Last Updated: March 3, 2026_
+
 ## Executive Summary
 
 **OTF and TTF are not two separate formats.** They are both OpenType fonts that share the same container format (sfnt) and the same set of required metadata tables. The only fundamental difference is how glyph outlines are stored: TrueType uses quadratic Bézier curves in `glyf`/`loca` tables, while CFF-flavored OpenType uses cubic Bézier curves in `CFF`/`CFF2` tables.

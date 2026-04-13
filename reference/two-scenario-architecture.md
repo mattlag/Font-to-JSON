@@ -1,5 +1,7 @@
 # Two-Scenario Architecture: Analysis & Plan
 
+_Last Updated: April 3, 2026_
+
 > Brainstorming analysis from April 2026. Identifies the two core use cases of Font Flux JS,
 > a critical reconciliation gap, missing convenience functions, and a plan to address both.
 

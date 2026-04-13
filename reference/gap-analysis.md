@@ -1,5 +1,7 @@
 # Font-Flux-JS Table Completeness Audit
 
+_Last Updated: April 3, 2026_
+
 **51 table types** have registered parsers and writers. **~40 are fully structured JSON**; **~11 have partial raw byte storage**. No tables are completely missing. Every table that has a parser also has a writer.
 
 ---

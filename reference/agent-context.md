@@ -1,5 +1,7 @@
 # Font Flux JS
 
+_Last Updated: April 3, 2026_
+
 This project aims to create a JavaScript library that can read in a binary font file (OTF, TTF, WOFF) and convert it's data into JSON format. Secondarily, this library will be able to take a properly formatted JSON file and convert it back to a font file. This will be distributed as a single .js file using JavaScript modules to be included in front-end HTML5 font editor programs.
 
 I am a human and I will write notes to you, a coding agent, in this file agent-context.md I have also created a file for you called `reference\agent-written-notes.md` this is a space for you to maintain. As this project proceeds, it will be iterative, and along the way new agents will have to get up to speed and be effective contributing to this project. Periodically, please look back at what you have done and make notes in this file. The contents do not have to make sense to a human, the goal is to make future agents onboard and be effective to this project as efficiently as possible.
@@ -118,7 +120,7 @@ Current focus areas:
 
 # Table Checklist
 
-Every table defined in the OpenType specification, categorized by where it lives in this project. 
+Every table defined in the OpenType specification, categorized by where it lives in this project.
 
 ## SFNT — Shared Tables (src/sfnt)
 

@@ -1,5 +1,7 @@
 # Simplified Schema Design
 
+_Last Updated: March 26, 2026_
+
 > Design document for the unified simplified JSON structure in Font Flux JS.
 
 ---

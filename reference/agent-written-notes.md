@@ -1,5 +1,7 @@
 # Agent Working Notes — Font Flux JS
 
+_Last Updated: April 2, 2026_
+
 > These notes are written BY agents FOR future agents. Optimized for fast onboarding.
 
 ## Quick Start
