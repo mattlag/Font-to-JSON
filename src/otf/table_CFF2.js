@@ -11,7 +11,7 @@
  *   CharStrings INDEX
  *   Font DICT INDEX
  *   FDSelect           (optional)
- *   VariationStore     (optional — stored as raw bytes)
+ *   VariationStore     (optional)
  *   Private DICT(s)    (one per Font DICT)
  *   Local Subr INDEX(es)
  *
@@ -24,6 +24,10 @@
  *   • Header is 5 bytes (topDictLength replaces offSize)
  */
 
+import {
+	parseItemVariationStore,
+	writeItemVariationStore,
+} from '../sfnt/item_variation_store.js';
 import {
 	CFF2_FONT_DICT_OPS,
 	CFF2_PRIVATE_DICT_OPS,
@@ -38,6 +42,22 @@ import {
 	writeFDSelect,
 	writeINDEXv2,
 } from './cff_common.js';
+
+// -- CFF2 VariationStore helpers ------------------------------------------
+
+/**
+ * Wrap an ItemVariationStore in the CFF2 length-prefixed format.
+ * CFF2 VariationStore = uint16 size (of following IVS body) + IVS bytes.
+ */
+function buildCFF2VariationStoreBytes(ivs) {
+	const ivsBytes = writeItemVariationStore(ivs);
+	const bodyLen = ivsBytes.length;
+	const result = new Uint8Array(2 + bodyLen);
+	result[0] = (bodyLen >> 8) & 0xff;
+	result[1] = bodyLen & 0xff;
+	result.set(new Uint8Array(ivsBytes), 2);
+	return result;
+}
 
 // -- Reverse lookup tables ------------------------------------------------
 
@@ -186,14 +206,19 @@ export function parseCFF2(rawArray, _tables) {
 		fdSelect = parseFDSelect(data, fdSelectOffset, numGlyphs);
 	}
 
-	// -- 7. VariationStore (raw bytes for now) --------------------------
+	// -- 7. VariationStore (CFF2 wraps IVS with a uint16 length prefix) --
 	let variationStore = null;
 	if (variationStoreOffset !== undefined) {
-		// VariationStore length: read the first uint16 (length field)
-		const vsLength =
+		// CFF2 VariationStore: uint16 size (of following data), then IVS body
+		const vsBodyLength =
 			(data[variationStoreOffset] << 8) | data[variationStoreOffset + 1];
-		variationStore = Array.from(
-			data.slice(variationStoreOffset, variationStoreOffset + vsLength),
+		variationStore = parseItemVariationStore(
+			Array.from(
+				data.slice(
+					variationStoreOffset + 2,
+					variationStoreOffset + 2 + vsBodyLength,
+				),
+			),
 		);
 	}
 
@@ -246,9 +271,9 @@ export function writeCFF2(tableData) {
 	// Build FDSelect bytes (if present)
 	const fdSelectBytes = fdSelect ? writeFDSelect(fdSelect) : null;
 
-	// Build VariationStore bytes (raw)
+	// Build VariationStore bytes (uint16 length prefix + IVS)
 	const variationStoreBytes = variationStore
-		? new Uint8Array(variationStore)
+		? buildCFF2VariationStoreBytes(variationStore)
 		: null;
 
 	// -- 3. Compute layout -----------------------------------------------

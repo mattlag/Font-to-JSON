@@ -9,11 +9,15 @@
  *   - Ligature caret list
  *   - Mark attachment class definition
  *   - Mark glyph sets (v1.2+)
- *   - Item variation store offset (v1.3+ — stored as raw bytes)
+ *   - Item variation store (v1.3+)
  */
 
 import { DataReader } from '../reader.js';
 import { DataWriter } from '../writer.js';
+import {
+	parseItemVariationStore,
+	writeItemVariationStore,
+} from './item_variation_store.js';
 import {
 	parseClassDef,
 	parseCoverage,
@@ -82,17 +86,11 @@ export function parseGDEF(rawBytes) {
 		);
 	}
 
-	// Item variation store (v1.3+ — stored as raw bytes for now)
+	// Item variation store (v1.3+)
 	if (itemVarStoreOffset !== 0) {
 		result.itemVarStoreOffset = itemVarStoreOffset;
-		// We store raw bytes from the offset to the end of the table data.
-		// This preserves the variation store without fully parsing it.
-		result.itemVarStoreRaw = Array.from(
-			new Uint8Array(
-				new DataReader(rawBytes).view.buffer,
-				new DataReader(rawBytes).view.byteOffset + itemVarStoreOffset,
-				rawBytes.length - itemVarStoreOffset,
-			),
+		result.itemVariationStore = parseItemVariationStore(
+			rawBytes.slice(itemVarStoreOffset),
 		);
 	}
 
@@ -210,7 +208,9 @@ export function writeGDEF(gdef) {
 			? writeMarkGlyphSets(gdef.markGlyphSetsDef)
 			: null;
 	const itemVarStoreBytes =
-		minorVersion >= 3 && gdef.itemVarStoreRaw ? gdef.itemVarStoreRaw : null;
+		minorVersion >= 3 && gdef.itemVariationStore
+			? writeItemVariationStore(gdef.itemVariationStore)
+			: null;
 
 	// Header size: 4(version) + 4*2(offsets) = 12 for v1.0
 	// v1.2: +2 for markGlyphSetsDefOffset = 14

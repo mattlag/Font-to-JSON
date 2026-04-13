@@ -285,11 +285,13 @@ function encodeBCD(value) {
 
 /**
  * Byte ranges that represent operators (not numbers) in DICT data.
- * Single-byte operators: 0–11, 13–21 (12 is escape prefix)
- * Two-byte operators start with 12.
+ * Single-byte operators: 0–21 (12 is escape prefix for two-byte ops)
+ * CFF2 extends the operator range to include 22–27 (e.g. 24=VariationStore,
+ * 25=maxstack). In CFF1 these bytes are "reserved" and never appear in valid
+ * data, so treating them as operators is safe for both versions.
  */
 function isOperatorByte(b) {
-	return b <= 21 && b !== 28 && b !== 29 && b !== 30;
+	return b <= 27;
 }
 
 /**
