@@ -67,7 +67,7 @@ import { unwrapWOFF2 } from './woff/woff2.js';
  * Tables not listed here are stored as raw bytes.
  * Parsers may accept a second argument: the tables object (for cross-table deps).
  */
-const tableParsers = {
+export const tableParsers = {
 	cmap: parseCmap,
 	head: parseHead,
 	hhea: parseHhea,
@@ -128,7 +128,7 @@ const tableParsers = {
  * dependencies are satisfied (e.g. hmtx needs hhea.numberOfHMetrics).
  * Tables not in this list are parsed after those that are.
  */
-const tableParseOrder = [
+export const tableParseOrder = [
 	'head',
 	'maxp',
 	'fvar',

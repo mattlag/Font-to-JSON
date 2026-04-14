@@ -24,6 +24,7 @@ import {
 	interpretCharString,
 } from './otf/charstring_interpreter.js';
 import { contoursToSVGPath, svgPathToContours } from './svg_path.js';
+import { diagnoseFont } from './validate/diagnoseFont.js';
 import { validateJSON } from './validate/index.js';
 import { initBrotli } from './woff/woff2.js';
 
@@ -198,6 +199,20 @@ export class FontFlux {
 	// ========================================================================
 	//  STATIC UTILITIES (font-independent)
 	// ========================================================================
+
+	/**
+	 * Diagnose a binary font file and return a detailed report of problems.
+	 *
+	 * Unlike `FontFlux.open()` which throws on corruption, this method
+	 * catches errors at each phase and continues, producing a comprehensive
+	 * report that explains exactly what's wrong with the file.
+	 *
+	 * @param {ArrayBuffer} buffer - Raw font file bytes.
+	 * @returns {object} Report: `{ valid, errors, warnings, infos, issues, summary }`.
+	 */
+	static diagnose(buffer) {
+		return diagnoseFont(buffer);
+	}
 
 	/** Convert an SVG path `d` string to font contours. */
 	static svgToContours(pathData, format) {

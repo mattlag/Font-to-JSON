@@ -1,4 +1,4 @@
-import { initWoff2 } from 'font-flux-js';
+import { diagnoseFont, initWoff2 } from 'font-flux-js';
 import { exportFont } from 'font-flux-js/export';
 import { importFont } from 'font-flux-js/import';
 import { fontToJSON } from 'font-flux-js/json';
@@ -6,6 +6,7 @@ import { validateJSON } from 'font-flux-js/validate';
 import { createLoadingScreen } from './components/loading.js';
 import { createSaveDialog } from './components/save-dialog.js';
 import { createTabBar } from './components/tab-bar.js';
+import { diagnoseTab } from './tabs/diagnose.js';
 import { renderInfoTab } from './tabs/info.js';
 import { overviewTab } from './tabs/overview.js';
 import { previewTab } from './tabs/preview.js';
@@ -57,7 +58,12 @@ function showLoadingScreen() {
 			showApp(displayData);
 		} catch (err) {
 			console.error('Import error:', err);
-			screen.showError(`Failed to parse font: ${err.message}`);
+			try {
+				const report = diagnoseFont(buffer);
+				screen.showDiagnosticReport(fileName, report);
+			} catch (_) {
+				screen.showError(`Failed to parse font: ${err.message}`);
+			}
 		}
 	}
 }
@@ -171,6 +177,7 @@ function showApp(fontData) {
 		{ key: 'preview', label: 'Preview' },
 		{ key: 'subset', label: 'Subset' },
 		{ key: 'tables', label: 'Tables' },
+		{ key: 'diagnose', label: 'Diagnose' },
 		{ key: 'info', label: 'Info' },
 	];
 
@@ -251,6 +258,9 @@ function showApp(fontData) {
 			} else if (key === 'tables') {
 				panel.classList.add('l1-panel-tables');
 				renderTablesPanel(panel, fontData);
+			} else if (key === 'diagnose') {
+				panel.classList.add('l1-panel-padded');
+				diagnoseTab.render(panel, fontData, appContext);
 			} else if (key === 'info') {
 				panel.classList.add('l1-panel-padded');
 				renderInfoTab(panel);

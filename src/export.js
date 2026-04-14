@@ -128,6 +128,31 @@ const HEADER_SIZE = 12;
 /** Size of a single Table Record in the table directory, in bytes. */
 const TABLE_RECORD_SIZE = 16;
 
+/**
+ * Compute the OpenType checksum for a table's raw bytes.
+ * The checksum is the low 32 bits of the sum of uint32 values,
+ * with the last partial word padded with zeroes.
+ * @param {Uint8Array} data
+ * @returns {number}
+ */
+function computeTableChecksum(data) {
+	let sum = 0;
+	const len = data.length;
+	const aligned = len & ~3;
+	const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+	for (let i = 0; i < aligned; i += 4) {
+		sum = (sum + view.getUint32(i)) >>> 0;
+	}
+	if (len & 3) {
+		let last = 0;
+		for (let i = aligned; i < len; i++) {
+			last |= data[i] << (24 - 8 * (i - aligned));
+		}
+		sum = (sum + last) >>> 0;
+	}
+	return sum;
+}
+
 const SUPPORTED_FORMATS = new Set(['sfnt', 'woff', 'woff2']);
 
 /**
@@ -375,7 +400,7 @@ function exportSFNT(fontData, directoryOffsetBase) {
 			data: raw,
 			length: raw.length,
 			paddedLength: raw.length + ((4 - (raw.length % 4)) % 4),
-			checksum: tableData._checksum,
+			checksum: computeTableChecksum(raw),
 		};
 	});
 
@@ -396,12 +421,19 @@ function exportSFNT(fontData, directoryOffsetBase) {
 	const view = new DataView(buffer);
 	const bytes = new Uint8Array(buffer);
 
+	// Recompute header directory fields from the actual table count so that
+	// stale or incorrect values from the original file are corrected.
+	const maxPow2 = numTables > 0 ? 2 ** Math.floor(Math.log2(numTables)) : 0;
+	const searchRange = maxPow2 * 16;
+	const entrySelector = maxPow2 > 0 ? Math.floor(Math.log2(maxPow2)) : 0;
+	const rangeShift = numTables * 16 - searchRange;
+
 	// Write the font file header (Offset Table)
 	view.setUint32(0, header.sfVersion);
 	view.setUint16(4, numTables);
-	view.setUint16(6, header.searchRange);
-	view.setUint16(8, header.entrySelector);
-	view.setUint16(10, header.rangeShift);
+	view.setUint16(6, searchRange);
+	view.setUint16(8, entrySelector);
+	view.setUint16(10, rangeShift);
 
 	// Write the Table Directory
 	for (let i = 0; i < tableEntries.length; i++) {

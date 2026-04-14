@@ -1,3 +1,4 @@
+export { diagnoseFont } from './diagnoseFont.js';
 export {
 	OTF_SPECIFIC_TABLES,
 	REQUIRED_CORE_TABLES,

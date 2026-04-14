@@ -97,6 +97,48 @@ export function createLoadingScreen(container, onFontLoaded) {
 		statusArea.innerHTML = `<div class="loading-error">${message}</div>`;
 	}
 
+	function showDiagnosticReport(fileName, report) {
+		const severityIcon = { error: '❌', warning: '⚠️', info: 'ℹ️' };
+		const severityClass = {
+			error: 'diag-error',
+			warning: 'diag-warning',
+			info: 'diag-info',
+		};
+
+		// Filter: show errors and warnings prominently, infos collapsed
+		const errorWarnings = report.issues.filter(
+			(i) => i.severity === 'error' || i.severity === 'warning',
+		);
+		const infos = report.issues.filter((i) => i.severity === 'info');
+
+		let issuesHTML = '';
+		for (const issue of errorWarnings) {
+			issuesHTML += `<div class="diag-issue ${severityClass[issue.severity]}">${severityIcon[issue.severity]} <code>${issue.code}</code> ${issue.message}</div>`;
+		}
+		if (infos.length > 0) {
+			issuesHTML += `<details class="diag-details"><summary>${infos.length} informational note${infos.length > 1 ? 's' : ''}</summary>`;
+			for (const issue of infos) {
+				issuesHTML += `<div class="diag-issue ${severityClass[issue.severity]}">${severityIcon[issue.severity]} <code>${issue.code}</code> ${issue.message}</div>`;
+			}
+			issuesHTML += `</details>`;
+		}
+
+		const summaryClass = report.valid ? 'diag-valid' : 'diag-invalid';
+		const summaryLabel = report.valid
+			? 'No blocking errors'
+			: 'Font has problems';
+
+		statusArea.innerHTML = `
+			<div class="diagnostic-report">
+				<div class="diag-header">
+					<span class="diag-title">${report.valid ? '✅' : '🚫'} Diagnostic Report for ${fileName}</span>
+					<span class="diag-summary ${summaryClass}">${report.summary.errorCount} error${report.summary.errorCount !== 1 ? 's' : ''}, ${report.summary.warningCount} warning${report.summary.warningCount !== 1 ? 's' : ''}</span>
+				</div>
+				<div class="diag-issues">${issuesHTML || '<div class="diag-issue diag-info">No issues found.</div>'}</div>
+			</div>
+		`;
+	}
+
 	function showLoading(fileName) {
 		statusArea.innerHTML = `
 			<div class="loading-spinner">
@@ -109,6 +151,9 @@ export function createLoadingScreen(container, onFontLoaded) {
 	return {
 		showError(message) {
 			showError(message);
+		},
+		showDiagnosticReport(fileName, report) {
+			showDiagnosticReport(fileName, report);
 		},
 	};
 }
