@@ -48,11 +48,12 @@ jobs:
       - name: Build demo site + docs
         run: npm run site:build
 
-      - name: Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      - name: Deploy via SCP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.SFTP_HOST }}
+          host: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          local_path: ./demo/dist/
-          remote_path: ${{ secrets.SFTP_PATH }}/
+          source: demo/dist/*
+          target: ${{ secrets.SFTP_PATH }}
+          strip_components: 2
