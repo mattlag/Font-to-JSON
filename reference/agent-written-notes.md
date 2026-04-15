@@ -1,6 +1,6 @@
 # Agent Working Notes — Font Flux JS
 
-_Last Updated: April 13, 2026_
+_Last Updated: April 14, 2026_
 
 > These notes are written BY agents FOR future agents. Optimized for fast onboarding.
 > Read `agent-context.md` first for project overview. This file covers technical internals.
@@ -61,11 +61,13 @@ The returned object from a parser should NOT include `_checksum` or `_raw` — t
 ## Shared Modules
 
 **`src/reader.js` — DataReader** (cursor-based binary reader)
+
 - `new DataReader(bytes, startOffset?)` — auto-advancing cursor at `reader.position`
 - Methods: `uint8`, `uint16`, `uint24`, `uint32`, `int8`, `int16`, `int32`, `tag`, `offset16`, `offset32`, `fixed`, `fword`, `ufword`, `f2dot14`, `longDateTime`
 - Bulk: `array(methodName, count)`, `bytes(count)` — Navigation: `seek(offset)`, `skip(n)`
 
 **`src/writer.js` — DataWriter** (cursor-based binary writer)
+
 - `new DataWriter(size)` — matching write methods to DataReader
 - Output: `toArray()` → `number[]` — all write methods return `this` (chainable)
 - Bulk: `array(methodName, values)`, `rawBytes(data)` — Navigation: `seek(offset)`, `skip(n)`
@@ -82,6 +84,7 @@ src/
   expand.js         — buildRawFromSimplified(): simplified → { header, tables }
   glyph.js          — createGlyph(), getGlyph()
   kerning.js        — createKerning(), getKerningValue()
+  substitution.js   — createSubstitution(), getSubstitutions()
   json.js           — fontToJSON(), fontFromJSON()
   svg_path.js       — contoursToSVGPath(), svgPathToContours()
   reader.js         — DataReader class
@@ -96,7 +99,8 @@ test/
   roundtrip.test.js               — import→export→reimport fidelity (primary correctness check)
   roundtrip-all-samples-double.test.js — all sample fonts double round-trip
   font-flux.test.js               — FontFlux class API tests
-  glyph.test.js, kerning.test.js  — convenience function tests
+  glyph.test.js, kerning.test.js, substitution.test.js — convenience function tests
+  sfnt/gsub-simplify.test.js      — GSUB simplification integration tests
   json.test.js                    — JSON serialization tests
   sample fonts/                   — binary font fixtures
   sfnt/, otf/, ttf/, woff/        — per-table test suites
@@ -130,9 +134,47 @@ test/
 - Table-specific tests use `importFontTables()` (not `importFont()`) to access internal `{ header, tables }` shape directly.
 - Primary test fonts: `oblegg.otf` (CFF) and `oblegg.ttf` (TrueType).
 
+## Substitution (GSUB) Data Flow
+
+GSUB is now fully decomposed (like kerning/GPOS):
+
+```
+Import: GSUB binary → parseGSUB() → raw GSUB table
+  → extractSubstitutions(gsub, glyphs)    [simplify.js]
+    → types 1–4, 8: extracted to simplified rules in `substitutions[]`
+    → types 5, 6: preserved as `_rawGSUBLookups[]` (contextual, reference other lookups)
+    → deduplicateFeatureRefs: one rule set per lookup×feature (not per script/language)
+    → allScripts stored on rules to reconstruct script/language associations
+
+Export: substitutions[] + _rawGSUBLookups[]
+  → buildGSUBFromSubstitutions()           [expand.js]
+    → groups rules by type+feature → builds lookup per group
+    → appends raw lookups (types 5/6) with index remapping
+    → builds featureList + scriptList from rule metadata
+  → full GSUB table → writeGSUB() → binary
+```
+
+**Simplified rule shape** (in `substitutions[]`):
+
+```json
+{ "type": "single|multiple|alternate|ligature|reverse",
+  "feature": "liga", "script": "latn", "language": null,
+  "from": "a", "to": "a.smcp",               // single
+  "from": "ffi", "to": ["f", "f", "i"],       // multiple
+  "from": "a", "alternates": ["a.alt1", ...],  // alternate
+  "components": ["f", "i"], "ligature": "fi",  // ligature
+  "from": "a", "to": "b"                      // reverse (+ backtrack/lookahead)
+}
+```
+
+**FontFlux convenience methods**: `addSubstitution()`, `removeSubstitution()`, `listSubstitutions()`, `getSubstitution()`, `clearSubstitutions()` — mirrors the kerning API pattern.
+
+**Helper module**: `src/substitution.js` provides `createSubstitution()` (validation + normalization) and `getSubstitutions()` (lookup by glyph).
+
 ## Gotchas & Lessons Learned
 
 ### Binary Format Gotchas
+
 1. **Table tags with trailing spaces**: `'CFF '`, `'cvt '`, `'SVG '` are 4 bytes with trailing space. Registry keys must match.
 2. **OS/2 filename vs registry key**: File is `table_OS-2.js`, but registry key must be `'OS/2'` (slash in tag).
 3. **Version fields are raw uint32**: maxp `0x00010000`, post `0x00020000`, vhea `0x00010000`/`0x00011000`. Compare with hex, not float.
@@ -142,6 +184,7 @@ test/
 7. **4-byte table padding**: export.js pads each table to 4-byte boundaries. `paddedLength = length + ((4 - (length % 4)) % 4)`.
 
 ### Parser/Writer Gotchas
+
 8. **Cross-table parse order matters**: hmtx depends on hhea and maxp. When adding new tables with deps, add AFTER dependencies in `tableParseOrder`.
 9. **loca offsets stripped from JSON**: import.js deletes `tables.loca.offsets` after glyf parsing — they're binary artifacts. `coordinateTableWrites()` regenerates them on export.
 10. **glyf flag packing may differ**: Our writer uses optimal compression. Re-encoded glyf may be smaller, so loca offsets can't be preserved as-is.
@@ -154,6 +197,7 @@ test/
 17. **CFF2 isOperatorByte range**: Byte values 0-11 and 13-21 are operators. Value 12 is the two-byte escape prefix. Values 22-27 are also operators. ≥28 are number-encoded.
 
 ### Layout Table Gotchas
+
 18. **OpenType Layout data shapes are wrapped**: `parseLookupList` returns `{ lookups: [...] }`, not a bare array. Access via `.lookups`, `.scriptRecords`, `.featureRecords`.
 19. **Extension Lookup transparency**: Parser auto-unwraps Extension types (GSUB 7, GPOS 9). JSON stores inner type only. Writer auto-wraps when LookupList exceeds 64KB.
 20. **LookupList Offset16 overflow**: Large fonts can exceed 64KB. Writer wraps ALL lookups in Extension headers when overflow occurs.
@@ -162,10 +206,12 @@ test/
 23. **Layout writers use bottom-up serialization**: Serialize children first, compute offsets from sizes, write parent header + offsets + child data.
 
 ### Bitmap Table Gotchas
+
 24. **DataReader performance**: Creating DataReader per-glyph causes massive allocations for large tables. Create ONE per table and reuse via `seek()`.
 25. **Bulk image data**: Use `rawBytes.slice()` instead of `reader.bytes()` for image blobs.
 
 ### Round-Trip Gotchas
+
 26. **CFF2 VariationStore size field**: When writing VariationStore, the `length` field is total byte count of the entire VariationStore structure, not just the data after the header.
 27. **JSON serialization strips transient keys**: `fontToJSON()` strips `_dirty`, `_fileName`, `_originalBuffer`, `_collection`, `_collectionFonts`, `_woff`. Preserves `_header` (needed for lossless re-export).
 28. **WOFF2 requires async init**: `await initWoff2()` once before use. Uses native zlib in Node.js, brotli-wasm in browsers.

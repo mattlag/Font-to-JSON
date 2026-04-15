@@ -1,6 +1,6 @@
 # Font-Flux-JS Table Completeness Audit
 
-_Last Updated: April 13, 2026_
+_Last Updated: April 14, 2026_
 
 **51 table types** have registered parsers and writers. **~40 are fully structured JSON**; **~11 have partial raw byte storage**. No tables are completely missing. Every table that has a parser also has a writer.
 
@@ -47,7 +47,7 @@ _Last Updated: April 13, 2026_
 
 **Required:** head, hhea, hmtx, maxp (v0.5+v1.0), name (UTF-16BE+MacRoman), OS/2 (v0–v5), post (v1–v3)
 
-**Advanced Typographic:** GPOS (all lookup types, PairPos fmt 1+2), GSUB (all lookup types), GDEF (v1.0–v1.3 with ItemVariationStore), BASE (v1.0+v1.1 with ItemVariationStore)
+**Advanced Typographic:** GPOS (all lookup types, PairPos fmt 1+2), GSUB (all lookup types, with simplified substitution decomposition for types 1–4 and 8; types 5/6 raw passthrough), GDEF (v1.0–v1.3 with ItemVariationStore), BASE (v1.0+v1.1 with ItemVariationStore)
 
 **Variation:** fvar, avar (v1+v2), STAT (formats 1–4), MVAR, HVAR, VVAR (all with structured ItemVariationStore), gvar (via tuple_variation_common), cvar
 

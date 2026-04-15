@@ -70,10 +70,25 @@ export function buildSimplified(raw) {
 		result.instances = extractInstances(tables);
 	}
 
-	// OpenType layout features (passthrough: GPOS, GSUB, GDEF)
+	// GSUB substitutions — decompose types 1-4, 8 into simplified form
+	if (tables.GSUB && !tables.GSUB._raw) {
+		const { substitutions, rawLookups } = extractSubstitutions(
+			tables.GSUB,
+			glyphs,
+		);
+		if (substitutions.length > 0) {
+			result.substitutions = substitutions;
+		}
+		// Store raw lookups that couldn't be simplified (types 5/6)
+		if (rawLookups.length > 0) {
+			result._rawGSUBLookups = rawLookups;
+		}
+	}
+
+	// OpenType layout features (passthrough: GPOS, GDEF)
+	// GSUB is now decomposed into substitutions; only pass through non-GSUB features
 	const features = {};
 	if (tables.GPOS && !tables.GPOS._raw) features.GPOS = tables.GPOS;
-	if (tables.GSUB && !tables.GSUB._raw) features.GSUB = tables.GSUB;
 	if (tables.GDEF && !tables.GDEF._raw) features.GDEF = tables.GDEF;
 	if (Object.keys(features).length > 0) {
 		result.features = features;
@@ -956,4 +971,329 @@ export function isoToLongdatetime(isoString) {
 	const ms = Date.parse(isoString);
 	if (isNaN(ms)) return 0n;
 	return BigInt(Math.floor((ms - OT_EPOCH_MS) / 1000));
+}
+
+// ===========================================================================
+//  GSUB SUBSTITUTION EXTRACTION
+// ===========================================================================
+
+/** GSUB lookup types that can be simplified. */
+const SIMPLIFIABLE_GSUB_TYPES = new Set([1, 2, 3, 4, 8]);
+
+/**
+ * Extract GSUB substitution rules into simplified form.
+ * Types 1-4 and 8 are decomposed. Types 5/6 (contextual) are preserved
+ * as raw lookups for lossless round-trip.
+ *
+ * @param {object} gsub - Parsed GSUB table.
+ * @param {object[]} glyphs - Simplified glyphs array (for name resolution).
+ * @returns {{ substitutions: object[], rawLookups: object[] }}
+ */
+function extractSubstitutions(gsub, glyphs) {
+	const substitutions = [];
+	const rawLookups = [];
+
+	if (!gsub.featureList || !gsub.lookupList) {
+		return { substitutions, rawLookups };
+	}
+
+	// Build feature→lookup mapping: for each feature, which lookups it uses
+	// and what script/language associations it has.
+	const featureInfo = buildFeatureInfo(gsub);
+
+	// Classify each lookup
+	const lookups = gsub.lookupList.lookups;
+	const simplifiedLookupIndices = new Set();
+
+	for (let i = 0; i < lookups.length; i++) {
+		const lookup = lookups[i];
+		if (!lookup) continue;
+
+		if (SIMPLIFIABLE_GSUB_TYPES.has(lookup.lookupType)) {
+			// Find all features referencing this lookup
+			const featureRefs = featureInfo.lookupToFeatures.get(i) || [];
+
+			// Extract the lookup's rules ONCE, then create one rule per
+			// unique feature tag (with its first script/language association).
+			// This avoids duplicating all rules for every script/language combo.
+			const uniqueFeatures = deduplicateFeatureRefs(featureRefs);
+
+			for (const ref of uniqueFeatures) {
+				const rules = extractLookupSubstitutions(
+					lookup,
+					glyphs,
+					ref.featureTag,
+					ref.script,
+					ref.language,
+					ref.allScripts,
+				);
+				substitutions.push(...rules);
+			}
+
+			// If no feature references this lookup, still extract with defaults
+			if (uniqueFeatures.length === 0) {
+				const rules = extractLookupSubstitutions(
+					lookup,
+					glyphs,
+					'DFLT',
+					'DFLT',
+					null,
+				);
+				substitutions.push(...rules);
+			}
+
+			simplifiedLookupIndices.add(i);
+		}
+	}
+
+	// Collect raw lookups (types 5/6 and any unhandled)
+	for (let i = 0; i < lookups.length; i++) {
+		if (!simplifiedLookupIndices.has(i) && lookups[i]) {
+			rawLookups.push({
+				index: i,
+				lookup: lookups[i],
+				features: featureInfo.lookupToFeatures.get(i) || [],
+			});
+		}
+	}
+
+	return { substitutions, rawLookups };
+}
+
+/**
+ * Build a mapping of feature tags and script/language to lookup indices,
+ * and the reverse mapping from lookup index to feature references.
+ */
+function buildFeatureInfo(gsub) {
+	const lookupToFeatures = new Map();
+
+	const scriptRecords = gsub.scriptList?.scriptRecords || [];
+	const featureRecords = gsub.featureList?.featureRecords || [];
+
+	for (const scriptRec of scriptRecords) {
+		const scriptTag = scriptRec.scriptTag;
+		const script = scriptRec.script;
+
+		// Process defaultLangSys
+		if (script.defaultLangSys) {
+			processLangSys(
+				script.defaultLangSys,
+				scriptTag,
+				null,
+				featureRecords,
+				lookupToFeatures,
+			);
+		}
+
+		// Process each langSysRecord
+		for (const langRec of script.langSysRecords || []) {
+			processLangSys(
+				langRec.langSys,
+				scriptTag,
+				langRec.langSysTag,
+				featureRecords,
+				lookupToFeatures,
+			);
+		}
+	}
+
+	return { lookupToFeatures };
+}
+
+/**
+ * Deduplicate feature references: keep one entry per unique featureTag.
+ * When a lookup is referenced by the same feature tag from multiple
+ * script/language pairs, we only need one simplified rule set — the
+ * expand step will reconstruct all script/language associations.
+ *
+ * Preserves ALL unique script/language pairs per feature tag so the
+ * expand step can rebuild the scriptList correctly.
+ */
+function deduplicateFeatureRefs(featureRefs) {
+	const byTag = new Map();
+	for (const ref of featureRefs) {
+		if (!byTag.has(ref.featureTag)) {
+			byTag.set(ref.featureTag, {
+				featureTag: ref.featureTag,
+				script: ref.script,
+				language: ref.language,
+				allScripts: [{ script: ref.script, language: ref.language }],
+			});
+		} else {
+			byTag.get(ref.featureTag).allScripts.push({
+				script: ref.script,
+				language: ref.language,
+			});
+		}
+	}
+	return Array.from(byTag.values());
+}
+
+function processLangSys(
+	langSys,
+	scriptTag,
+	languageTag,
+	featureRecords,
+	lookupToFeatures,
+) {
+	for (const featureIdx of langSys.featureIndices || []) {
+		const featureRec = featureRecords[featureIdx];
+		if (!featureRec) continue;
+
+		for (const lookupIdx of featureRec.feature.lookupListIndices || []) {
+			if (!lookupToFeatures.has(lookupIdx)) {
+				lookupToFeatures.set(lookupIdx, []);
+			}
+			const refs = lookupToFeatures.get(lookupIdx);
+			// Avoid duplicates
+			const exists = refs.some(
+				(r) =>
+					r.featureTag === featureRec.featureTag &&
+					r.script === scriptTag &&
+					r.language === languageTag,
+			);
+			if (!exists) {
+				refs.push({
+					featureTag: featureRec.featureTag,
+					script: scriptTag,
+					language: languageTag,
+				});
+			}
+		}
+	}
+}
+
+/**
+ * Extract simplified substitution rules from a single GSUB lookup.
+ */
+function extractLookupSubstitutions(
+	lookup,
+	glyphs,
+	featureTag,
+	script,
+	language,
+	allScripts,
+) {
+	const rules = [];
+	const base = { feature: featureTag, script, language };
+	if (allScripts) base.allScripts = allScripts;
+
+	for (const st of lookup.subtables || []) {
+		switch (lookup.lookupType) {
+			case 1:
+				extractSingleSubst(st, glyphs, base, rules);
+				break;
+			case 2:
+				extractMultipleSubst(st, glyphs, base, rules);
+				break;
+			case 3:
+				extractAlternateSubst(st, glyphs, base, rules);
+				break;
+			case 4:
+				extractLigatureSubst(st, glyphs, base, rules);
+				break;
+			case 8:
+				extractReverseChainSubst(st, glyphs, base, rules);
+				break;
+		}
+	}
+	return rules;
+}
+
+/** Resolve glyph ID to name. */
+function glyphName(glyphs, gid) {
+	return glyphs[gid]?.name || `glyph${gid}`;
+}
+
+/** Type 1: Single substitution. */
+function extractSingleSubst(st, glyphs, base, rules) {
+	const covGlyphs = expandCoverage(st.coverage);
+
+	if (st.format === 1) {
+		for (const gid of covGlyphs) {
+			const toGid = (gid + st.deltaGlyphID) & 0xffff;
+			rules.push({
+				type: 'single',
+				...base,
+				from: glyphName(glyphs, gid),
+				to: glyphName(glyphs, toGid),
+			});
+		}
+	} else if (st.format === 2) {
+		for (let i = 0; i < covGlyphs.length; i++) {
+			rules.push({
+				type: 'single',
+				...base,
+				from: glyphName(glyphs, covGlyphs[i]),
+				to: glyphName(glyphs, st.substituteGlyphIDs[i]),
+			});
+		}
+	}
+}
+
+/** Type 2: Multiple substitution. */
+function extractMultipleSubst(st, glyphs, base, rules) {
+	const covGlyphs = expandCoverage(st.coverage);
+	for (let i = 0; i < covGlyphs.length; i++) {
+		rules.push({
+			type: 'multiple',
+			...base,
+			from: glyphName(glyphs, covGlyphs[i]),
+			to: (st.sequences[i] || []).map((gid) => glyphName(glyphs, gid)),
+		});
+	}
+}
+
+/** Type 3: Alternate substitution. */
+function extractAlternateSubst(st, glyphs, base, rules) {
+	const covGlyphs = expandCoverage(st.coverage);
+	for (let i = 0; i < covGlyphs.length; i++) {
+		rules.push({
+			type: 'alternate',
+			...base,
+			from: glyphName(glyphs, covGlyphs[i]),
+			alternates: (st.alternateSets[i] || []).map((gid) =>
+				glyphName(glyphs, gid),
+			),
+		});
+	}
+}
+
+/** Type 4: Ligature substitution. */
+function extractLigatureSubst(st, glyphs, base, rules) {
+	const covGlyphs = expandCoverage(st.coverage);
+	for (let i = 0; i < covGlyphs.length; i++) {
+		const ligatureSet = st.ligatureSets[i] || [];
+		for (const lig of ligatureSet) {
+			const components = [
+				glyphName(glyphs, covGlyphs[i]),
+				...lig.componentGlyphIDs.map((gid) => glyphName(glyphs, gid)),
+			];
+			rules.push({
+				type: 'ligature',
+				...base,
+				components,
+				ligature: glyphName(glyphs, lig.ligatureGlyph),
+			});
+		}
+	}
+}
+
+/** Type 8: Reverse chained contexts single substitution. */
+function extractReverseChainSubst(st, glyphs, base, rules) {
+	const covGlyphs = expandCoverage(st.coverage);
+	for (let i = 0; i < covGlyphs.length; i++) {
+		rules.push({
+			type: 'reverse',
+			...base,
+			from: glyphName(glyphs, covGlyphs[i]),
+			to: glyphName(glyphs, st.substituteGlyphIDs[i]),
+			backtrack: (st.backtrackCoverages || []).map((cov) =>
+				expandCoverage(cov).map((gid) => glyphName(glyphs, gid)),
+			),
+			lookahead: (st.lookaheadCoverages || []).map((cov) =>
+				expandCoverage(cov).map((gid) => glyphName(glyphs, gid)),
+			),
+		});
+	}
 }

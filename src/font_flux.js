@@ -23,6 +23,7 @@ import {
 	disassembleCharString,
 	interpretCharString,
 } from './otf/charstring_interpreter.js';
+import { createSubstitution, getSubstitutions } from './substitution.js';
 import { contoursToSVGPath, svgPathToContours } from './svg_path.js';
 import { diagnoseFont } from './validate/diagnoseFont.js';
 import { validateJSON } from './validate/index.js';
@@ -490,6 +491,86 @@ export class FontFlux {
 	 */
 	clearKerning() {
 		this._data.kerning = [];
+	}
+
+	// ========================================================================
+	//  GSUB SUBSTITUTIONS
+	// ========================================================================
+
+	/**
+	 * Live reference to substitution rules.
+	 * @returns {Array<object>}
+	 */
+	get substitutions() {
+		if (!this._data.substitutions) this._data.substitutions = [];
+		return this._data.substitutions;
+	}
+
+	/**
+	 * List all substitution rules.
+	 * @param {object} [filter] - Optional { type?, feature? } filter.
+	 * @returns {Array<object>}
+	 */
+	listSubstitutions(filter) {
+		const subs = this._data.substitutions || [];
+		if (!filter) return subs;
+		return subs.filter((rule) => {
+			if (filter.type && rule.type !== filter.type) return false;
+			if (filter.feature && rule.feature !== filter.feature) return false;
+			return true;
+		});
+	}
+
+	/**
+	 * Find substitution rules for a specific glyph.
+	 *
+	 * @param {string|number} glyphId - Glyph name, code point, or hex string.
+	 * @param {object} [options] - { type?, feature? }
+	 * @returns {Array<object>}
+	 */
+	getSubstitution(glyphId, options) {
+		return getSubstitutions(this._data, glyphId, options);
+	}
+
+	/**
+	 * Add substitution rules. Accepts the same flexible formats as
+	 * createSubstitution(): single rules, arrays, class-based, etc.
+	 *
+	 * @param {object|object[]} rulesOrInput - Substitution rule(s).
+	 */
+	addSubstitution(rulesOrInput) {
+		const newRules = createSubstitution(rulesOrInput);
+		if (!this._data.substitutions) this._data.substitutions = [];
+
+		for (const rule of newRules) {
+			this._data.substitutions.push(rule);
+		}
+	}
+
+	/**
+	 * Remove substitution rules matching a filter.
+	 *
+	 * @param {object} filter - { type?, feature?, from?, ligature? }
+	 * @returns {number} Number of rules removed.
+	 */
+	removeSubstitution(filter) {
+		if (!this._data.substitutions) return 0;
+		const before = this._data.substitutions.length;
+		this._data.substitutions = this._data.substitutions.filter((rule) => {
+			if (filter.type && rule.type !== filter.type) return true;
+			if (filter.feature && rule.feature !== filter.feature) return true;
+			if (filter.from && rule.from !== filter.from) return true;
+			if (filter.ligature && rule.ligature !== filter.ligature) return true;
+			return false;
+		});
+		return before - this._data.substitutions.length;
+	}
+
+	/**
+	 * Remove all substitution rules.
+	 */
+	clearSubstitutions() {
+		this._data.substitutions = [];
 	}
 
 	// ========================================================================

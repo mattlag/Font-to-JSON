@@ -7,6 +7,7 @@
  */
 
 import { compileCharString } from './otf/charstring_compiler.js';
+import { resolveGlyphId } from './glyph.js';
 import { isoToLongdatetime } from './simplify.js';
 
 // ===========================================================================
@@ -113,8 +114,24 @@ export function buildRawFromSimplified(simplified) {
 	if (simplified.features) {
 		if (simplified.features.GPOS && !tables.GPOS)
 			tables.GPOS = simplified.features.GPOS;
-		if (simplified.features.GSUB) tables.GSUB = simplified.features.GSUB;
 		if (simplified.features.GDEF) tables.GDEF = simplified.features.GDEF;
+	}
+
+	// -- GSUB from simplified substitutions ---------------------------
+	if (simplified.substitutions && simplified.substitutions.length > 0) {
+		tables.GSUB = buildGSUBFromSubstitutions(
+			simplified.substitutions,
+			simplified._rawGSUBLookups || [],
+			glyphs,
+		);
+	} else if (simplified._rawGSUBLookups && simplified._rawGSUBLookups.length > 0) {
+		// Only raw lookups, no simplified substitutions — rebuild minimal GSUB
+		tables.GSUB = buildGSUBFromRawLookups(simplified._rawGSUBLookups);
+	}
+
+	// Legacy: if features.GSUB is set directly (e.g. setFeatures), use it
+	if (simplified.features?.GSUB && !tables.GSUB) {
+		tables.GSUB = simplified.features.GSUB;
 	}
 
 	// -- Passthrough tables (carried from import, not decomposed) -----
@@ -1613,4 +1630,624 @@ function addNameRecord(nameTable, nameID, value) {
 		{ platformID: 1, encodingID: 0, languageID: 0, nameID, value },
 		{ platformID: 0, encodingID: 3, languageID: 0, nameID, value },
 	);
+}
+
+// ===========================================================================
+//  GSUB FROM SIMPLIFIED SUBSTITUTIONS
+// ===========================================================================
+
+/**
+ * Build a glyph name → index mapping. Supports names, numeric codepoints,
+ * and hex strings ('U+0041', '0x41') via resolveGlyphId.
+ */
+function buildNameToIndex(glyphs) {
+	const map = new Map();
+	for (let i = 0; i < glyphs.length; i++) {
+		if (glyphs[i].name) map.set(glyphs[i].name, i);
+	}
+	return map;
+}
+
+/**
+ * Resolve a glyph reference (name, codepoint, hex) to a glyph index.
+ * Returns undefined if the glyph can't be found.
+ */
+function resolveToIndex(ref, glyphs, nameToIndex) {
+	// Fast path: direct name lookup
+	if (typeof ref === 'string' && nameToIndex.has(ref)) {
+		return nameToIndex.get(ref);
+	}
+	// Slow path: resolveGlyphId handles U+XXXX, 0xXX, numeric
+	const name = resolveGlyphId(glyphs, ref);
+	if (name !== undefined) {
+		return nameToIndex.get(name);
+	}
+	return undefined;
+}
+
+/**
+ * Build a complete GSUB table from simplified substitution rules
+ * and any raw (non-simplifiable) lookups from the original font.
+ *
+ * @param {object[]} substitutions - Simplified substitution rules.
+ * @param {object[]} rawLookups - Raw lookup objects (types 5/6) to preserve.
+ * @param {object[]} glyphs - Simplified glyphs array.
+ * @returns {object} Full GSUB table structure.
+ */
+function buildGSUBFromSubstitutions(substitutions, rawLookups, glyphs) {
+	const nameToIndex = buildNameToIndex(glyphs);
+	const lookups = [];
+	const featureMap = new Map(); // 'featureTag' → { lookupIndices: Set, scripts: Map }
+
+	// Group substitutions by type + feature tag
+	const groups = groupSubstitutions(substitutions);
+
+	for (const [key, rules] of groups) {
+		const [type, featureTag] = key.split('\0');
+		const lookup = buildLookupFromRules(type, rules, glyphs, nameToIndex);
+		if (!lookup) continue;
+
+		const lookupIndex = lookups.length;
+		lookups.push(lookup);
+
+		if (!featureMap.has(featureTag)) {
+			featureMap.set(featureTag, { lookupIndices: new Set(), scripts: new Map() });
+		}
+		const featureEntry = featureMap.get(featureTag);
+		featureEntry.lookupIndices.add(lookupIndex);
+
+		// Collect script/language associations from rules.
+		// If rules have allScripts (from the deduplication pass),
+		// use that to get ALL original script/language associations.
+		for (const rule of rules) {
+			const scriptEntries = rule.allScripts || [{ script: rule.script, language: rule.language }];
+			for (const entry of scriptEntries) {
+				const script = entry.script || 'DFLT';
+				const language = entry.language || null;
+				if (!featureEntry.scripts.has(script)) {
+					featureEntry.scripts.set(script, new Set());
+				}
+				featureEntry.scripts.get(script).add(language);
+			}
+		}
+	}
+
+	// Merge raw lookups (types 5/6 from import) — append after simplified lookups
+	const rawLookupIndexRemap = new Map();
+	for (const raw of rawLookups) {
+		rawLookupIndexRemap.set(raw.index, lookups.length);
+		lookups.push(raw.lookup);
+
+		// Re-register feature associations for raw lookups
+		for (const ref of raw.features) {
+			const featureTag = ref.featureTag;
+			if (!featureMap.has(featureTag)) {
+				featureMap.set(featureTag, {
+					lookupIndices: new Set(),
+					scripts: new Map(),
+				});
+			}
+			const featureEntry = featureMap.get(featureTag);
+			featureEntry.lookupIndices.add(lookups.length - 1);
+
+			const script = ref.script || 'DFLT';
+			const language = ref.language || null;
+			if (!featureEntry.scripts.has(script)) {
+				featureEntry.scripts.set(script, new Set());
+			}
+			featureEntry.scripts.get(script).add(language);
+		}
+	}
+
+	// Remap lookup indices inside raw contextual subtables (types 5/6)
+	if (rawLookupIndexRemap.size > 0) {
+		remapContextualLookupIndices(lookups, rawLookupIndexRemap);
+	}
+
+	// Build featureList
+	const featureRecords = [];
+	const featureTagToIndex = new Map();
+
+	for (const [featureTag, entry] of featureMap) {
+		featureTagToIndex.set(featureTag, featureRecords.length);
+		featureRecords.push({
+			featureTag,
+			feature: {
+				featureParamsOffset: 0,
+				lookupListIndices: Array.from(entry.lookupIndices).sort((a, b) => a - b),
+			},
+		});
+	}
+
+	// Build scriptList from all script/language associations
+	const scriptMap = new Map(); // scriptTag → Map<langTag|null, Set<featureIndex>>
+
+	for (const [featureTag, entry] of featureMap) {
+		const featureIndex = featureTagToIndex.get(featureTag);
+		for (const [scriptTag, languages] of entry.scripts) {
+			if (!scriptMap.has(scriptTag)) {
+				scriptMap.set(scriptTag, new Map());
+			}
+			const langMap = scriptMap.get(scriptTag);
+			for (const langTag of languages) {
+				if (!langMap.has(langTag)) {
+					langMap.set(langTag, new Set());
+				}
+				langMap.get(langTag).add(featureIndex);
+			}
+		}
+	}
+
+	const scriptRecords = [];
+	for (const [scriptTag, langMap] of scriptMap) {
+		const langSysRecords = [];
+		let defaultLangSys = null;
+
+		for (const [langTag, featureIndices] of langMap) {
+			const langSys = {
+				lookupOrderOffset: 0,
+				requiredFeatureIndex: 0xffff,
+				featureIndices: Array.from(featureIndices).sort((a, b) => a - b),
+			};
+
+			if (langTag === null) {
+				defaultLangSys = langSys;
+			} else {
+				langSysRecords.push({
+					langSysTag: langTag,
+					langSys,
+				});
+			}
+		}
+
+		// Ensure there's always a defaultLangSys
+		if (!defaultLangSys) {
+			// Merge all language-specific features into a default
+			const allIndices = new Set();
+			for (const [, featureIndices] of langMap) {
+				for (const idx of featureIndices) allIndices.add(idx);
+			}
+			defaultLangSys = {
+				lookupOrderOffset: 0,
+				requiredFeatureIndex: 0xffff,
+				featureIndices: Array.from(allIndices).sort((a, b) => a - b),
+			};
+		}
+
+		scriptRecords.push({
+			scriptTag,
+			script: {
+				defaultLangSys,
+				langSysRecords,
+			},
+		});
+	}
+
+	return {
+		majorVersion: 1,
+		minorVersion: 0,
+		scriptList: { scriptRecords },
+		featureList: { featureRecords },
+		lookupList: { lookups },
+	};
+}
+
+/**
+ * Build a minimal GSUB table from only raw (non-simplifiable) lookups.
+ * Used when there are no simplified substitutions but raw lookups need preserving.
+ */
+function buildGSUBFromRawLookups(rawLookups) {
+	const lookups = [];
+	const featureMap = new Map();
+	const lookupIndexRemap = new Map();
+
+	for (const raw of rawLookups) {
+		lookupIndexRemap.set(raw.index, lookups.length);
+		lookups.push(raw.lookup);
+
+		for (const ref of raw.features) {
+			const featureTag = ref.featureTag;
+			if (!featureMap.has(featureTag)) {
+				featureMap.set(featureTag, {
+					lookupIndices: new Set(),
+					scripts: new Map(),
+				});
+			}
+			const entry = featureMap.get(featureTag);
+			entry.lookupIndices.add(lookups.length - 1);
+
+			const script = ref.script || 'DFLT';
+			const language = ref.language || null;
+			if (!entry.scripts.has(script)) {
+				entry.scripts.set(script, new Set());
+			}
+			entry.scripts.get(script).add(language);
+		}
+	}
+
+	if (lookupIndexRemap.size > 0) {
+		remapContextualLookupIndices(lookups, lookupIndexRemap);
+	}
+
+	const featureRecords = [];
+	const featureTagToIndex = new Map();
+	for (const [featureTag, entry] of featureMap) {
+		featureTagToIndex.set(featureTag, featureRecords.length);
+		featureRecords.push({
+			featureTag,
+			feature: {
+				featureParamsOffset: 0,
+				lookupListIndices: Array.from(entry.lookupIndices).sort((a, b) => a - b),
+			},
+		});
+	}
+
+	const scriptMap = new Map();
+	for (const [featureTag, entry] of featureMap) {
+		const featureIndex = featureTagToIndex.get(featureTag);
+		for (const [scriptTag, languages] of entry.scripts) {
+			if (!scriptMap.has(scriptTag)) {
+				scriptMap.set(scriptTag, new Map());
+			}
+			const langMap = scriptMap.get(scriptTag);
+			for (const langTag of languages) {
+				if (!langMap.has(langTag)) {
+					langMap.set(langTag, new Set());
+				}
+				langMap.get(langTag).add(featureIndex);
+			}
+		}
+	}
+
+	const scriptRecords = [];
+	for (const [scriptTag, langMap] of scriptMap) {
+		let defaultLangSys = null;
+		const langSysRecords = [];
+		for (const [langTag, featureIndices] of langMap) {
+			const langSys = {
+				lookupOrderOffset: 0,
+				requiredFeatureIndex: 0xffff,
+				featureIndices: Array.from(featureIndices).sort((a, b) => a - b),
+			};
+			if (langTag === null) {
+				defaultLangSys = langSys;
+			} else {
+				langSysRecords.push({ langSysTag: langTag, langSys });
+			}
+		}
+		if (!defaultLangSys) {
+			const allIndices = new Set();
+			for (const [, featureIndices] of langMap) {
+				for (const idx of featureIndices) allIndices.add(idx);
+			}
+			defaultLangSys = {
+				lookupOrderOffset: 0,
+				requiredFeatureIndex: 0xffff,
+				featureIndices: Array.from(allIndices).sort((a, b) => a - b),
+			};
+		}
+		scriptRecords.push({
+			scriptTag,
+			script: { defaultLangSys, langSysRecords },
+		});
+	}
+
+	return {
+		majorVersion: 1,
+		minorVersion: 0,
+		scriptList: { scriptRecords },
+		featureList: { featureRecords },
+		lookupList: { lookups },
+	};
+}
+
+/**
+ * Group substitution rules by type + feature tag.
+ * Returns Map<'type\0featureTag', rules[]>.
+ */
+function groupSubstitutions(substitutions) {
+	const groups = new Map();
+	for (const rule of substitutions) {
+		const key = `${rule.type}\0${rule.feature}`;
+		if (!groups.has(key)) groups.set(key, []);
+		groups.get(key).push(rule);
+	}
+	return groups;
+}
+
+/**
+ * Build a GSUB lookup from a group of simplified rules of the same type.
+ */
+function buildLookupFromRules(type, rules, glyphs, nameToIndex) {
+	switch (type) {
+		case 'single':
+			return buildSingleSubstLookup(rules, glyphs, nameToIndex);
+		case 'multiple':
+			return buildMultipleSubstLookup(rules, glyphs, nameToIndex);
+		case 'alternate':
+			return buildAlternateSubstLookup(rules, glyphs, nameToIndex);
+		case 'ligature':
+			return buildLigatureSubstLookup(rules, glyphs, nameToIndex);
+		case 'reverse':
+			return buildReverseChainSubstLookup(rules, glyphs, nameToIndex);
+		default:
+			return null;
+	}
+}
+
+/** Build a Single Substitution lookup (type 1, format 2). */
+function buildSingleSubstLookup(rules, glyphs, nameToIndex) {
+	const fromGlyphs = [];
+	const toGlyphs = [];
+
+	for (const rule of rules) {
+		const fromIdx = resolveToIndex(rule.from, glyphs, nameToIndex);
+		const toIdx = resolveToIndex(rule.to, glyphs, nameToIndex);
+		if (fromIdx !== undefined && toIdx !== undefined) {
+			fromGlyphs.push(fromIdx);
+			toGlyphs.push(toIdx);
+		}
+	}
+
+	if (fromGlyphs.length === 0) return null;
+
+	// Sort by glyph ID for proper coverage ordering
+	const sorted = fromGlyphs
+		.map((g, i) => ({ from: g, to: toGlyphs[i] }))
+		.sort((a, b) => a.from - b.from);
+
+	return {
+		lookupType: 1,
+		lookupFlag: 0,
+		subtables: [
+			{
+				format: 2,
+				coverage: { format: 1, glyphs: sorted.map((s) => s.from) },
+				substituteGlyphIDs: sorted.map((s) => s.to),
+			},
+		],
+	};
+}
+
+/** Build a Multiple Substitution lookup (type 2, format 1). */
+function buildMultipleSubstLookup(rules, glyphs, nameToIndex) {
+	const entries = [];
+
+	for (const rule of rules) {
+		const fromIdx = resolveToIndex(rule.from, glyphs, nameToIndex);
+		if (fromIdx === undefined) continue;
+
+		const toIdxs = [];
+		let valid = true;
+		for (const ref of rule.to) {
+			const idx = resolveToIndex(ref, glyphs, nameToIndex);
+			if (idx === undefined) {
+				valid = false;
+				break;
+			}
+			toIdxs.push(idx);
+		}
+		if (valid && toIdxs.length > 0) {
+			entries.push({ from: fromIdx, to: toIdxs });
+		}
+	}
+
+	if (entries.length === 0) return null;
+
+	entries.sort((a, b) => a.from - b.from);
+
+	return {
+		lookupType: 2,
+		lookupFlag: 0,
+		subtables: [
+			{
+				format: 1,
+				coverage: { format: 1, glyphs: entries.map((e) => e.from) },
+				sequences: entries.map((e) => e.to),
+			},
+		],
+	};
+}
+
+/** Build an Alternate Substitution lookup (type 3, format 1). */
+function buildAlternateSubstLookup(rules, glyphs, nameToIndex) {
+	const entries = [];
+
+	for (const rule of rules) {
+		const fromIdx = resolveToIndex(rule.from, glyphs, nameToIndex);
+		if (fromIdx === undefined) continue;
+
+		const altIdxs = [];
+		let valid = true;
+		for (const ref of rule.alternates) {
+			const idx = resolveToIndex(ref, glyphs, nameToIndex);
+			if (idx === undefined) {
+				valid = false;
+				break;
+			}
+			altIdxs.push(idx);
+		}
+		if (valid && altIdxs.length > 0) {
+			entries.push({ from: fromIdx, alternates: altIdxs });
+		}
+	}
+
+	if (entries.length === 0) return null;
+
+	entries.sort((a, b) => a.from - b.from);
+
+	return {
+		lookupType: 3,
+		lookupFlag: 0,
+		subtables: [
+			{
+				format: 1,
+				coverage: { format: 1, glyphs: entries.map((e) => e.from) },
+				alternateSets: entries.map((e) => e.alternates),
+			},
+		],
+	};
+}
+
+/** Build a Ligature Substitution lookup (type 4, format 1). */
+function buildLigatureSubstLookup(rules, glyphs, nameToIndex) {
+	// Group by first component glyph
+	const groups = new Map();
+
+	for (const rule of rules) {
+		if (!rule.components || rule.components.length < 2) continue;
+
+		const firstIdx = resolveToIndex(rule.components[0], glyphs, nameToIndex);
+		const ligIdx = resolveToIndex(rule.ligature, glyphs, nameToIndex);
+		if (firstIdx === undefined || ligIdx === undefined) continue;
+
+		const restIdxs = [];
+		let valid = true;
+		for (let i = 1; i < rule.components.length; i++) {
+			const idx = resolveToIndex(rule.components[i], glyphs, nameToIndex);
+			if (idx === undefined) {
+				valid = false;
+				break;
+			}
+			restIdxs.push(idx);
+		}
+		if (!valid) continue;
+
+		if (!groups.has(firstIdx)) groups.set(firstIdx, []);
+		groups.get(firstIdx).push({
+			ligatureGlyph: ligIdx,
+			componentCount: rule.components.length,
+			componentGlyphIDs: restIdxs,
+		});
+	}
+
+	if (groups.size === 0) return null;
+
+	// Sort coverage glyphs by glyph ID
+	const covGlyphs = Array.from(groups.keys()).sort((a, b) => a - b);
+	const ligatureSets = covGlyphs.map((gid) => groups.get(gid));
+
+	return {
+		lookupType: 4,
+		lookupFlag: 0,
+		subtables: [
+			{
+				format: 1,
+				coverage: { format: 1, glyphs: covGlyphs },
+				ligatureSets,
+			},
+		],
+	};
+}
+
+/** Build a Reverse Chained Contexts Single Substitution lookup (type 8). */
+function buildReverseChainSubstLookup(rules, glyphs, nameToIndex) {
+	const subtables = [];
+
+	for (const rule of rules) {
+		const fromIdx = resolveToIndex(rule.from, glyphs, nameToIndex);
+		const toIdx = resolveToIndex(rule.to, glyphs, nameToIndex);
+		if (fromIdx === undefined || toIdx === undefined) continue;
+
+		const backtrackCoverages = (rule.backtrack || []).map((arr) => {
+			const gids = arr
+				.map((ref) => resolveToIndex(ref, glyphs, nameToIndex))
+				.filter((idx) => idx !== undefined)
+				.sort((a, b) => a - b);
+			return { format: 1, glyphs: gids };
+		});
+
+		const lookaheadCoverages = (rule.lookahead || []).map((arr) => {
+			const gids = arr
+				.map((ref) => resolveToIndex(ref, glyphs, nameToIndex))
+				.filter((idx) => idx !== undefined)
+				.sort((a, b) => a - b);
+			return { format: 1, glyphs: gids };
+		});
+
+		subtables.push({
+			format: 1,
+			coverage: { format: 1, glyphs: [fromIdx] },
+			backtrackCoverages,
+			lookaheadCoverages,
+			substituteGlyphIDs: [toIdx],
+		});
+	}
+
+	if (subtables.length === 0) return null;
+
+	return {
+		lookupType: 8,
+		lookupFlag: 0,
+		subtables,
+	};
+}
+
+/**
+ * Remap lookup indices inside contextual/chained contextual subtables (types 5/6)
+ * after reordering lookups.
+ */
+function remapContextualLookupIndices(lookups, indexRemap) {
+	for (const lookup of lookups) {
+		if (!lookup || !lookup.subtables) continue;
+		if (lookup.lookupType !== 5 && lookup.lookupType !== 6) continue;
+
+		for (const st of lookup.subtables) {
+			// SequenceContext and ChainedSequenceContext share similar structures
+			// with seqLookupRecords / substitutionLookupRecords
+			remapSubtableLookupRefs(st, indexRemap);
+		}
+	}
+}
+
+function remapSubtableLookupRefs(st, indexRemap) {
+	// Format 1: rules → ruleSet → rule.seqLookupRecords
+	if (st.ruleSets) {
+		for (const ruleSet of st.ruleSets) {
+			if (!ruleSet) continue;
+			for (const rule of ruleSet) {
+				remapSeqLookupRecords(rule.seqLookupRecords, indexRemap);
+			}
+		}
+	}
+	// Format 2: classSets → classSet → rule.seqLookupRecords
+	if (st.classSets) {
+		for (const classSet of st.classSets) {
+			if (!classSet) continue;
+			for (const rule of classSet) {
+				remapSeqLookupRecords(rule.seqLookupRecords, indexRemap);
+			}
+		}
+	}
+	// Format 3: direct seqLookupRecords
+	if (st.seqLookupRecords) {
+		remapSeqLookupRecords(st.seqLookupRecords, indexRemap);
+	}
+	// Chained context variants
+	if (st.chainedRuleSets) {
+		for (const ruleSet of st.chainedRuleSets) {
+			if (!ruleSet) continue;
+			for (const rule of ruleSet) {
+				remapSeqLookupRecords(rule.seqLookupRecords, indexRemap);
+			}
+		}
+	}
+	if (st.chainedClassSets) {
+		for (const classSet of st.chainedClassSets) {
+			if (!classSet) continue;
+			for (const rule of classSet) {
+				remapSeqLookupRecords(rule.seqLookupRecords, indexRemap);
+			}
+		}
+	}
+}
+
+function remapSeqLookupRecords(records, indexRemap) {
+	if (!records) return;
+	for (const rec of records) {
+		const newIdx = indexRemap.get(rec.lookupListIndex);
+		if (newIdx !== undefined) {
+			rec.lookupListIndex = newIdx;
+		}
+	}
 }

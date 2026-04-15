@@ -129,6 +129,16 @@ font.addGlyph({
 
 font.addKerning({ left: 'A', right: 'V', value: -50 });
 
+// Add ligatures (GSUB)
+font.addGlyph({ name: 'f', unicode: 102, advanceWidth: 300, contours: [/*...*/] });
+font.addGlyph({ name: 'i', unicode: 105, advanceWidth: 250, contours: [/*...*/] });
+font.addGlyph({ name: 'fi', advanceWidth: 550, contours: [/*...*/] });
+font.addSubstitution({
+	type: 'ligature',
+	feature: 'liga',
+	substitution: { components: ['f', 'i'], ligature: 'fi' },
+});
+
 const buffer = font.export();
 ```
 
@@ -152,6 +162,7 @@ const buffer = font.export();
 | `.info`       | Font metadata object (familyName, styleName, unitsPerEm, ascender, descender, etc.) |
 | `.glyphs`     | Array of glyph objects (name, unicode, advanceWidth, contours, ...)                 |
 | `.kerning`    | Array of kerning pairs `{ left, right, value }`                                     |
+| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)        |
 | `.axes`       | Variable font axes (from fvar)                                                      |
 | `.instances`  | Named instances (from fvar)                                                         |
 | `.features`   | OpenType layout features (GPOS, GSUB, GDEF)                                         |
@@ -198,6 +209,18 @@ const buffer = font.export();
 | `.listInstances()`       | List named instances            |
 | `.addInstance(instance)` | Add a named instance            |
 | `.removeInstance(name)`  | Remove a named instance         |
+
+### Substitution methods (GSUB)
+
+| Method                       | Description                                              |
+| ---------------------------- | -------------------------------------------------------- |
+| `.listSubstitutions(filter?)` | List all substitution rules, optionally filtered by type/feature |
+| `.getSubstitution(glyphId, options?)` | Find substitution rules for a specific glyph    |
+| `.addSubstitution(input)`    | Add substitution rule(s) from flexible input format      |
+| `.removeSubstitution(filter)` | Remove rules matching a filter (type, feature, from, ligature) |
+| `.clearSubstitutions()`      | Remove all substitutions                                 |
+
+See [Creating Substitutions](https://www.glyphrstudio.com/fontfluxjs/creating-substitutions) for a full guide with examples.
 
 ### Feature & hinting methods
 
@@ -256,7 +279,10 @@ const woff2Output = font.export({ format: 'woff2' });
   ],
   axes: [...],               // Variable font axes (fvar)
   instances: [...],          // Named instances (fvar)
-  features: { GPOS, GSUB, GDEF },  // OpenType layout features
+  substitutions: [            // GSUB rules (ligatures, small caps, alternates, ...)
+    { type: 'ligature', feature: 'liga', components: ['f', 'i'], ligature: 'fi' }
+  ],
+  features: { GPOS, GDEF },  // Non-decomposed layout features
   tables: { ... },           // ALL original parsed tables (for lossless round-trip)
   _header: { ... },          // SFNT header
 }
