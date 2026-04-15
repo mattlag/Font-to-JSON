@@ -10,6 +10,7 @@
  * - Direct mutation of exposed properties also works — export always rebuilds.
  */
 
+import { createColorGlyph, normalizePalette } from './color.js';
 import { exportFont } from './export.js';
 import { createGlyph, getGlyph, resolveGlyphId } from './glyph.js';
 import { importFont } from './import.js';
@@ -689,6 +690,149 @@ export class FontFlux {
 		if (idx < 0) return false;
 		this._data.instances.splice(idx, 1);
 		return true;
+	}
+
+	// ========================================================================
+	//  COLOR FONTS (PALETTES + COLOR GLYPHS)
+	// ========================================================================
+
+	/**
+	 * Live reference to palettes array.
+	 * Each palette is an array of hex color strings (#RRGGBB or #RRGGBBAA).
+	 * @returns {string[][]}
+	 */
+	get palettes() {
+		if (!this._data.palettes) this._data.palettes = [];
+		return this._data.palettes;
+	}
+
+	/**
+	 * Get a palette by index.
+	 * @param {number} index - Palette index.
+	 * @returns {string[]|undefined} Array of hex strings, or undefined.
+	 */
+	getPalette(index) {
+		return this._data.palettes?.[index];
+	}
+
+	/**
+	 * Add a palette.
+	 *
+	 * @param {Array<string|object>} colors - Array of hex strings or BGRA objects.
+	 * @returns {number} The index of the added palette.
+	 */
+	addPalette(colors) {
+		if (!this._data.palettes) this._data.palettes = [];
+		const normalized = normalizePalette(colors);
+		this._data.palettes.push(normalized);
+		return this._data.palettes.length - 1;
+	}
+
+	/**
+	 * Remove a palette by index.
+	 * @param {number} index
+	 * @returns {boolean} True if a palette was removed.
+	 */
+	removePalette(index) {
+		if (
+			!this._data.palettes ||
+			index < 0 ||
+			index >= this._data.palettes.length
+		) {
+			return false;
+		}
+		this._data.palettes.splice(index, 1);
+		if (this._data.palettes.length === 0) {
+			delete this._data.palettes;
+		}
+		return true;
+	}
+
+	/**
+	 * Update a single color in a palette.
+	 * @param {number} paletteIndex
+	 * @param {number} colorIndex
+	 * @param {string} hex - Hex color string.
+	 */
+	setPaletteColor(paletteIndex, colorIndex, hex) {
+		const palette = this._data.palettes?.[paletteIndex];
+		if (!palette) {
+			throw new Error(`Palette ${paletteIndex} does not exist`);
+		}
+		if (colorIndex < 0 || colorIndex >= palette.length) {
+			throw new Error(`Color index ${colorIndex} out of range`);
+		}
+		// Validate the hex string
+		const validated = normalizePalette([hex]);
+		palette[colorIndex] = validated[0];
+	}
+
+	/**
+	 * Live reference to color glyphs array.
+	 * @returns {object[]}
+	 */
+	get colorGlyphs() {
+		if (!this._data.colorGlyphs) this._data.colorGlyphs = [];
+		return this._data.colorGlyphs;
+	}
+
+	/**
+	 * Get color data for a glyph by name, code point, or hex string.
+	 * @param {string|number} id
+	 * @returns {object|undefined} The color glyph object, or undefined.
+	 */
+	getColorGlyph(id) {
+		const name = resolveGlyphId(this._data.glyphs, id);
+		if (!name) return undefined;
+		return this._data.colorGlyphs?.find((cg) => cg.name === name);
+	}
+
+	/**
+	 * Add color data for a glyph. Replaces existing color data for the same glyph.
+	 *
+	 * @param {object} input - Color glyph data with `name` and either `layers` or `paint`.
+	 */
+	addColorGlyph(input) {
+		const cg = createColorGlyph(input);
+		if (!this._data.colorGlyphs) this._data.colorGlyphs = [];
+
+		const existingIdx = this._data.colorGlyphs.findIndex(
+			(c) => c.name === cg.name,
+		);
+		if (existingIdx >= 0) {
+			this._data.colorGlyphs[existingIdx] = cg;
+		} else {
+			this._data.colorGlyphs.push(cg);
+		}
+	}
+
+	/**
+	 * Remove color data for a glyph.
+	 * @param {string|number} id - Glyph name, code point, or hex string.
+	 * @returns {boolean} True if color data was removed.
+	 */
+	removeColorGlyph(id) {
+		if (!this._data.colorGlyphs) return false;
+		const name = resolveGlyphId(this._data.glyphs, id);
+		if (!name) return false;
+		const idx = this._data.colorGlyphs.findIndex((cg) => cg.name === name);
+		if (idx < 0) return false;
+		this._data.colorGlyphs.splice(idx, 1);
+		if (this._data.colorGlyphs.length === 0) {
+			delete this._data.colorGlyphs;
+		}
+		return true;
+	}
+
+	/**
+	 * List all glyphs that have color data.
+	 * @returns {Array<{name: string, type: string}>}
+	 */
+	listColorGlyphs() {
+		return (this._data.colorGlyphs || []).map((cg) => ({
+			name: cg.name,
+			type: cg.layers ? 'layers' : 'paint',
+		}));
 	}
 
 	// ========================================================================

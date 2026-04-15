@@ -186,6 +186,8 @@ const buffer = font.export();
 | `.axes`          | Variable font axes (from fvar)                                                      |
 | `.instances`     | Named instances (from fvar)                                                         |
 | `.features`      | OpenType layout features (GPOS, GSUB, GDEF)                                         |
+| `.palettes`      | Color palettes (arrays of hex strings)                                              |
+| `.colorGlyphs`   | Color glyph data (COLR layers or paint trees)                                       |
 | `.tables`        | All parsed tables (for advanced/lossless access)                                    |
 | `.glyphCount`    | Number of glyphs                                                                    |
 | `.format`        | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                              |
@@ -241,6 +243,19 @@ const buffer = font.export();
 | `.clearSubstitutions()`               | Remove all substitutions                                         |
 
 See [Creating Substitutions](https://www.glyphrstudio.com/fontfluxjs/creating-substitutions) for a full guide with examples.
+
+### Color font methods
+
+| Method                                        | Description                                |
+| --------------------------------------------- | ------------------------------------------ |
+| `.getPalette(index)`                          | Get a palette by index                     |
+| `.addPalette(colors)`                         | Add a palette (array of hex strings)       |
+| `.removePalette(index)`                       | Remove a palette                           |
+| `.setPaletteColor(paletteIdx, colorIdx, hex)` | Update one color in a palette              |
+| `.getColorGlyph(id)`                          | Get color data for a glyph                 |
+| `.addColorGlyph(input)`                       | Add color layers or paint tree for a glyph |
+| `.removeColorGlyph(id)`                       | Remove color data for a glyph              |
+| `.listColorGlyphs()`                          | List all glyphs with color data            |
 
 ### Feature & hinting methods
 

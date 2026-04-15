@@ -6,8 +6,13 @@
  * and produces the table-by-table structure that export.js can encode to binary.
  */
 
-import { compileCharString } from './otf/charstring_compiler.js';
+import {
+	buildNameToGlyphIdMap,
+	hexToBGRA,
+	resolvePaintGlyphNames,
+} from './color.js';
 import { resolveGlyphId } from './glyph.js';
+import { compileCharString } from './otf/charstring_compiler.js';
 import { isoToLongdatetime } from './simplify.js';
 
 // ===========================================================================
@@ -128,7 +133,10 @@ export function buildRawFromSimplified(simplified) {
 			simplified._rawGSUBLookups || [],
 			glyphs,
 		);
-	} else if (simplified._rawGSUBLookups && simplified._rawGSUBLookups.length > 0) {
+	} else if (
+		simplified._rawGSUBLookups &&
+		simplified._rawGSUBLookups.length > 0
+	) {
 		// Only raw lookups, no simplified substitutions — rebuild minimal GSUB
 		tables.GSUB = buildGSUBFromRawLookups(simplified._rawGSUBLookups);
 	}
@@ -136,6 +144,14 @@ export function buildRawFromSimplified(simplified) {
 	// Legacy: if features.GSUB is set directly (e.g. setFeatures), use it
 	if (simplified.features?.GSUB && !tables.GSUB) {
 		tables.GSUB = simplified.features.GSUB;
+	}
+
+	// -- Color font tables (CPAL + COLR from simplified) ----------------
+	if (simplified.palettes && simplified.palettes.length > 0) {
+		tables.CPAL = buildCPALFromPalettes(simplified.palettes);
+	}
+	if (simplified.colorGlyphs && simplified.colorGlyphs.length > 0) {
+		tables.COLR = buildCOLRFromColorGlyphs(simplified.colorGlyphs, glyphs);
 	}
 
 	// -- Passthrough tables (carried from import, not decomposed) -----
@@ -1755,7 +1771,10 @@ function buildGSUBFromSubstitutions(substitutions, rawLookups, glyphs) {
 		lookups.push(lookup);
 
 		if (!featureMap.has(featureTag)) {
-			featureMap.set(featureTag, { lookupIndices: new Set(), scripts: new Map() });
+			featureMap.set(featureTag, {
+				lookupIndices: new Set(),
+				scripts: new Map(),
+			});
 		}
 		const featureEntry = featureMap.get(featureTag);
 		featureEntry.lookupIndices.add(lookupIndex);
@@ -1764,7 +1783,9 @@ function buildGSUBFromSubstitutions(substitutions, rawLookups, glyphs) {
 		// If rules have allScripts (from the deduplication pass),
 		// use that to get ALL original script/language associations.
 		for (const rule of rules) {
-			const scriptEntries = rule.allScripts || [{ script: rule.script, language: rule.language }];
+			const scriptEntries = rule.allScripts || [
+				{ script: rule.script, language: rule.language },
+			];
 			for (const entry of scriptEntries) {
 				const script = entry.script || 'DFLT';
 				const language = entry.language || null;
@@ -1818,7 +1839,9 @@ function buildGSUBFromSubstitutions(substitutions, rawLookups, glyphs) {
 			featureTag,
 			feature: {
 				featureParamsOffset: 0,
-				lookupListIndices: Array.from(entry.lookupIndices).sort((a, b) => a - b),
+				lookupListIndices: Array.from(entry.lookupIndices).sort(
+					(a, b) => a - b,
+				),
 			},
 		});
 	}
@@ -1941,7 +1964,9 @@ function buildGSUBFromRawLookups(rawLookups) {
 			featureTag,
 			feature: {
 				featureParamsOffset: 0,
-				lookupListIndices: Array.from(entry.lookupIndices).sort((a, b) => a - b),
+				lookupListIndices: Array.from(entry.lookupIndices).sort(
+					(a, b) => a - b,
+				),
 			},
 		});
 	}
@@ -2314,4 +2339,111 @@ function remapSeqLookupRecords(records, indexRemap) {
 			rec.lookupListIndex = newIdx;
 		}
 	}
+}
+
+// ===========================================================================
+//  COLOR FONT TABLE BUILDERS
+// ===========================================================================
+
+/**
+ * Build a CPAL table from simplified palettes (arrays of hex strings).
+ *
+ * @param {string[][]} palettes - Array of palettes, each an array of hex strings.
+ * @returns {object} Parsed CPAL table object.
+ */
+function buildCPALFromPalettes(palettes) {
+	if (!palettes || palettes.length === 0) return null;
+
+	const numPaletteEntries = palettes[0].length;
+
+	const cpalPalettes = palettes.map((palette) =>
+		palette.map((hex) => hexToBGRA(hex)),
+	);
+
+	return {
+		version: 0,
+		numPaletteEntries,
+		palettes: cpalPalettes,
+	};
+}
+
+/**
+ * Build a COLR table from simplified color glyphs.
+ *
+ * If all color glyphs use `layers` (no `paint`), produces COLR v0.
+ * If any use `paint`, produces COLR v1.
+ *
+ * @param {object[]} colorGlyphs - Simplified color glyph array.
+ * @param {object[]} glyphs - Full glyph array for name→index resolution.
+ * @returns {object} Parsed COLR table object.
+ */
+function buildCOLRFromColorGlyphs(colorGlyphs, glyphs) {
+	if (!colorGlyphs || colorGlyphs.length === 0) return null;
+
+	const nameToId = buildNameToGlyphIdMap(glyphs);
+	const resolveId = (name) => nameToId.get(name) ?? 0;
+
+	const hasV1 = colorGlyphs.some((cg) => cg.paint);
+
+	// Build v0 records from entries that have layers
+	const v0Entries = colorGlyphs.filter((cg) => cg.layers);
+	const baseGlyphRecords = [];
+	const layerRecords = [];
+
+	// Sort v0 entries by glyph ID for binary search compatibility
+	const sortedV0 = v0Entries
+		.map((cg) => ({ ...cg, glyphID: resolveId(cg.name) }))
+		.sort((a, b) => a.glyphID - b.glyphID);
+
+	for (const entry of sortedV0) {
+		const firstLayerIndex = layerRecords.length;
+		for (const layer of entry.layers) {
+			layerRecords.push({
+				glyphID: resolveId(layer.glyph),
+				paletteIndex: layer.paletteIndex,
+			});
+		}
+		baseGlyphRecords.push({
+			glyphID: entry.glyphID,
+			firstLayerIndex,
+			numLayers: entry.layers.length,
+		});
+	}
+
+	if (!hasV1) {
+		return {
+			version: 0,
+			baseGlyphRecords,
+			layerRecords,
+		};
+	}
+
+	// Build v1 paint records
+	const v1Entries = colorGlyphs.filter((cg) => cg.paint);
+	const baseGlyphPaintRecords = [];
+
+	// Sort v1 entries by glyph ID
+	const sortedV1 = v1Entries
+		.map((cg) => ({ ...cg, glyphID: resolveId(cg.name) }))
+		.sort((a, b) => a.glyphID - b.glyphID);
+
+	for (const entry of sortedV1) {
+		const paint = structuredClone(entry.paint);
+		resolvePaintGlyphNames(paint, nameToId);
+		baseGlyphPaintRecords.push({
+			glyphID: entry.glyphID,
+			paint,
+		});
+	}
+
+	return {
+		version: 1,
+		baseGlyphRecords,
+		layerRecords,
+		baseGlyphPaintRecords,
+		layerPaints: [],
+		clipList: null,
+		varIndexMap: null,
+		itemVariationStore: null,
+	};
 }

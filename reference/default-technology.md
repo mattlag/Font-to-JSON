@@ -101,13 +101,13 @@ These defaults apply to **Scenario 2** (author from scratch). For **Scenario 1**
 
 ---
 
-### 6. Color Fonts: COLRv1 + CPAL (Recommended)
+### 6. Color Fonts: COLRv0/v1 + CPAL
 
 **Default**: No color tables are auto-generated (color is always an explicit user choice).
 
-**Recommendation**: COLRv1 (layered vector color with gradients/transforms) + CPAL (color palette).
+**Recommendation**: COLRv0 (simple layer stacking) for straightforward use cases, COLRv1 (paint trees with gradients/transforms) for advanced rendering. Both use CPAL (color palette).
 
-**Alternatives**: COLRv0 (simple layer stacking), SVG table, sbix (Apple bitmap), CBDT/CBLC (Google bitmap), EBDT/EBLC (legacy bitmap)
+**Alternatives**: SVG table, sbix (Apple bitmap), CBDT/CBLC (Google bitmap), EBDT/EBLC (legacy bitmap)
 
 **Rationale**:
 
@@ -116,6 +116,10 @@ These defaults apply to **Scenario 2** (author from scratch). For **Scenario 1**
 - Supported by all major browsers and operating systems.
 - Much smaller file size than SVG or bitmap approaches.
 - The SVG table is being de-emphasized in favor of COLRv1.
+
+**Where implemented**: `src/color.js` (helpers), `src/simplify.js` (extractPalettes/extractColorGlyphs), `src/expand.js` (buildCPALFromPalettes/buildCOLRFromColorGlyphs), `src/font_flux.js` (API methods).
+
+**User API**: `addPalette()`, `addColorGlyph()`, `getPalette()`, `getColorGlyph()`, `removePalette()`, `removeColorGlyph()`, `setPaletteColor()`, `listColorGlyphs()`.
 
 ---
 
@@ -198,16 +202,16 @@ These defaults apply to **Scenario 2** (author from scratch). For **Scenario 1**
 
 ## Summary Table
 
-| Decision          | Default                     | Key Reason                                |
-| ----------------- | --------------------------- | ----------------------------------------- |
-| Outline format    | TrueType (`glyf`)           | Universal compat, Google Fonts standard   |
-| Kerning           | GPOS `kern` feature         | OpenType spec recommends, required for VF |
-| Character mapping | cmap Format 4 + 12          | Spec recommendation, auto-selected        |
-| Variable fonts    | fvar + gvar + STAT          | Most supported VF stack                   |
-| Substitutions     | GSUB + standard tags        | Only modern mechanism                     |
-| Color fonts       | COLRv1 + CPAL (recommended) | Modern vector color, broad support        |
-| Hinting           | Unhinted + gasp             | Modern rasterizers auto-hint well         |
-| post table        | Format 2.0                  | Glyph names for interop                   |
-| OS/2              | v4 + USE_TYPO_METRICS       | Consistent line spacing                   |
-| name platforms    | Windows + Mac + Unicode     | Max compatibility                         |
-| File format       | SFNT (.ttf)                 | Universal, can wrap later                 |
+| Decision          | Default                 | Key Reason                                |
+| ----------------- | ----------------------- | ----------------------------------------- |
+| Outline format    | TrueType (`glyf`)       | Universal compat, Google Fonts standard   |
+| Kerning           | GPOS `kern` feature     | OpenType spec recommends, required for VF |
+| Character mapping | cmap Format 4 + 12      | Spec recommendation, auto-selected        |
+| Variable fonts    | fvar + gvar + STAT      | Most supported VF stack                   |
+| Substitutions     | GSUB + standard tags    | Only modern mechanism                     |
+| Color fonts       | COLRv0/v1 + CPAL        | Modern vector color, full API             |
+| Hinting           | Unhinted + gasp         | Modern rasterizers auto-hint well         |
+| post table        | Format 2.0              | Glyph names for interop                   |
+| OS/2              | v4 + USE_TYPO_METRICS   | Consistent line spacing                   |
+| name platforms    | Windows + Mac + Unicode | Max compatibility                         |
+| File format       | SFNT (.ttf)             | Universal, can wrap later                 |

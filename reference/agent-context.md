@@ -25,7 +25,7 @@ This project is a JavaScript library that converts binary font files (OTF, TTF, 
   - `src/font_flux.js` — The `FontFlux` class (v2 public API wrapper)
   - `src/import.js` / `src/export.js` — Core pipeline + parser/writer registries
   - `src/simplify.js` — Raw tables → simplified object; `src/expand.js` — simplified → raw tables
-  - `src/glyph.js` / `src/kerning.js` / `src/substitution.js` / `src/json.js` / `src/svg_path.js` — Helpers
+  - `src/glyph.js` / `src/kerning.js` / `src/substitution.js` / `src/color.js` / `src/json.js` / `src/svg_path.js` — Helpers
   - `src/sfnt/` — Shared table parsers (cmap, head, GPOS, COLR, etc.)
   - `src/otf/` — CFF/CFF2-specific (table*CFF.js, table_CFF2.js, cff_common.js, charstring*\*.js)
   - `src/ttf/` — TrueType-specific (glyf, loca, gvar, cvt, fpgm, prep, gasp, cvar)

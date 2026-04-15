@@ -36,6 +36,10 @@ const buffer = font.export();
 
 See the [Creating Glyphs](./creating-glyphs.md) guide for a detailed reference on glyph metadata, outline formats (SVG path, CFF/PostScript, TrueType), and common patterns like `.notdef`, space, and composite glyphs.
 
+## Adding color
+
+See the [Creating Color Fonts](./creating-color-fonts.md) guide for palette management, COLRv0 layer stacking, and COLRv1 paint trees.
+
 ## Shared workflow
 
 1. Create a font with `FontFlux.create()` or open an existing one with `FontFlux.open()`.

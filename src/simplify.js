@@ -8,6 +8,11 @@
  */
 
 import {
+	bgraToHex,
+	buildGlyphIdToNameMap,
+	resolvePaintGlyphIds,
+} from './color.js';
+import {
 	disassembleCharString,
 	interpretCharString,
 } from './otf/charstring_interpreter.js';
@@ -43,6 +48,8 @@ export const DECOMPOSED_TABLES = new Set([
 	'cvt ',
 	'fpgm',
 	'prep',
+	'COLR',
+	'CPAL',
 ]);
 
 /**
@@ -111,6 +118,16 @@ export function buildSimplified(raw) {
 	}
 	if (tables.prep && !tables.prep._raw && tables.prep.instructions) {
 		result.prep = tables.prep.instructions;
+	}
+
+	// Color font data (CPAL palettes + COLR color glyphs)
+	const palettes = extractPalettes(tables);
+	if (palettes) {
+		result.palettes = palettes;
+	}
+	const colorGlyphs = extractColorGlyphs(tables, glyphs);
+	if (colorGlyphs && colorGlyphs.length > 0) {
+		result.colorGlyphs = colorGlyphs;
 	}
 
 	// Store ALL original parsed tables for lossless round-trip export.
@@ -1296,4 +1313,80 @@ function extractReverseChainSubst(st, glyphs, base, rules) {
 			),
 		});
 	}
+}
+
+// ===========================================================================
+//  COLOR FONTS — CPAL / COLR
+// ===========================================================================
+
+/**
+ * Extract simplified palettes from the CPAL table.
+ * Returns an array of palettes, each palette an array of hex color strings.
+ *
+ * @param {object} tables
+ * @returns {string[][]|null}
+ */
+function extractPalettes(tables) {
+	const cpal = tables.CPAL;
+	if (!cpal || cpal._raw || !cpal.palettes) return null;
+
+	return cpal.palettes.map((palette) =>
+		palette.map((color) => bgraToHex(color)),
+	);
+}
+
+/**
+ * Extract simplified color glyphs from the COLR table.
+ * Resolves glyphIDs to glyph names.
+ *
+ * @param {object} tables
+ * @param {object[]} glyphs - Simplified glyph array.
+ * @returns {object[]|null}
+ */
+function extractColorGlyphs(tables, glyphs) {
+	const colr = tables.COLR;
+	if (!colr || colr._raw) return null;
+
+	const idToName = buildGlyphIdToNameMap(glyphs);
+	const results = [];
+
+	// v0 base glyph records → simplified layers
+	if (colr.baseGlyphRecords) {
+		for (const rec of colr.baseGlyphRecords) {
+			const name = idToName.get(rec.glyphID) ?? String(rec.glyphID);
+			const layers = [];
+			for (let i = 0; i < rec.numLayers; i++) {
+				const layer = colr.layerRecords[rec.firstLayerIndex + i];
+				if (layer) {
+					layers.push({
+						glyph: idToName.get(layer.glyphID) ?? String(layer.glyphID),
+						paletteIndex: layer.paletteIndex,
+					});
+				}
+			}
+			results.push({ name, layers });
+		}
+	}
+
+	// v1 base glyph paint records → simplified with paint tree
+	if (colr.baseGlyphPaintRecords) {
+		for (const rec of colr.baseGlyphPaintRecords) {
+			const name = idToName.get(rec.glyphID) ?? String(rec.glyphID);
+			// Check if this glyph was already added from v0 records
+			const existingIdx = results.findIndex((r) => r.name === name);
+
+			// Deep clone the paint tree so we don't mutate the original table
+			const paint = structuredClone(rec.paint);
+			resolvePaintGlyphIds(paint, idToName);
+
+			if (existingIdx >= 0) {
+				// Merge: add paint alongside existing v0 layers
+				results[existingIdx].paint = paint;
+			} else {
+				results.push({ name, paint });
+			}
+		}
+	}
+
+	return results;
 }
