@@ -6,6 +6,8 @@ Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries
 
 Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'd love to hear from you: mail@glyphrstudio.com
 
+Version **{{ $params.version }}** — Generated {{ $params.buildDate }}.
+
 ## Get Started
 
 Learn the basics of Font Flux JS and how to create fonts from scratch.

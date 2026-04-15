@@ -1,4 +1,9 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitepress';
+
+const pkg = JSON.parse(
+	readFileSync(new URL('../../package.json', import.meta.url), 'utf-8'),
+);
 
 export default defineConfig({
 	title: 'Font Flux JS Docs',
@@ -23,7 +28,7 @@ export default defineConfig({
 		nav: [
 			{ text: 'Home', link: '/' },
 			{ text: 'Creating Fonts', link: '/creating-fonts' },
-			{ text: 'Validation', link: '/guide/validation' },
+			{ text: 'Validation', link: '/validation' },
 			{ text: 'Tables', link: '/tables/' },
 		],
 		sidebar: [
@@ -54,5 +59,18 @@ export default defineConfig({
 				],
 			},
 		],
+	},
+	transformPageData(pageData) {
+		if (pageData.relativePath === 'index.md') {
+			pageData.params = {
+				...pageData.params,
+				version: pkg.version,
+				buildDate: new Date().toLocaleDateString('en-US', {
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+				}),
+			};
+		}
 	},
 });
