@@ -84,4 +84,4 @@ const woff2 = font.export({ format: 'woff2' }); // WOFF 2.0 (Brotli)
 
 Fonts opened from WOFF or WOFF2 files re-export to their original format by default. Use `format: 'sfnt'` to force raw SFNT output.
 
-See [Validation guide](./guide/validation.md) and [All table references](./tables/index.md).
+See [Validation guide](./validation.md) and [All table references](./tables/index.md).

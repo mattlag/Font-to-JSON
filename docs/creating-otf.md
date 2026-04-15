@@ -119,7 +119,7 @@ CFF outlines produce `C` (cubic) SVG commands. The round-trip is lossless for cu
 For a complete guide to hand-authoring glyph data — including `.addGlyph()`, all outline formats, metadata reference, and examples — see [Creating Glyphs](./creating-glyphs.md).
 
 - Keep required metrics tables (`head`, `hhea`, `hmtx`, `maxp`) consistent with your outline and glyph count.
-- Validate early with [`.validate()`](./guide/validation.md).
+- Validate early with [`.validate()`](./validation.md).
 
 ## Creating an OTC (OpenType Collection)
 
@@ -156,4 +156,4 @@ Each entry in `fonts[]` is validated as a normal single font — it needs the sa
 
 - `collection.numFonts` should match `fonts.length`.
 - Faces in a collection can mix CFF v1 and CFF v2 as long as each face is internally valid.
-- Validate full collection JSON with [`.validate()`](./guide/validation.md) before export.
+- Validate full collection JSON with [`.validate()`](./validation.md) before export.

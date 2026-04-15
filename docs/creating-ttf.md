@@ -87,7 +87,7 @@ Outline requirement (both required):
 
 - `loca` must match `glyf` layout and `head.indexToLocFormat`.
 - If you use variable-font tables (`fvar`, `gvar`, `avar`, `HVAR`, `MVAR`, `VVAR`, `cvar`), keep axis and tuple assumptions consistent.
-- Validate early with [`.validate()`](./guide/validation.md).
+- Validate early with [`.validate()`](./validation.md).
 
 ## Working with TrueType outlines
 
@@ -164,4 +164,4 @@ Each entry in `fonts[]` is validated as a normal single font — it needs the sa
 ### Notes
 
 - `collection.numFonts` should match `fonts.length`.
-- Validate full collection JSON with [`.validate()`](./guide/validation.md) before export.
+- Validate full collection JSON with [`.validate()`](./validation.md) before export.

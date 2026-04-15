@@ -279,4 +279,4 @@ if (!report.valid) {
 }
 ```
 
-See the [Validation guide](./guide/validation.md) for details on what's checked.
+See the [Validation guide](./validation.md) for details on what's checked.

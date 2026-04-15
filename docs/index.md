@@ -6,23 +6,30 @@ Font Flux JS is a JavaScript library for parsing OpenType/TrueType font binaries
 
 Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'd love to hear from you: mail@glyphrstudio.com
 
-## What this docs site covers
+## Get Started
 
-- The `FontFlux` class API and how to use it.
-- How to validate before export.
-- What the internal font data structure looks like.
-- Table-by-table reference pages with JSON fragment examples, practical notes, and pitfalls.
+Learn the basics of Font Flux JS and how to create fonts from scratch.
 
-## Quick links
+- [Default Technology](./default-technology.md) — What format decisions Font Flux makes for you, and why.
+- [Creating Fonts](./creating-fonts.md) — Create a new font, set metadata, add glyphs, and export.
+- [Validation](./validation.md) — Check for structural issues before exporting.
 
-- [Validation guide](./guide/validation.md)
-- [Creating Fonts](./creating-fonts.md)
-- [Creating Glyphs](./creating-glyphs.md)
-- [Creating Kerning](./creating-kerning.md)
-- [Creating Substitutions (GSUB)](./creating-substitutions.md)
-- [Creating an OTF](./creating-otf.md)
-- [Creating a TTF](./creating-ttf.md)
-- [Table references](./tables/index.md)
+## Font Features
+
+Guides for adding specific font features to your fonts.
+
+- [Creating Glyphs](./creating-glyphs.md) — Glyph metadata, outline formats, and SVG path conversion.
+- [Creating Kerning](./creating-kerning.md) — Add pair-based kerning adjustments.
+- [Creating Substitutions](./creating-substitutions.md) — Ligatures, alternates, small caps, and other GSUB rules.
+- [Creating Color Fonts](./creating-color-fonts.md) — Palettes and color glyphs using COLR/CPAL.
+
+## Reference
+
+Low-level format details and table-by-table documentation.
+
+- [Creating an OTF](./creating-otf.md) — CFF-specific outline details and export options.
+- [Creating a TTF](./creating-ttf.md) — TrueType-specific outline details and export options.
+- [All Tables](./tables/index.md) — Table-by-table reference with JSON examples, notes, and pitfalls.
 
 ## API
 

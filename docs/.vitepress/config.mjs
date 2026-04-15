@@ -28,20 +28,30 @@ export default defineConfig({
 		],
 		sidebar: [
 			{
-				text: 'Guide',
+				text: 'Get Started',
 				items: [
 					{ text: 'Overview', link: '/' },
+					{ text: 'Default Technology', link: '/default-technology' },
 					{ text: 'Creating Fonts', link: '/creating-fonts' },
-					{ text: 'Creating Glyphs', link: '/creating-glyphs' },
-					{ text: 'Creating Kerning', link: '/creating-kerning' },
-					{ text: 'Creating an OTF', link: '/creating-otf' },
-					{ text: 'Creating a TTF', link: '/creating-ttf' },
-					{ text: 'Validation', link: '/guide/validation' },
+					{ text: 'Validation', link: '/validation' },
 				],
 			},
 			{
-				text: 'Table References',
-				items: [{ text: 'All Tables', link: '/tables/' }],
+				text: 'Font Features',
+				items: [
+					{ text: 'Creating Glyphs', link: '/creating-glyphs' },
+					{ text: 'Creating Kerning', link: '/creating-kerning' },
+					{ text: 'Creating Substitutions', link: '/creating-substitutions' },
+					{ text: 'Creating Color Fonts', link: '/creating-color-fonts' },
+				],
+			},
+			{
+				text: 'Reference',
+				items: [
+					{ text: 'Creating an OTF', link: '/creating-otf' },
+					{ text: 'Creating a TTF', link: '/creating-ttf' },
+					{ text: 'All Tables', link: '/tables/' },
+				],
 			},
 		],
 	},

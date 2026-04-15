@@ -445,4 +445,4 @@ if (report.valid) {
 }
 ```
 
-See the [Validation guide](./guide/validation.md) for details on what's checked and auto-fixed.
+See the [Validation guide](./validation.md) for details on what's checked and auto-fixed.
