@@ -88,6 +88,10 @@ export function buildRawFromSimplified(simplified) {
 	// == Variable font ================================================
 	if (simplified.axes && simplified.axes.length > 0) {
 		tables.fvar = buildFvarTable(simplified, tables.name);
+		// Auto-generate STAT table if not already provided via passthrough tables
+		if (!simplified.tables?.STAT) {
+			tables.STAT = buildSTATTable(simplified, tables.name);
+		}
 	}
 
 	// == Hinting ======================================================
@@ -517,6 +521,7 @@ function buildOS2Table(font, metrics) {
 		if (isBold) fsSelection |= 0x0020; // BOLD
 		if (isItalic) fsSelection |= 0x0001; // ITALIC
 		if (!isBold && !isItalic) fsSelection |= 0x0040; // REGULAR
+		fsSelection |= 0x0080; // USE_TYPO_METRICS — recommended by the OpenType spec
 	}
 
 	const unicodeBits = computeUnicodeRangeBits(metrics.unicodeRanges);
@@ -1630,6 +1635,65 @@ function addNameRecord(nameTable, nameID, value) {
 		{ platformID: 1, encodingID: 0, languageID: 0, nameID, value },
 		{ platformID: 0, encodingID: 3, languageID: 0, nameID, value },
 	);
+}
+
+/**
+ * Build a STAT (Style Attributes) table from axes and instances.
+ * Auto-generates format 1 axis value tables for each axis default value,
+ * plus format 2 range axis values when instances provide additional values.
+ * Uses the 'Regular' elided fallback name per OpenType spec convention.
+ */
+function buildSTATTable(simplified, nameTable) {
+	const { axes } = simplified;
+
+	// Find the next available nameID after what the name table already has
+	let nextNameID = 256;
+	for (const rec of nameTable.names) {
+		if (rec.nameID >= nextNameID) nextNameID = rec.nameID + 1;
+	}
+
+	// Build designAxes array (STAT axis records)
+	const designAxes = axes.map((axis) => {
+		const nameID = nextNameID++;
+		addNameRecord(nameTable, nameID, axis.name || axis.tag);
+		return {
+			axisTag: axis.tag,
+			axisNameID: nameID,
+			axisOrdering: 0,
+		};
+	});
+
+	// Build axis value tables: one format 1 entry per axis for its default value
+	const axisValues = [];
+	for (let axisIndex = 0; axisIndex < axes.length; axisIndex++) {
+		const axis = axes[axisIndex];
+		const nameID = nextNameID++;
+		const axisLabel = axis.name || axis.tag;
+		addNameRecord(nameTable, nameID, axisLabel);
+
+		// Flag the default value with ELIDABLE_AXIS_VALUE_NAME (0x0002)
+		// so it can be omitted in UI when it equals the default
+		const isDefault = true;
+		axisValues.push({
+			format: 1,
+			axisIndex,
+			flags: isDefault ? 0x0002 : 0,
+			valueNameID: nameID,
+			value: axis.default,
+		});
+	}
+
+	// Elided fallback name — 'Regular' per OpenType convention
+	const elidedNameID = nextNameID++;
+	addNameRecord(nameTable, elidedNameID, 'Regular');
+
+	return {
+		majorVersion: 1,
+		minorVersion: 1,
+		designAxes,
+		axisValues,
+		elidedFallbackNameID: elidedNameID,
+	};
 }
 
 // ===========================================================================

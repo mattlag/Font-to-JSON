@@ -20,7 +20,8 @@ import { svgPathToContours } from './svg_path.js';
  *   - `components` — Composite glyph references (no outlines needed)
  *
  * The `format` option controls whether CFF or TrueType contours are produced
- * when converting from SVG path input. If omitted, it defaults to 'cff'.
+ * when converting from SVG path input. If omitted, it defaults to 'truetype'
+ * (TrueType quadratic outlines), which is the recommended format for new fonts.
  *
  * @param {object} options
  * @param {string} options.name - Glyph name (e.g. 'A', 'space', '.notdef')
@@ -35,7 +36,7 @@ import { svgPathToContours } from './svg_path.js';
  * @param {number[]} [options.charString] - Raw CFF charstring bytes
  * @param {Array} [options.components] - Composite glyph components
  * @param {number[]} [options.instructions] - TrueType instructions (bytecode)
- * @param {'cff'|'truetype'} [options.format='cff'] - Contour format for SVG path conversion
+ * @param {'cff'|'truetype'} [options.format='truetype'] - Contour format for SVG path conversion
  * @returns {object} A glyph object ready for use in font.glyphs[]
  */
 export function createGlyph(options) {
@@ -56,7 +57,7 @@ export function createGlyph(options) {
 		charString,
 		components,
 		instructions,
-		format = 'cff',
+		format = 'truetype',
 	} = options;
 
 	if (name === undefined || name === null) {

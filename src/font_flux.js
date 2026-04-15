@@ -105,6 +105,9 @@ export class FontFlux {
 				},
 			],
 			kerning: [],
+			// Default gasp table: enable symmetric smoothing at all sizes.
+			// Optimal for unhinted fonts — tells rasterizers to use anti-aliasing.
+			gasp: [{ maxPPEM: 0xffff, behavior: 0x000a }],
 		};
 
 		return new FontFlux(data);

@@ -108,7 +108,7 @@ describe('createGlyph: metadata', () => {
 describe('createGlyph: SVG path input', () => {
 	const trianglePath = 'M 100 0 L 500 700 L 300 0 Z';
 
-	it('should convert SVG path to CFF contours (default format)', () => {
+	it('should convert SVG path to TrueType contours (default format)', () => {
 		const g = createGlyph({
 			name: 'triangle',
 			advanceWidth: 600,
@@ -118,10 +118,12 @@ describe('createGlyph: SVG path input', () => {
 
 		expect(g.contours).toBeDefined();
 		expect(g.contours.length).toBeGreaterThan(0);
-		// CFF contours have .type property
-		expect(g.contours[0][0].type).toBe('M');
+		// TrueType contours have onCurve property (not .type)
+		expect(g.contours[0][0].onCurve).toBe(true);
 		expect(g.contours[0][0].x).toBe(100);
 		expect(g.contours[0][0].y).toBe(0);
+		// No charString for TrueType default
+		expect(g.charString).toBeUndefined();
 	});
 
 	it('should auto-compile charString bytes for CFF path', () => {
