@@ -1,6 +1,6 @@
 {
 	"name": "font-flux-js",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"description": "Convert fonts to JSON, make edits, then convert them back!",
 	"main": "dist/font-flux-js.js",
 	"type": "module",

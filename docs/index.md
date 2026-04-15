@@ -45,18 +45,18 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 
 ### Instance properties (live references)
 
-| Property      | Description                                                                      |
-| ------------- | -------------------------------------------------------------------------------- |
-| `.info`       | Font metadata object (`familyName`, `styleName`, `unitsPerEm`, `ascender`, etc.) |
-| `.glyphs`     | Array of glyph objects (`name`, `unicode`, `advanceWidth`, `contours`, ...)      |
-| `.kerning`    | Array of kerning pairs `{ left, right, value }`                                  |
-| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)     |
-| `.axes`       | Variable font axes (from fvar)                                                   |
-| `.instances`  | Named instances (from fvar)                                                      |
-| `.features`   | OpenType layout features (GPOS, GSUB, GDEF)                                      |
-| `.tables`     | All parsed tables (for advanced/lossless access)                                 |
-| `.glyphCount` | Number of glyphs                                                                 |
-| `.format`     | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                           |
+| Property         | Description                                                                      |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `.info`          | Font metadata object (`familyName`, `styleName`, `unitsPerEm`, `ascender`, etc.) |
+| `.glyphs`        | Array of glyph objects (`name`, `unicode`, `advanceWidth`, `contours`, ...)      |
+| `.kerning`       | Array of kerning pairs `{ left, right, value }`                                  |
+| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)       |
+| `.axes`          | Variable font axes (from fvar)                                                   |
+| `.instances`     | Named instances (from fvar)                                                      |
+| `.features`      | OpenType layout features (GPOS, GSUB, GDEF)                                      |
+| `.tables`        | All parsed tables (for advanced/lossless access)                                 |
+| `.glyphCount`    | Number of glyphs                                                                 |
+| `.format`        | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                           |
 
 ### Glyph methods
 
@@ -87,13 +87,13 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 
 ### Substitution methods (GSUB)
 
-| Method                                | Description                                                    |
-| ------------------------------------- | -------------------------------------------------------------- |
-| `.listSubstitutions(filter?)`          | List all substitution rules, optionally filtered by type/feature |
-| `.getSubstitution(glyphId, options?)`  | Find substitution rules for a specific glyph                   |
-| `.addSubstitution(input)`              | Add substitution rule(s) from flexible input format            |
-| `.removeSubstitution(filter)`          | Remove rules matching a filter                                 |
-| `.clearSubstitutions()`                | Remove all substitutions                                       |
+| Method                                | Description                                                      |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `.listSubstitutions(filter?)`         | List all substitution rules, optionally filtered by type/feature |
+| `.getSubstitution(glyphId, options?)` | Find substitution rules for a specific glyph                     |
+| `.addSubstitution(input)`             | Add substitution rule(s) from flexible input format              |
+| `.removeSubstitution(filter)`         | Remove rules matching a filter                                   |
+| `.clearSubstitutions()`               | Remove all substitutions                                         |
 
 ### Axis & instance methods
 
@@ -158,7 +158,12 @@ See the [README](https://github.com/mattlag/Font-Flux-JS#readme) for installatio
 	],
 	"kerning": [{ "left": "A", "right": "V", "value": -80 }],
 	"substitutions": [
-		{ "type": "ligature", "feature": "liga", "components": ["f", "i"], "ligature": "fi" }
+		{
+			"type": "ligature",
+			"feature": "liga",
+			"components": ["f", "i"],
+			"ligature": "fi"
+		}
 	],
 	"tables": {
 		"head": { "unitsPerEm": 1000, "...": "..." },

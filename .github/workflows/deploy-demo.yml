@@ -1,0 +1,66 @@
+# Deploy demo site to GitHub Pages on release
+#
+# Triggers when a GitHub Release is published.
+# Builds the demo + docs, then deploys demo/dist/ to GitHub Pages.
+#
+# Prerequisites:
+#   1. In repo Settings → Pages, set Source to "GitHub Actions"
+#   2. No other configuration needed
+
+name: Deploy Demo to GitHub Pages
+
+on:
+  release:
+    types: [published]
+
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+# Sets permissions for GITHUB_TOKEN to deploy to Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
+      - name: Build demo site + docs
+        run: npm run site:build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

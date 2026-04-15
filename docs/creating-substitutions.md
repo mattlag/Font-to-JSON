@@ -127,23 +127,23 @@ font.addSubstitution({
 
 The `feature` field determines when the substitution is applied. Here are the most common tags:
 
-| Feature | Description              | Typical type(s)        |
-| ------- | ------------------------ | ---------------------- |
-| `liga`  | Standard ligatures       | ligature               |
-| `dlig`  | Discretionary ligatures  | ligature               |
-| `smcp`  | Small capitals           | single                 |
-| `c2sc`  | Caps to small caps       | single                 |
-| `salt`  | Stylistic alternates     | alternate, single      |
-| `ss01`–`ss20` | Stylistic sets     | single                 |
-| `ccmp`  | Glyph composition/decomposition | multiple, ligature |
-| `calt`  | Contextual alternates    | single (via context)   |
-| `locl`  | Localized forms          | single                 |
-| `frac`  | Fractions                | single, ligature       |
-| `subs`  | Subscript                | single                 |
-| `sups`  | Superscript              | single                 |
-| `zero`  | Slashed zero             | single                 |
-| `onum`  | Oldstyle figures         | single                 |
-| `lnum`  | Lining figures           | single                 |
+| Feature       | Description                     | Typical type(s)      |
+| ------------- | ------------------------------- | -------------------- |
+| `liga`        | Standard ligatures              | ligature             |
+| `dlig`        | Discretionary ligatures         | ligature             |
+| `smcp`        | Small capitals                  | single               |
+| `c2sc`        | Caps to small caps              | single               |
+| `salt`        | Stylistic alternates            | alternate, single    |
+| `ss01`–`ss20` | Stylistic sets                  | single               |
+| `ccmp`        | Glyph composition/decomposition | multiple, ligature   |
+| `calt`        | Contextual alternates           | single (via context) |
+| `locl`        | Localized forms                 | single               |
+| `frac`        | Fractions                       | single, ligature     |
+| `subs`        | Subscript                       | single               |
+| `sups`        | Superscript                     | single               |
+| `zero`        | Slashed zero                    | single               |
+| `onum`        | Oldstyle figures                | single               |
+| `lnum`        | Lining figures                  | single               |
 
 ## Script and language
 
@@ -153,8 +153,8 @@ Each substitution rule has a `script` and `language` field that controls which w
 font.addSubstitution({
 	type: 'ligature',
 	feature: 'liga',
-	script: 'latn',          // Latin script
-	language: 'DEU ',         // German (4-char tag, space-padded)
+	script: 'latn', // Latin script
+	language: 'DEU ', // German (4-char tag, space-padded)
 	substitution: { components: ['c', 'h'], ligature: 'ch.de' },
 });
 ```
@@ -222,7 +222,15 @@ font.addSubstitution([
 	{
 		classes: {
 			lowercase: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-			lowercaseSmcp: ['a.smcp', 'b.smcp', 'c.smcp', 'd.smcp', 'e.smcp', 'f.smcp', 'g.smcp'],
+			lowercaseSmcp: [
+				'a.smcp',
+				'b.smcp',
+				'c.smcp',
+				'd.smcp',
+				'e.smcp',
+				'f.smcp',
+				'g.smcp',
+			],
 		},
 	},
 	{
@@ -272,9 +280,9 @@ font.getSubstitution('a', { type: 'single' });
 Glyph IDs accept names, numeric code points, or hex strings:
 
 ```js
-font.getSubstitution('a');        // by name
-font.getSubstitution(97);         // by code point
-font.getSubstitution('U+0061');   // by hex string
+font.getSubstitution('a'); // by name
+font.getSubstitution(97); // by code point
+font.getSubstitution('U+0061'); // by hex string
 ```
 
 ## Removing substitutions
@@ -382,6 +390,7 @@ const buffer = font.export();
 ```
 
 This produces a font with:
+
 - A working GSUB table with 3 lookup types across 3 features
 - Standard ligatures that activate automatically in browsers and apps
 - Small caps accessible via the `smcp` feature in design tools
@@ -395,7 +404,7 @@ import { FontFlux } from 'font-flux-js';
 const font = FontFlux.open(buffer);
 
 // Inspect existing substitutions
-console.log(font.substitutions.length);       // e.g. 340
+console.log(font.substitutions.length); // e.g. 340
 console.log(font.listSubstitutions({ type: 'ligature' }).length); // e.g. 28
 
 // Add new ligatures alongside existing ones

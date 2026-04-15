@@ -130,9 +130,29 @@ font.addGlyph({
 font.addKerning({ left: 'A', right: 'V', value: -50 });
 
 // Add ligatures (GSUB)
-font.addGlyph({ name: 'f', unicode: 102, advanceWidth: 300, contours: [/*...*/] });
-font.addGlyph({ name: 'i', unicode: 105, advanceWidth: 250, contours: [/*...*/] });
-font.addGlyph({ name: 'fi', advanceWidth: 550, contours: [/*...*/] });
+font.addGlyph({
+	name: 'f',
+	unicode: 102,
+	advanceWidth: 300,
+	contours: [
+		/*...*/
+	],
+});
+font.addGlyph({
+	name: 'i',
+	unicode: 105,
+	advanceWidth: 250,
+	contours: [
+		/*...*/
+	],
+});
+font.addGlyph({
+	name: 'fi',
+	advanceWidth: 550,
+	contours: [
+		/*...*/
+	],
+});
 font.addSubstitution({
 	type: 'ligature',
 	feature: 'liga',
@@ -157,18 +177,18 @@ const buffer = font.export();
 
 ### Instance properties (live references)
 
-| Property      | Description                                                                         |
-| ------------- | ----------------------------------------------------------------------------------- |
-| `.info`       | Font metadata object (familyName, styleName, unitsPerEm, ascender, descender, etc.) |
-| `.glyphs`     | Array of glyph objects (name, unicode, advanceWidth, contours, ...)                 |
-| `.kerning`    | Array of kerning pairs `{ left, right, value }`                                     |
-| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)        |
-| `.axes`       | Variable font axes (from fvar)                                                      |
-| `.instances`  | Named instances (from fvar)                                                         |
-| `.features`   | OpenType layout features (GPOS, GSUB, GDEF)                                         |
-| `.tables`     | All parsed tables (for advanced/lossless access)                                    |
-| `.glyphCount` | Number of glyphs                                                                    |
-| `.format`     | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                              |
+| Property         | Description                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| `.info`          | Font metadata object (familyName, styleName, unitsPerEm, ascender, descender, etc.) |
+| `.glyphs`        | Array of glyph objects (name, unicode, advanceWidth, contours, ...)                 |
+| `.kerning`       | Array of kerning pairs `{ left, right, value }`                                     |
+| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)          |
+| `.axes`          | Variable font axes (from fvar)                                                      |
+| `.instances`     | Named instances (from fvar)                                                         |
+| `.features`      | OpenType layout features (GPOS, GSUB, GDEF)                                         |
+| `.tables`        | All parsed tables (for advanced/lossless access)                                    |
+| `.glyphCount`    | Number of glyphs                                                                    |
+| `.format`        | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                              |
 
 ### Glyph methods
 
@@ -212,13 +232,13 @@ const buffer = font.export();
 
 ### Substitution methods (GSUB)
 
-| Method                       | Description                                              |
-| ---------------------------- | -------------------------------------------------------- |
-| `.listSubstitutions(filter?)` | List all substitution rules, optionally filtered by type/feature |
-| `.getSubstitution(glyphId, options?)` | Find substitution rules for a specific glyph    |
-| `.addSubstitution(input)`    | Add substitution rule(s) from flexible input format      |
-| `.removeSubstitution(filter)` | Remove rules matching a filter (type, feature, from, ligature) |
-| `.clearSubstitutions()`      | Remove all substitutions                                 |
+| Method                                | Description                                                      |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `.listSubstitutions(filter?)`         | List all substitution rules, optionally filtered by type/feature |
+| `.getSubstitution(glyphId, options?)` | Find substitution rules for a specific glyph                     |
+| `.addSubstitution(input)`             | Add substitution rule(s) from flexible input format              |
+| `.removeSubstitution(filter)`         | Remove rules matching a filter (type, feature, from, ligature)   |
+| `.clearSubstitutions()`               | Remove all substitutions                                         |
 
 See [Creating Substitutions](https://www.glyphrstudio.com/fontfluxjs/creating-substitutions) for a full guide with examples.
 
