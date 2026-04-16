@@ -2,6 +2,8 @@
 
 Use these guides when creating fonts with Font Flux JS.
 
+> **Variable fonts?** See [Creating Variable Fonts](./creating-variables.md) for axes, instances, axis mapping, axis styles, and metric variations.
+
 ## Quick start
 
 ```js

@@ -41,6 +41,9 @@ export const DECOMPOSED_TABLES = new Set([
 	'CFF ',
 	'kern',
 	'fvar',
+	'avar',
+	'STAT',
+	'MVAR',
 	'GPOS',
 	'GSUB',
 	'GDEF',
@@ -75,6 +78,24 @@ export function buildSimplified(raw) {
 	if (tables.fvar) {
 		result.axes = extractAxes(tables);
 		result.instances = extractInstances(tables);
+	}
+
+	// Variable font axis mapping (avar)
+	const axisMapping = extractAxisMapping(tables);
+	if (axisMapping) {
+		result.axisMapping = axisMapping;
+	}
+
+	// Variable font axis styles (STAT)
+	const axisStyles = extractAxisStyles(tables);
+	if (axisStyles) {
+		result.axisStyles = axisStyles;
+	}
+
+	// Variable font metric variations (MVAR)
+	const metricVariations = extractMetricVariations(tables);
+	if (metricVariations) {
+		result.metricVariations = metricVariations;
 	}
 
 	// GSUB substitutions — decompose types 1-4, 8 into simplified form
@@ -954,6 +975,224 @@ function extractInstances(tables) {
 		}
 		return instance;
 	});
+}
+
+/**
+ * MVAR value tag → human-readable metric name mapping.
+ * Spec: https://learn.microsoft.com/en-us/typography/opentype/spec/mvar
+ */
+const MVAR_TAG_NAMES = {
+	hasc: 'ascender',
+	hdsc: 'descender',
+	hlgp: 'lineGap',
+	hcla: 'caretSlopeRise',
+	hcld: 'caretSlopeRun',
+	hcof: 'caretOffset',
+	hcrn: 'hCaretRun',
+	hcrs: 'hCaretRise',
+	vasc: 'vAscender',
+	vdsc: 'vDescender',
+	vlgp: 'vLineGap',
+	xhgt: 'xHeight',
+	cpht: 'capHeight',
+	sbxs: 'subscriptXSize',
+	sbys: 'subscriptYSize',
+	sbxo: 'subscriptXOffset',
+	sbyo: 'subscriptYOffset',
+	spxs: 'superscriptXSize',
+	spys: 'superscriptYSize',
+	spxo: 'superscriptXOffset',
+	spyo: 'superscriptYOffset',
+	strs: 'strikeoutSize',
+	stro: 'strikeoutOffset',
+	unds: 'underlineSize',
+	undo: 'underlineOffset',
+	gsp0: 'gaspRange0',
+	gsp1: 'gaspRange1',
+	gsp2: 'gaspRange2',
+	gsp3: 'gaspRange3',
+	gsp4: 'gaspRange4',
+	gsp5: 'gaspRange5',
+	gsp6: 'gaspRange6',
+	gsp7: 'gaspRange7',
+	gsp8: 'gaspRange8',
+	gsp9: 'gaspRange9',
+};
+
+/** Reverse map: human metric name → MVAR tag. */
+const MVAR_NAME_TAGS = Object.fromEntries(
+	Object.entries(MVAR_TAG_NAMES).map(([tag, name]) => [name, tag]),
+);
+// Export for expand.js
+export { MVAR_NAME_TAGS };
+
+/**
+ * Extract axis coordinate mapping from the avar table.
+ * Returns an object keyed by axis tag with arrays of {from, to} pairs,
+ * or null if there is no avar data or axes to correlate with.
+ */
+function extractAxisMapping(tables) {
+	const avar = tables.avar;
+	const fvar = tables.fvar;
+	if (!avar || avar._raw || !avar.segmentMaps) return null;
+	if (!fvar || fvar._raw || !fvar.axes) return null;
+
+	const mapping = {};
+	const axes = fvar.axes;
+
+	for (let i = 0; i < avar.segmentMaps.length && i < axes.length; i++) {
+		const segMap = avar.segmentMaps[i];
+		if (!segMap.axisValueMaps || segMap.axisValueMaps.length === 0) continue;
+
+		// Skip identity mappings (only -1→-1, 0→0, 1→1)
+		const maps = segMap.axisValueMaps;
+		const isIdentity =
+			maps.length === 3 &&
+			maps[0].fromCoordinate === -1 &&
+			maps[0].toCoordinate === -1 &&
+			maps[1].fromCoordinate === 0 &&
+			maps[1].toCoordinate === 0 &&
+			maps[2].fromCoordinate === 1 &&
+			maps[2].toCoordinate === 1;
+		if (isIdentity) continue;
+
+		mapping[axes[i].axisTag] = maps.map((m) => ({
+			from: m.fromCoordinate,
+			to: m.toCoordinate,
+		}));
+	}
+
+	return Object.keys(mapping).length > 0 ? mapping : null;
+}
+
+/**
+ * Extract style attributes from the STAT table.
+ * Returns a simplified axisStyles object with designAxes info embedded,
+ * or null if there is no STAT table.
+ */
+function extractAxisStyles(tables) {
+	const stat = tables.STAT;
+	const fvar = tables.fvar;
+	if (!stat || stat._raw) return null;
+
+	// Build axis tag lookup from STAT designAxes
+	const statAxes = stat.designAxes || [];
+	const fvarAxes = fvar?.axes || [];
+
+	const result = {};
+
+	// Elided fallback name
+	if (stat.elidedFallbackNameID !== undefined) {
+		result.elidedFallbackName =
+			getBestName(tables.name, stat.elidedFallbackNameID) || 'Regular';
+	}
+
+	// Convert axis value tables to simplified form
+	if (stat.axisValues && stat.axisValues.length > 0) {
+		result.values = stat.axisValues.map((av) => {
+			const resolveAxisTag = (axisIndex) => {
+				// Prefer STAT designAxes, fallback to fvar
+				if (axisIndex < statAxes.length) return statAxes[axisIndex].axisTag;
+				if (axisIndex < fvarAxes.length) return fvarAxes[axisIndex].axisTag;
+				return `axis${axisIndex}`;
+			};
+
+			const name = getBestName(tables.name, av.valueNameID) || '';
+			const base = { name, flags: av.flags };
+
+			switch (av.format) {
+				case 1:
+					return {
+						...base,
+						axis: resolveAxisTag(av.axisIndex),
+						value: av.value,
+					};
+				case 2:
+					return {
+						...base,
+						axis: resolveAxisTag(av.axisIndex),
+						range: [av.rangeMinValue, av.nominalValue, av.rangeMaxValue],
+					};
+				case 3:
+					return {
+						...base,
+						axis: resolveAxisTag(av.axisIndex),
+						value: av.value,
+						linkedValue: av.linkedValue,
+					};
+				case 4: {
+					const values = {};
+					for (const entry of av.axisValues) {
+						values[resolveAxisTag(entry.axisIndex)] = entry.value;
+					}
+					return { ...base, values };
+				}
+				default:
+					// Preserve unknown formats as-is
+					return { ...base, _raw: av };
+			}
+		});
+	}
+
+	return result;
+}
+
+/**
+ * Extract metric variations from the MVAR table.
+ * Resolves the ItemVariationStore indirection into direct region→delta mappings.
+ * Returns null if there is no MVAR table or no variation data.
+ */
+function extractMetricVariations(tables) {
+	const mvar = tables.MVAR;
+	const fvar = tables.fvar;
+	if (!mvar || mvar._raw || !mvar.itemVariationStore) return null;
+	if (!fvar || fvar._raw || !fvar.axes) return null;
+
+	const ivs = mvar.itemVariationStore;
+	const regionList = ivs.variationRegionList;
+	const fvarAxes = fvar.axes;
+
+	// Build simplified regions: convert axis-indexed arrays to tag-keyed objects
+	const regions = regionList.regions.map((region) => {
+		const axes = {};
+		for (let a = 0; a < region.regionAxes.length && a < fvarAxes.length; a++) {
+			const ra = region.regionAxes[a];
+			// Skip axes with no influence (all zeros = neutral)
+			if (ra.startCoord === 0 && ra.peakCoord === 0 && ra.endCoord === 0) {
+				continue;
+			}
+			axes[fvarAxes[a].axisTag] = [ra.startCoord, ra.peakCoord, ra.endCoord];
+		}
+		return { axes };
+	});
+
+	// Resolve each value record's deltas through the IVS
+	const metrics = {};
+	for (const rec of mvar.valueRecords) {
+		const humanName = MVAR_TAG_NAMES[rec.valueTag] || rec.valueTag;
+		const outer = rec.deltaSetOuterIndex;
+		const inner = rec.deltaSetInnerIndex;
+
+		const ivd = ivs.itemVariationData[outer];
+		if (!ivd || inner >= ivd.deltaSets.length) continue;
+
+		const deltaRow = ivd.deltaSets[inner];
+		const deltas = [];
+		for (let r = 0; r < ivd.regionIndexes.length; r++) {
+			const delta = deltaRow[r];
+			if (delta !== 0) {
+				deltas.push({ region: ivd.regionIndexes[r], delta });
+			}
+		}
+
+		if (deltas.length > 0) {
+			metrics[humanName] = deltas;
+		}
+	}
+
+	if (Object.keys(metrics).length === 0) return null;
+
+	return { regions, metrics };
 }
 
 // ===========================================================================

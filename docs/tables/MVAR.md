@@ -2,6 +2,8 @@
 
 Provides variation deltas for global font metrics (ascender, descender, caret offset, etc.) in variable fonts.
 
+> **Simplified format:** See [Creating Variable Fonts](../creating-variables.md#metric-variations-mvar) for the human-friendly `metricVariations` format.
+
 ## Scope
 
 - Format family: Shared SFNT
@@ -18,17 +20,17 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ```json
 {
-  "tables": {
-    "MVAR": {
-      "majorVersion": 0,
-      "minorVersion": 0,
-      "reserved": 0,
-      "valueRecords": null,
-      "valueRecordSize": 0,
-      "itemVariationStore": null,
-      "_checksum": 0
-    }
-  }
+	"tables": {
+		"MVAR": {
+			"majorVersion": 0,
+			"minorVersion": 0,
+			"reserved": 0,
+			"valueRecords": null,
+			"valueRecordSize": 0,
+			"itemVariationStore": null,
+			"_checksum": 0
+		}
+	}
 }
 ```
 
@@ -40,10 +42,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `valueRecords` - implementation-defined
 - `valueRecordSize` - number (0..65535)
 - `itemVariationStore` - implementation-defined
-
-
-
-
 
 ## Additional Nested Keys Seen In Implementation
 

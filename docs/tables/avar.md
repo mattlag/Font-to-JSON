@@ -2,6 +2,8 @@
 
 Maps axis coordinates to modified values, enabling non-linear interpolation for variable fonts.
 
+> **Simplified format:** See [Creating Variable Fonts](../creating-variables.md#axis-mapping-avar) for the human-friendly `axisMapping` format.
+
 ## Scope
 
 - Format family: Shared SFNT
@@ -18,15 +20,15 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ```json
 {
-  "tables": {
-    "avar": {
-      "majorVersion": 0,
-      "minorVersion": 0,
-      "reserved": 0,
-      "segmentMaps": null,
-      "_checksum": 0
-    }
-  }
+	"tables": {
+		"avar": {
+			"majorVersion": 0,
+			"minorVersion": 0,
+			"reserved": 0,
+			"segmentMaps": null,
+			"_checksum": 0
+		}
+	}
 }
 ```
 
@@ -36,9 +38,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `minorVersion` - number (0..65535)
 - `reserved` - number (0..65535)
 - `segmentMaps` - implementation-defined
-
-
-
 
 ## Validation Constraints
 
@@ -70,8 +69,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 	}
 }
 ```
-
-
 
 ## Additional Nested Keys Seen In Implementation
 

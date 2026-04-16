@@ -12,7 +12,7 @@ Font Flux JS is part of the Glyphr Studio family. Any questions or feedback? We'
 
 # April 2026
 
-This is a fast-moving project with lots of breaking changes happening every day. **Do not depend on it for anything important**. V1 was incomplete but fairly stable, but we decided to go a completely different direction architecturally, so v2 exists, but it is in its early stages and may contain bugs or unexpected behavior.
+Actively adding exciting new features!
 
 ## Demo
 
@@ -162,9 +162,13 @@ font.addSubstitution({
 const buffer = font.export();
 ```
 
+When creating fonts from scratch, Font Flux JS automatically uses the most modern, compatible technologies (TrueType outlines, GPOS kerning, auto cmap, etc.). See [Default Technology Choices](https://www.glyphrstudio.com/fontfluxjs/default-technology) for details.
+
 ## FontFlux API
 
 ### Static factories
+
+See [Creating Fonts](https://www.glyphrstudio.com/fontfluxjs/creating-fonts) for a full guide with examples.
 
 | Method                                   | Description                                                                                 |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -177,22 +181,27 @@ const buffer = font.export();
 
 ### Instance properties (live references)
 
-| Property         | Description                                                                         |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| `.info`          | Font metadata object (familyName, styleName, unitsPerEm, ascender, descender, etc.) |
-| `.glyphs`        | Array of glyph objects (name, unicode, advanceWidth, contours, ...)                 |
-| `.kerning`       | Array of kerning pairs `{ left, right, value }`                                     |
-| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)          |
-| `.axes`          | Variable font axes (from fvar)                                                      |
-| `.instances`     | Named instances (from fvar)                                                         |
-| `.features`      | OpenType layout features (GPOS, GSUB, GDEF)                                         |
-| `.palettes`      | Color palettes (arrays of hex strings)                                              |
-| `.colorGlyphs`   | Color glyph data (COLR layers or paint trees)                                       |
-| `.tables`        | All parsed tables (for advanced/lossless access)                                    |
-| `.glyphCount`    | Number of glyphs                                                                    |
-| `.format`        | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                              |
+| Property            | Description                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `.info`             | Font metadata object (familyName, styleName, unitsPerEm, ascender, descender, etc.) |
+| `.glyphs`           | Array of glyph objects (name, unicode, advanceWidth, contours, ...)                 |
+| `.kerning`          | Array of kerning pairs `{ left, right, value }`                                     |
+| `.substitutions`    | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)          |
+| `.axes`             | Variable font axes (from fvar)                                                      |
+| `.instances`        | Named instances (from fvar)                                                         |
+| `.axisMapping`      | Axis coordinate remapping (from avar)                                               |
+| `.axisStyles`       | Axis style labels and relationships (from STAT)                                     |
+| `.metricVariations` | Global metric deltas across the design space (from MVAR)                            |
+| `.features`         | OpenType layout features (GPOS, GSUB, GDEF)                                         |
+| `.palettes`         | Color palettes (arrays of hex strings)                                              |
+| `.colorGlyphs`      | Color glyph data (COLR layers or paint trees)                                       |
+| `.tables`           | All parsed tables (for advanced/lossless access)                                    |
+| `.glyphCount`       | Number of glyphs                                                                    |
+| `.format`           | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                              |
 
 ### Glyph methods
+
+See [Creating Glyphs](https://www.glyphrstudio.com/fontfluxjs/creating-glyphs) for a full guide with examples.
 
 | Method                      | Description                                               |
 | --------------------------- | --------------------------------------------------------- |
@@ -210,6 +219,8 @@ const buffer = font.export();
 | `.setInfo(partial)` | Merge partial updates into font info   |
 
 ### Kerning methods
+
+See [Creating Kerning](https://www.glyphrstudio.com/fontfluxjs/creating-kerning) for a full guide with examples.
 
 | Method                        | Description                                    |
 | ----------------------------- | ---------------------------------------------- |
@@ -246,6 +257,8 @@ See [Creating Substitutions](https://www.glyphrstudio.com/fontfluxjs/creating-su
 
 ### Color font methods
 
+See [Creating Color Fonts](https://www.glyphrstudio.com/fontfluxjs/creating-color-fonts) for a full guide with examples.
+
 | Method                                        | Description                                |
 | --------------------------------------------- | ------------------------------------------ |
 | `.getPalette(index)`                          | Get a palette by index                     |
@@ -268,12 +281,14 @@ See [Creating Substitutions](https://www.glyphrstudio.com/fontfluxjs/creating-su
 
 ### Export & serialization
 
-| Method              | Description                                                             |
-| ------------------- | ----------------------------------------------------------------------- | ------ | ---------- |
-| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt'              | 'woff' | 'woff2' }` |
-| `.toJSON(indent?)`  | Serialize to JSON string                                                |
-| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }` |
-| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape    |
+| Method              | Description                                                                      |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt' ∣ 'woff' ∣ 'woff2' }` |
+| `.toJSON(indent?)`  | Serialize to JSON string                                                         |
+| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }`          |
+| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape             |
+
+See [Validation](https://www.glyphrstudio.com/fontfluxjs/validation) for a full guide with examples.
 
 ### Static utilities
 
@@ -314,6 +329,9 @@ const woff2Output = font.export({ format: 'woff2' });
   ],
   axes: [...],               // Variable font axes (fvar)
   instances: [...],          // Named instances (fvar)
+  axisMapping: { ... },      // Axis coordinate remapping (avar)
+  axisStyles: { ... },       // Axis style labels and relationships (STAT)
+  metricVariations: { ... }, // Global metric deltas (MVAR)
   substitutions: [            // GSUB rules (ligatures, small caps, alternates, ...)
     { type: 'ligature', feature: 'liga', components: ['f', 'i'], ligature: 'fi' }
   ],

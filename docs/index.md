@@ -24,6 +24,7 @@ Guides for adding specific font features to your fonts.
 - [Creating Kerning](./creating-kerning.md) — Add pair-based kerning adjustments.
 - [Creating Substitutions](./creating-substitutions.md) — Ligatures, alternates, small caps, and other GSUB rules.
 - [Creating Color Fonts](./creating-color-fonts.md) — Palettes and color glyphs using COLR/CPAL.
+- [Creating Variable Fonts](./creating-variables.md) — Axes, instances, axis mapping, axis styles, and metric variations.
 
 ## Reference
 
@@ -54,18 +55,21 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 
 ### Instance properties (live references)
 
-| Property         | Description                                                                      |
-| ---------------- | -------------------------------------------------------------------------------- |
-| `.info`          | Font metadata object (`familyName`, `styleName`, `unitsPerEm`, `ascender`, etc.) |
-| `.glyphs`        | Array of glyph objects (`name`, `unicode`, `advanceWidth`, `contours`, ...)      |
-| `.kerning`       | Array of kerning pairs `{ left, right, value }`                                  |
-| `.substitutions` | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)       |
-| `.axes`          | Variable font axes (from fvar)                                                   |
-| `.instances`     | Named instances (from fvar)                                                      |
-| `.features`      | OpenType layout features (GPOS, GSUB, GDEF)                                      |
-| `.tables`        | All parsed tables (for advanced/lossless access)                                 |
-| `.glyphCount`    | Number of glyphs                                                                 |
-| `.format`        | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                           |
+| Property            | Description                                                                      |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `.info`             | Font metadata object (`familyName`, `styleName`, `unitsPerEm`, `ascender`, etc.) |
+| `.glyphs`           | Array of glyph objects (`name`, `unicode`, `advanceWidth`, `contours`, ...)      |
+| `.kerning`          | Array of kerning pairs `{ left, right, value }`                                  |
+| `.substitutions`    | Array of GSUB substitution rules (ligatures, small caps, alternates, etc.)       |
+| `.axes`             | Variable font axes (from fvar)                                                   |
+| `.instances`        | Named instances (from fvar)                                                      |
+| `.axisMapping`      | Axis coordinate remapping (from avar)                                            |
+| `.axisStyles`       | Axis style labels and relationships (from STAT)                                  |
+| `.metricVariations` | Global metric deltas across the design space (from MVAR)                         |
+| `.features`         | OpenType layout features (GPOS, GSUB, GDEF)                                      |
+| `.tables`           | All parsed tables (for advanced/lossless access)                                 |
+| `.glyphCount`       | Number of glyphs                                                                 |
+| `.format`           | Font format string: `'truetype'`, `'cff'`, or `'cff2'`                           |
 
 ### Glyph methods
 
@@ -174,6 +178,22 @@ See the [README](https://github.com/mattlag/Font-Flux-JS#readme) for installatio
 			"ligature": "fi"
 		}
 	],
+	"axes": [
+		{ "tag": "wght", "name": "Weight", "min": 100, "default": 400, "max": 900 }
+	],
+	"instances": [{ "name": "Bold", "coordinates": { "wght": 700 } }],
+	"axisMapping": {
+		"wght": [
+			{ "from": -1, "to": -1 },
+			{ "from": 0, "to": 0 },
+			{ "from": 1, "to": 1 }
+		]
+	},
+	"axisStyles": { "elidedFallbackName": "Regular", "values": ["..."] },
+	"metricVariations": {
+		"regions": ["..."],
+		"metrics": { "ascender": ["..."] }
+	},
 	"tables": {
 		"head": { "unitsPerEm": 1000, "...": "..." },
 		"cmap": { "...": "..." }

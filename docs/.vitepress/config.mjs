@@ -48,6 +48,7 @@ export default defineConfig({
 					{ text: 'Creating Kerning', link: '/creating-kerning' },
 					{ text: 'Creating Substitutions', link: '/creating-substitutions' },
 					{ text: 'Creating Color Fonts', link: '/creating-color-fonts' },
+					{ text: 'Creating Variable Fonts', link: '/creating-variables' },
 				],
 			},
 			{

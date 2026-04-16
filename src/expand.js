@@ -13,7 +13,7 @@ import {
 } from './color.js';
 import { resolveGlyphId } from './glyph.js';
 import { compileCharString } from './otf/charstring_compiler.js';
-import { isoToLongdatetime } from './simplify.js';
+import { isoToLongdatetime, MVAR_NAME_TAGS } from './simplify.js';
 
 // ===========================================================================
 //  MAIN ENTRY
@@ -93,9 +93,22 @@ export function buildRawFromSimplified(simplified) {
 	// == Variable font ================================================
 	if (simplified.axes && simplified.axes.length > 0) {
 		tables.fvar = buildFvarTable(simplified, tables.name);
-		// Auto-generate STAT table if not already provided via passthrough tables
-		if (!simplified.tables?.STAT) {
+
+		// avar from axisMapping (if provided)
+		if (simplified.axisMapping) {
+			tables.avar = buildAvarTable(simplified);
+		}
+
+		// STAT from axisStyles (if provided), else auto-generate
+		if (simplified.axisStyles) {
+			tables.STAT = buildSTATFromAxisStyles(simplified, tables.name);
+		} else if (!simplified.tables?.STAT) {
 			tables.STAT = buildSTATTable(simplified, tables.name);
+		}
+
+		// MVAR from metricVariations (if provided)
+		if (simplified.metricVariations) {
+			tables.MVAR = buildMVARTable(simplified);
 		}
 	}
 
@@ -1709,6 +1722,243 @@ function buildSTATTable(simplified, nameTable) {
 		designAxes,
 		axisValues,
 		elidedFallbackNameID: elidedNameID,
+	};
+}
+
+/**
+ * Build a STAT table from explicit axisStyles.
+ * Handles all 4 STAT axis value formats based on which fields are present.
+ */
+function buildSTATFromAxisStyles(simplified, nameTable) {
+	const { axes, axisStyles } = simplified;
+
+	let nextNameID = 256;
+	for (const rec of nameTable.names) {
+		if (rec.nameID >= nextNameID) nextNameID = rec.nameID + 1;
+	}
+
+	// Build designAxes array
+	const designAxes = axes.map((axis) => {
+		const nameID = nextNameID++;
+		addNameRecord(nameTable, nameID, axis.name || axis.tag);
+		return {
+			axisTag: axis.tag,
+			axisNameID: nameID,
+			axisOrdering: 0,
+		};
+	});
+
+	// Build axis tag → index lookup
+	const tagToIndex = {};
+	for (let i = 0; i < axes.length; i++) {
+		tagToIndex[axes[i].tag] = i;
+	}
+
+	// Convert simplified axis values to STAT format
+	const axisValues = [];
+	if (axisStyles.values) {
+		for (const av of axisStyles.values) {
+			const nameID = nextNameID++;
+			addNameRecord(nameTable, nameID, av.name || '');
+
+			if (av._raw) {
+				// Preserved unknown format — restore directly
+				axisValues.push({ ...av._raw, valueNameID: nameID });
+			} else if (av.values) {
+				// Format 4: multi-axis
+				const entries = Object.entries(av.values).map(([tag, value]) => ({
+					axisIndex: tagToIndex[tag] ?? 0,
+					value,
+				}));
+				axisValues.push({
+					format: 4,
+					axisCount: entries.length,
+					flags: av.flags ?? 0,
+					valueNameID: nameID,
+					axisValues: entries,
+				});
+			} else if (av.range) {
+				// Format 2: range
+				axisValues.push({
+					format: 2,
+					axisIndex: tagToIndex[av.axis] ?? 0,
+					flags: av.flags ?? 0,
+					valueNameID: nameID,
+					nominalValue: av.range[1],
+					rangeMinValue: av.range[0],
+					rangeMaxValue: av.range[2],
+				});
+			} else if (av.linkedValue !== undefined) {
+				// Format 3: linked value
+				axisValues.push({
+					format: 3,
+					axisIndex: tagToIndex[av.axis] ?? 0,
+					flags: av.flags ?? 0,
+					valueNameID: nameID,
+					value: av.value,
+					linkedValue: av.linkedValue,
+				});
+			} else {
+				// Format 1: single value
+				axisValues.push({
+					format: 1,
+					axisIndex: tagToIndex[av.axis] ?? 0,
+					flags: av.flags ?? 0,
+					valueNameID: nameID,
+					value: av.value,
+				});
+			}
+		}
+	}
+
+	// Elided fallback name
+	const elidedNameID = nextNameID++;
+	addNameRecord(
+		nameTable,
+		elidedNameID,
+		axisStyles.elidedFallbackName || 'Regular',
+	);
+
+	return {
+		majorVersion: 1,
+		minorVersion: 1,
+		designAxes,
+		axisValues,
+		elidedFallbackNameID: elidedNameID,
+	};
+}
+
+/**
+ * Build an avar table from the simplified axisMapping.
+ */
+function buildAvarTable(simplified) {
+	const { axes, axisMapping } = simplified;
+
+	const segmentMaps = axes.map((axis) => {
+		const maps = axisMapping[axis.tag];
+		if (!maps || maps.length === 0) {
+			// Identity mapping: required minimum entries
+			return {
+				positionMapCount: 3,
+				axisValueMaps: [
+					{ fromCoordinate: -1, toCoordinate: -1 },
+					{ fromCoordinate: 0, toCoordinate: 0 },
+					{ fromCoordinate: 1, toCoordinate: 1 },
+				],
+			};
+		}
+		return {
+			positionMapCount: maps.length,
+			axisValueMaps: maps.map((m) => ({
+				fromCoordinate: m.from,
+				toCoordinate: m.to,
+			})),
+		};
+	});
+
+	return {
+		majorVersion: 1,
+		minorVersion: 0,
+		reserved: 0,
+		segmentMaps,
+	};
+}
+
+/**
+ * Build an MVAR table from the simplified metricVariations.
+ * Reconstructs the ItemVariationStore and value records.
+ */
+function buildMVARTable(simplified) {
+	const { axes, metricVariations } = simplified;
+	const { regions, metrics } = metricVariations;
+
+	// Build the variation region list with axis-tag keys → axis-indexed arrays
+	const tagToIndex = {};
+	for (let i = 0; i < axes.length; i++) {
+		tagToIndex[axes[i].tag] = i;
+	}
+
+	const ivsRegions = regions.map((region) => {
+		const regionAxes = [];
+		for (let a = 0; a < axes.length; a++) {
+			const tag = axes[a].tag;
+			if (region.axes[tag]) {
+				const [start, peak, end] = region.axes[tag];
+				regionAxes.push({ startCoord: start, peakCoord: peak, endCoord: end });
+			} else {
+				regionAxes.push({ startCoord: 0, peakCoord: 0, endCoord: 0 });
+			}
+		}
+		return { regionAxes };
+	});
+
+	// Collect all unique region indices used across all metrics
+	const allRegionIndices = new Set();
+	for (const deltas of Object.values(metrics)) {
+		for (const d of deltas) {
+			allRegionIndices.add(d.region);
+		}
+	}
+	const regionIndexes = [...allRegionIndices].sort((a, b) => a - b);
+	const regionToLocal = new Map();
+	for (let i = 0; i < regionIndexes.length; i++) {
+		regionToLocal.set(regionIndexes[i], i);
+	}
+
+	// Build delta sets: one row per metric, columns = regions
+	const metricEntries = Object.entries(metrics);
+	const deltaSets = [];
+	const valueRecords = [];
+
+	for (const [humanName, deltas] of metricEntries) {
+		const tag = MVAR_NAME_TAGS[humanName] || humanName;
+		const row = new Array(regionIndexes.length).fill(0);
+		for (const d of deltas) {
+			const localIdx = regionToLocal.get(d.region);
+			if (localIdx !== undefined) row[localIdx] = d.delta;
+		}
+		deltaSets.push(row);
+		valueRecords.push({
+			valueTag: tag,
+			deltaSetOuterIndex: 0,
+			deltaSetInnerIndex: deltaSets.length - 1,
+		});
+	}
+
+	// Compute wordDeltaCount: count how many regions need int16 (vs int8)
+	let wordCount = 0;
+	for (let r = 0; r < regionIndexes.length; r++) {
+		let needsWord = false;
+		for (const row of deltaSets) {
+			if (row[r] < -128 || row[r] > 127) {
+				needsWord = true;
+				break;
+			}
+		}
+		if (needsWord) wordCount++;
+	}
+
+	return {
+		majorVersion: 1,
+		minorVersion: 0,
+		reserved: 0,
+		valueRecordSize: 8,
+		valueRecords,
+		itemVariationStore: {
+			format: 1,
+			variationRegionList: {
+				axisCount: axes.length,
+				regions: ivsRegions,
+			},
+			itemVariationData: [
+				{
+					itemCount: deltaSets.length,
+					wordDeltaCount: wordCount,
+					regionIndexes,
+					deltaSets,
+				},
+			],
+		},
 	};
 }
 

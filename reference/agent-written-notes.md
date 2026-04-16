@@ -122,9 +122,9 @@ test/
 2. **Imported simplified (`_header` + `tables`)** — Rebuild DECOMPOSED_TABLES from simplified fields (honoring edits), preserve non-decomposed tables from stored originals
 3. **Hand-authored (`font` + `glyphs`, no `_header`)** — `buildRawFromSimplified()` generates everything
 
-**DECOMPOSED_TABLES** (in simplify.js): head, hhea, hmtx, vmtx, name, OS/2, post, maxp, cmap, glyf, loca, CFF, kern, fvar, GPOS, GSUB, GDEF, gasp, cvt, fpgm, prep
+**DECOMPOSED_TABLES** (in simplify.js): head, hhea, hmtx, vmtx, name, OS/2, post, maxp, cmap, glyf, loca, CFF, kern, fvar, avar, STAT, MVAR, GPOS, GSUB, GDEF, gasp, cvt, fpgm, prep, COLR, CPAL
 
-**Non-decomposed tables** pass through from stored `tables`: avar, gvar, STAT, MVAR, HVAR, VVAR, cvar, COLR, CPAL, CBDT, CBLC, EBDT, EBLC, EBSC, sbix, SVG, BASE, JSTF, MATH, hdmx, LTSH, VDMX, vhea, DSIG, MERG, meta, PCLT, VORG, ltag, CFF2
+**Non-decomposed tables** pass through from stored `tables`: gvar, HVAR, VVAR, cvar, CBDT, CBLC, EBDT, EBLC, EBSC, sbix, SVG, BASE, JSTF, MATH, hdmx, LTSH, VDMX, vhea, DSIG, MERG, meta, PCLT, VORG, ltag, CFF2
 
 ## Test Policy
 

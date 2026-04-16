@@ -2,6 +2,8 @@
 
 Describes design attributes (axis values and names) for presenting variable and non-variable font families.
 
+> **Simplified format:** See [Creating Variable Fonts](../creating-variables.md#axis-styles-stat) for the human-friendly `axisStyles` format.
+
 ## Scope
 
 - Format family: Shared SFNT
@@ -18,17 +20,17 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 
 ```json
 {
-  "tables": {
-    "STAT": {
-      "majorVersion": 0,
-      "minorVersion": 0,
-      "designAxes": null,
-      "axisValues": null,
-      "designAxisSize": 0,
-      "elidedFallbackNameID": null,
-      "_checksum": 0
-    }
-  }
+	"tables": {
+		"STAT": {
+			"majorVersion": 0,
+			"minorVersion": 0,
+			"designAxes": null,
+			"axisValues": null,
+			"designAxisSize": 0,
+			"elidedFallbackNameID": null,
+			"_checksum": 0
+		}
+	}
 }
 ```
 
@@ -40,9 +42,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 - `axisValues` - implementation-defined
 - `designAxisSize` - number (0..65535)
 - `elidedFallbackNameID` - implementation-defined
-
-
-
 
 ## Validation Constraints
 
@@ -64,7 +63,13 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 				{ "axisTag": "wght", "axisNameID": 256, "axisOrdering": 0 }
 			],
 			"axisValues": [
-				{ "format": 1, "axisIndex": 0, "flags": 0, "valueNameID": 257, "value": 400 }
+				{
+					"format": 1,
+					"axisIndex": 0,
+					"flags": 0,
+					"valueNameID": 257,
+					"value": 400
+				}
 			],
 			"elidedFallbackNameID": 2,
 			"_checksum": 0
@@ -72,8 +77,6 @@ This skeleton reflects fields currently parsed/written by Font Flux JS for this 
 	}
 }
 ```
-
-
 
 ## Additional Nested Keys Seen In Implementation
 
