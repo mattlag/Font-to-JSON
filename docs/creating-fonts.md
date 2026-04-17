@@ -87,3 +87,14 @@ const woff2 = font.export({ format: 'woff2' }); // WOFF 2.0 (Brotli)
 Fonts opened from WOFF or WOFF2 files re-export to their original format by default. Use `format: 'sfnt'` to force raw SFNT output.
 
 See [Validation guide](./validation.md) and [All table references](./tables/index.md).
+
+## Legacy formats (PFB / PFA / CFF)
+
+`FontFlux.open()` also accepts legacy PostScript Type 1 fonts (`.pfb`, `.pfa`) and CFF files. These are automatically detected and converted to the same simplified structure.
+
+```js
+const font = FontFlux.open(pfbBuffer); // PFB, PFA, or CFF
+font.export({ format: 'sfnt' }); // Export as modern OTF
+```
+
+See [Importing Legacy Formats](./importing-legacy-formats.md) for details on what data is extracted and what limitations apply.

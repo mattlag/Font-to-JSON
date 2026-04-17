@@ -14,6 +14,8 @@ export function createSaveDialog(root, fontData, apis) {
 
 	// Determine default format from source
 	const hasCFF = !!(fontData.tables?.['CFF '] || fontData.tables?.CFF2);
+	const isStandaloneCFF = fontData._standalone === 'cff';
+	const isType1 = fontData._standalone === 'type1';
 	const woffVersion = fontData._woff?.version;
 
 	const formats = [
@@ -27,8 +29,18 @@ export function createSaveDialog(root, fontData, apis) {
 		{ id: 'woff2', label: 'WOFF2', ext: '.woff2', format: 'woff2' },
 	];
 
+	if (isStandaloneCFF) {
+		formats.push({ id: 'cff', label: 'CFF', ext: '.cff', format: 'cff' });
+	}
+
 	// Default selection based on source format
-	let selectedIdx = woffVersion === 2 ? 2 : woffVersion === 1 ? 1 : 0;
+	let selectedIdx = isStandaloneCFF
+		? formats.length - 1
+		: woffVersion === 2
+			? 2
+			: woffVersion === 1
+				? 1
+				: 0;
 
 	// Build filename from font data
 	const baseName = sanitizeFilename(

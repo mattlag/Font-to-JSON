@@ -170,14 +170,14 @@ When creating fonts from scratch, Font Flux JS automatically uses the most moder
 
 See [Creating Fonts](https://www.glyphrstudio.com/fontfluxjs/creating-fonts) for a full guide with examples.
 
-| Method                                   | Description                                                                                 |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance. Handles TTF, OTF, TTC, OTC, WOFF, WOFF2. |
-| `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances.              |
-| `FontFlux.create(options)`               | Create a new empty font from metadata (family, unitsPerEm, etc.).                           |
-| `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                                       |
-| `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.                        |
-| `FontFlux.initWoff2()` / `initWoff2()`   | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.                    |
+| Method                                   | Description                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance. Handles TTF, OTF, TTC, OTC, WOFF, WOFF2, CFF, PFB, and PFA. |
+| `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances.                                 |
+| `FontFlux.create(options)`               | Create a new empty font from metadata (family, unitsPerEm, etc.).                                              |
+| `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                                                          |
+| `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.                                           |
+| `FontFlux.initWoff2()` / `initWoff2()`   | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.                                       |
 
 ### Instance properties (live references)
 
@@ -281,12 +281,12 @@ See [Creating Color Fonts](https://www.glyphrstudio.com/fontfluxjs/creating-colo
 
 ### Export & serialization
 
-| Method              | Description                                                                      |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt' ∣ 'woff' ∣ 'woff2' }` |
-| `.toJSON(indent?)`  | Serialize to JSON string                                                         |
-| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }`          |
-| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape             |
+| Method              | Description                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------------- |
+| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt' ∣ 'woff' ∣ 'woff2' ∣ 'cff' }` |
+| `.toJSON(indent?)`  | Serialize to JSON string                                                                 |
+| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }`                  |
+| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape                     |
 
 See [Validation](https://www.glyphrstudio.com/fontfluxjs/validation) for a full guide with examples.
 
@@ -345,10 +345,20 @@ The top-level fields (`font`, `glyphs`, `kerning`) are the human-friendly editin
 
 ## Supported formats
 
+### Import & export
+
 - **TTF** (`.ttf`) and **OTF** (`.otf`) — single fonts
 - **TTC** (`.ttc`) and **OTC** (`.otc`) — font collections
 - **WOFF** (`.woff`) — Web Open Font Format 1.0 (zlib compression)
 - **WOFF2** (`.woff2`) — Web Open Font Format 2.0 (Brotli compression)
+- **CFF** (`.cff`) — raw CFF table data (import & export)
+
+### Import only (legacy formats)
+
+- **PFB** (`.pfb`) — PostScript Type 1 Binary
+- **PFA** (`.pfa`) — PostScript Type 1 ASCII
+
+Legacy Type 1 fonts are converted to CFF outlines on import. They can then be exported as OTF, WOFF, or any other supported format. See [Importing Legacy Formats](https://www.glyphrstudio.com/fontfluxjs/importing-legacy-formats) for details.
 
 ## Supported tables
 

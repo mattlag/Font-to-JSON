@@ -3,7 +3,7 @@
  * Calls onFontLoaded(arrayBuffer, fileName) when a font is selected.
  */
 export function createLoadingScreen(container, onFontLoaded) {
-	const ACCEPT = '.otf,.ttf,.woff,.woff2,.ttc,.otc';
+	const ACCEPT = '.otf,.ttf,.woff,.woff2,.ttc,.otc,.cff,.pfb,.pfa';
 
 	container.innerHTML = `
 		<div class="loading-screen">
@@ -14,7 +14,7 @@ export function createLoadingScreen(container, onFontLoaded) {
 				<p class="hero-demo-hint">This demo app can edit metadata, subset glyphs, and change file formats.</p>
 				<div class="beta-notice"><strong>April 2026</strong><br>Actively adding exciting new features!</div>
 				<p class="tagline">Drop a font file anywhere, or <a href="#" class="browse-link">browse for files</a></p>
-				<p class="supported-formats">Supports OTF, TTF, WOFF, WOFF2, TTC, OTC</p>
+				<p class="supported-formats">Supports OTF, TTF, WOFF, WOFF2, TTC, OTC, CFF, PFB, PFA</p>
 				<input type="file" accept="${ACCEPT}" hidden>
 				<div class="status-area"></div>
 			</div>
@@ -72,10 +72,20 @@ export function createLoadingScreen(container, onFontLoaded) {
 
 		// Validate extension
 		const ext = file.name.split('.').pop().toLowerCase();
-		const valid = ['otf', 'ttf', 'woff', 'woff2', 'ttc', 'otc'];
+		const valid = [
+			'otf',
+			'ttf',
+			'woff',
+			'woff2',
+			'ttc',
+			'otc',
+			'cff',
+			'pfb',
+			'pfa',
+		];
 		if (!valid.includes(ext)) {
 			showError(
-				`Unsupported file type ".${ext}". Please use OTF, TTF, WOFF, WOFF2, TTC, or OTC.`,
+				`Unsupported file type ".${ext}". Please use OTF, TTF, WOFF, WOFF2, TTC, OTC, CFF, PFB, or PFA.`,
 			);
 			return;
 		}

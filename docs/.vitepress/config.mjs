@@ -49,6 +49,10 @@ export default defineConfig({
 					{ text: 'Creating Substitutions', link: '/creating-substitutions' },
 					{ text: 'Creating Color Fonts', link: '/creating-color-fonts' },
 					{ text: 'Creating Variable Fonts', link: '/creating-variables' },
+					{
+						text: 'Importing Legacy Formats',
+						link: '/importing-legacy-formats',
+					},
 				],
 			},
 			{

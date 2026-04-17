@@ -153,14 +153,15 @@ function computeTableChecksum(data) {
 	return sum;
 }
 
-const SUPPORTED_FORMATS = new Set(['sfnt', 'woff', 'woff2']);
+const SUPPORTED_FORMATS = new Set(['sfnt', 'woff', 'woff2', 'cff']);
 
 /**
  * Determine the default export format from the font data's origin.
  * If the font was imported from a WOFF container, default to that format;
- * otherwise default to raw SFNT.
+ * CFF imports default to CFF; otherwise default to raw SFNT.
  */
 function defaultFormatFrom(fontData) {
+	if (fontData._standalone === 'cff') return 'cff';
 	const version = fontData._woff?.version;
 	if (version === 2) return 'woff2';
 	if (version === 1) return 'woff';
@@ -192,11 +193,14 @@ export function exportFont(fontData, options = {}) {
 
 	if (!SUPPORTED_FORMATS.has(format)) {
 		throw new Error(
-			`Unknown export format "${format}". Supported: sfnt, woff, woff2.`,
+			`Unknown export format "${format}". Supported: sfnt, woff, woff2, cff.`,
 		);
 	}
 
 	if (isCollection(fontData)) {
+		if (format === 'cff') {
+			throw new Error('CFF export does not support font collections.');
+		}
 		if (options.split) {
 			return exportCollectionSplit(fontData, format);
 		}
@@ -216,6 +220,21 @@ export function exportFont(fontData, options = {}) {
 			);
 		}
 		return sfnt;
+	}
+
+	// CFF: extract CFF table bytes directly
+	if (format === 'cff') {
+		const resolved = resolveExportSource(fontData);
+		const cffData = resolved.tables['CFF '];
+		if (!cffData) {
+			throw new Error(
+				'CFF export requires CFF glyph data. This font uses TrueType outlines.',
+			);
+		}
+		const cffBytes = writeCFF(cffData);
+		const buf = new ArrayBuffer(cffBytes.length);
+		new Uint8Array(buf).set(cffBytes);
+		return buf;
 	}
 
 	const resolved = resolveExportSource(fontData);

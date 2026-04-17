@@ -25,6 +25,7 @@ Guides for adding specific font features to your fonts.
 - [Creating Substitutions](./creating-substitutions.md) — Ligatures, alternates, small caps, and other GSUB rules.
 - [Creating Color Fonts](./creating-color-fonts.md) — Palettes and color glyphs using COLR/CPAL.
 - [Creating Variable Fonts](./creating-variables.md) — Axes, instances, axis mapping, axis styles, and metric variations.
+- [Importing Legacy Formats](./importing-legacy-formats.md) — CFF, PFB, and PFA (PostScript Type 1) import.
 
 ## Reference
 
@@ -44,14 +45,14 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 
 ### Static factories
 
-| Method                                   | Description                                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance (TTF/OTF/TTC/WOFF/WOFF2).    |
-| `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances. |
-| `FontFlux.create(options)`               | Create a new empty font from metadata (`family`, `unitsPerEm`, etc.).          |
-| `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                          |
-| `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.           |
-| `FontFlux.initWoff2()` / `initWoff2()`   | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.       |
+| Method                                   | Description                                                                             |
+| ---------------------------------------- | --------------------------------------------------------------------------------------- |
+| `FontFlux.open(buffer)`                  | Parse an `ArrayBuffer` into a `FontFlux` instance (TTF/OTF/TTC/WOFF/WOFF2/CFF/PFB/PFA). |
+| `FontFlux.openAll(buffer)`               | Parse a font collection (TTC/OTC), returning an array of `FontFlux` instances.          |
+| `FontFlux.create(options)`               | Create a new empty font from metadata (`family`, `unitsPerEm`, etc.).                   |
+| `FontFlux.fromJSON(jsonString)`          | Deserialize a JSON string into a `FontFlux` instance.                                   |
+| `FontFlux.exportCollection(fonts, opts)` | Export multiple `FontFlux` instances as a single TTC/OTC collection.                    |
+| `FontFlux.initWoff2()` / `initWoff2()`   | Initialize WOFF2 support (async). Must be awaited once before WOFF2 use.                |
 
 ### Instance properties (live references)
 
@@ -132,12 +133,12 @@ import { FontFlux, initWoff2 } from 'font-flux-js';
 
 ### Export & serialization
 
-| Method              | Description                                                                        |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt' \| 'woff' \| 'woff2' }` |
-| `.toJSON(indent?)`  | Serialize to JSON string                                                           |
-| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }`            |
-| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape               |
+| Method              | Description                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| `.export(options?)` | Export to binary `ArrayBuffer`. Options: `{ format: 'sfnt' \| 'woff' \| 'woff2' \| 'cff' }` |
+| `.toJSON(indent?)`  | Serialize to JSON string                                                                    |
+| `.validate()`       | Check for structural issues. Returns `{ valid, errors, warnings, ... }`                     |
+| `.detach()`         | Strip stored tables/header, converting to a pure hand-authored shape                        |
 
 ### Static utilities
 

@@ -73,7 +73,7 @@ The bridge between scenarios works seamlessly — users can start from an import
 - **Version**: 2.0.0-beta.0
 - **Tests**: 650+ passing across 75 files
 - **Tables**: 51 table types with registered parsers/writers (see checklist below)
-- **Formats**: TTF, OTF, TTC, OTC, WOFF, WOFF2 all fully supported
+- **Formats**: TTF, OTF, TTC, OTC, WOFF, WOFF2 all fully supported. CFF, PFB, and PFA import supported (legacy Type 1 converted to CFF outlines).
 - **FontFlux class**: Complete v2 API with glyph, kerning, substitution, axis, instance, feature, and hinting methods
 - **GSUB decomposition**: Full simplified substitution pipeline (types 1–4, 8 decomposed; types 5/6 raw passthrough)
 - **Validation**: Three-level severity (error/warning/info) with auto-fix
